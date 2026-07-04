@@ -1,0 +1,92 @@
+import type { Node, Edge } from "@xyflow/react";
+import { getSwitchCases, type SwitchCase } from "../canvas/effectivePorts.js";
+
+/**
+ * Pure node/edge-mutation helpers for the two Phase 7 "dynamic pin count" node families:
+ * AND/NAND/OR/NOR/XOR's variadic boolean value-inputs, and Switch's per-case exec-outputs.
+ * Operate on plain react-flow `Node[]`/`Edge[]` so both `store/flowStore.ts` (main canvas)
+ * and `store/functionGraphStore.ts` (Function Graph sub-canvas) can share the exact same
+ * semantics instead of each re-deriving them.
+ */
+
+/**
+ * Appends a new boolean input pin (`extra-<seq>`) to a variadic boolean node. `nextInputSeq`
+ * is a monotonic counter, never reused even after removals — so a pin id is never re-minted
+ * and stale wiring/config referencing a removed pin id can never collide with a new one.
+ */
+export function addVariadicInputPin(node: Node): Node {
+  const extra: string[] = Array.isArray(node.data?.extraInputs) ? (node.data!.extraInputs as string[]) : [];
+  const seq = Number(node.data?.nextInputSeq ?? 0);
+  const pinId = `extra-${seq}`;
+  return { ...node, data: { ...node.data, extraInputs: [...extra, pinId], nextInputSeq: seq + 1 } };
+}
+
+/** Removes one dynamic input pin from a variadic boolean node, dropping any wire targeting it. */
+export function removeVariadicInputPin(
+  nodeId: string,
+  pinId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  return {
+    nodes: nodes.map((n) =>
+      n.id === nodeId
+        ? {
+            ...n,
+            data: {
+              ...n.data,
+              extraInputs: (Array.isArray(n.data?.extraInputs) ? (n.data.extraInputs as string[]) : []).filter(
+                (p) => p !== pinId,
+              ),
+            },
+          }
+        : n,
+    ),
+    edges: edges.filter((e) => !(e.target === nodeId && e.targetHandle === pinId)),
+  };
+}
+
+/**
+ * Appends a new case to a Switch node's `data.cases`, with a stable `id` (a monotonic
+ * `nextCaseSeq` counter, never reused — same pattern as `addVariadicInputPin`'s
+ * `nextInputSeq`) and a placeholder `value` the user immediately edits in the config panel's
+ * Cases list. `id` and `value` are intentionally decoupled: editing a case's value later
+ * (`updateSwitchCaseValue`) never changes its pin id, so existing wiring survives.
+ */
+export function addSwitchCase(node: Node): Node {
+  const cases = getSwitchCases(node.data as Record<string, unknown>);
+  const seq = Number(node.data?.nextCaseSeq ?? 0);
+  const newCase: SwitchCase = { id: String(seq), value: 0 };
+  return { ...node, data: { ...node.data, cases: [...cases, newCase], nextCaseSeq: seq + 1 } };
+}
+
+/** Removes one case from a Switch node by its stable id, dropping any wire sourced from its exec-output pin. */
+export function removeSwitchCase(
+  nodeId: string,
+  caseId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const pinId = `case-${caseId}`;
+  return {
+    nodes: nodes.map((n) =>
+      n.id === nodeId ? { ...n, data: { ...n.data, cases: getSwitchCases(n.data as Record<string, unknown>).filter((c) => c.id !== caseId) } } : n,
+    ),
+    edges: edges.filter((e) => !(e.source === nodeId && e.sourceHandle === pinId)),
+  };
+}
+
+/** Updates one case's user-provided match value, keyed by its stable id (never its value). */
+export function updateSwitchCaseValue(nodeId: string, caseId: string, value: string | number | boolean, nodes: Node[]): Node[] {
+  return nodes.map((n) =>
+    n.id === nodeId
+      ? {
+          ...n,
+          data: {
+            ...n.data,
+            cases: getSwitchCases(n.data as Record<string, unknown>).map((c) => (c.id === caseId ? { ...c, value } : c)),
+          },
+        }
+      : n,
+  );
+}

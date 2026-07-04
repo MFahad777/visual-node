@@ -1,0 +1,36 @@
+{
+  "name": "@flowserver/editor-server",
+  "version": "0.0.0",
+  "description": "Local Express server for the FlowServer editor: serves the editor UI, persists flow.json, and runs codegen",
+  "type": "module",
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-express": "^2.1.2",
+    "@connectrpc/connect-node": "^2.1.2",
+    "@flowserver/core": "workspace:*",
+    "@flowserver/proto-gen": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.15",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.16.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

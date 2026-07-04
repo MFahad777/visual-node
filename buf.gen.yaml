@@ -1,0 +1,15 @@
+# Learn more: https://buf.build/docs/configuration/v2/buf-gen-yaml
+#
+# Generates Protobuf-ES v2 TypeScript (messages + Connect-compatible GenService
+# descriptors for EditorService) into packages/proto-gen/src/generated, consumed by
+# packages/editor-server and packages/editor-ui via the "@flowserver/proto-gen"
+# workspace package (see packages/proto-gen/src/index.ts).
+version: v2
+inputs:
+  - directory: proto
+plugins:
+  - local: protoc-gen-es
+    out: packages/proto-gen/src/generated
+    opt:
+      - target=ts
+      - import_extension=js

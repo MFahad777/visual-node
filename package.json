@@ -1,0 +1,23 @@
+{
+  "name": "flowserver",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Visual node-based backend builder for Node.js - compiles flows to real Express/Fastify code",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "dev": "node scripts/dev.mjs",
+    "proto:gen": "buf generate",
+    "fbs:gen": "node scripts/gen-fbs.mjs",
+    "migrate:blueprints": "node scripts/migrate-blueprints.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "devDependencies": {
+    "@bufbuild/buf": "^1.71.0",
+    "@bufbuild/protoc-gen-es": "^2.12.1"
+  }
+}

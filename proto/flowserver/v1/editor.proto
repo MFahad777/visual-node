@@ -1,0 +1,427 @@
+syntax = "proto3";
+
+package flowserver.v1;
+
+import "google/protobuf/struct.proto";
+
+// EditorService mirrors editor-server's 21 REST endpoints
+// (packages/editor-server/src/routes/*.routes.ts) as gRPC-compatible RPCs, served over
+// Buf Connect. See docs/phase8-backend-grpc-flatbuffers-plan.md for the full migration
+// rationale.
+//
+// Wherever a request/response currently carries a FlowServer `Flow` object
+// (nodes/edges/meta, packages/core/src/schema/node.types.ts), the field below is
+// `bytes flatbuffer_flow` — an opaque FlatBuffers-encoded `Flow` (see
+// packages/core/src/schema/flow.fbs), encoded/decoded by code owned elsewhere. This
+// service definition never re-models the node/edge graph shape in Protobuf.
+service EditorService {
+  // GET /api/node-registry
+  rpc GetNodeRegistry(GetNodeRegistryRequest) returns (GetNodeRegistryResponse);
+
+  // GET /api/flow (legacy single-file flow load)
+  rpc GetFlow(GetFlowRequest) returns (GetFlowResponse);
+  // POST /api/flow (legacy single-file flow save)
+  rpc SaveFlow(SaveFlowRequest) returns (SaveFlowResponse);
+
+  // POST /api/validate
+  rpc ValidateFlow(ValidateFlowRequest) returns (ValidateFlowResponse);
+
+  // POST /api/generate (preview)
+  rpc GenerateCode(GenerateCodeRequest) returns (GenerateCodeResponse);
+  // POST /api/generate/write (confirm + persist)
+  rpc WriteGeneratedCode(WriteGeneratedCodeRequest) returns (WriteGeneratedCodeResponse);
+
+  // POST /api/run/start
+  rpc StartRun(StartRunRequest) returns (StartRunResponse);
+  // POST /api/run/stop
+  rpc StopRun(StopRunRequest) returns (StopRunResponse);
+  // GET /api/run/status
+  rpc GetRunStatus(GetRunStatusRequest) returns (GetRunStatusResponse);
+  // GET /api/run/logs — SSE today, server-streaming RPC here.
+  rpc RunLogs(RunLogsRequest) returns (stream RunLogsResponse);
+
+  // GET /api/files
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  // POST /api/files/folders
+  rpc CreateFolder(CreateFolderRequest) returns (CreateFolderResponse);
+  // POST /api/files/blueprints
+  rpc CreateBlueprint(CreateBlueprintRequest) returns (CreateBlueprintResponse);
+  // GET /api/files/blueprint
+  rpc GetBlueprint(GetBlueprintRequest) returns (GetBlueprintResponse);
+  // POST /api/files/blueprint/save
+  rpc SaveBlueprint(SaveBlueprintRequest) returns (SaveBlueprintResponse);
+  // POST /api/files/rename
+  rpc RenamePath(RenamePathRequest) returns (RenamePathResponse);
+  // POST /api/files/delete
+  rpc DeletePath(DeletePathRequest) returns (DeletePathResponse);
+
+  // POST /api/compile (preview)
+  rpc CompileProject(CompileProjectRequest) returns (CompileProjectResponse);
+  // POST /api/compile/write (confirm + persist)
+  rpc WriteCompiledProject(WriteCompiledProjectRequest) returns (WriteCompiledProjectResponse);
+
+  // POST /api/function-graph/preview
+  rpc PreviewFunctionGraph(PreviewFunctionGraphRequest) returns (PreviewFunctionGraphResponse);
+
+  // POST /api/plugins/install (Phase 9 Part B — JSON-based plugin node system). Validates,
+  // persists to <projectDir>/.flowserver/plugins/, and registers a PluginNodeSpec immediately
+  // (see packages/core/src/plugins/plugin-schema.ts, packages/editor-server/src/connect/plugins.service.ts).
+  rpc InstallPlugin(InstallPluginRequest) returns (InstallPluginResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Shared messages
+// ---------------------------------------------------------------------------
+
+// Mirrors packages/core/src/schema/validate.ts's ValidationError and
+// packages/core/src/project/compile-project.ts's ProjectFileError (same three optional
+// locator fields plus a message; ProjectFileError additionally carries which file the
+// error came from, via `relative_path`).
+message ValidationError {
+  string node_id = 1;
+  // Set when the error originates inside a Function node's blueprint body graph,
+  // pointing at the specific node within it.
+  string blueprint_node_id = 2;
+  string message = 3;
+  // Only meaningful for whole-project compiles (CompileProject/WriteCompiledProject);
+  // empty for single-flow validation/generation.
+  string relative_path = 4;
+}
+
+// Mirrors packages/core/src/schema/node-registry.ts's PortDefinition.
+message PortDefinition {
+  string id = 1;
+  string label = 2;
+  // "exec" | "value", empty string if the source NodeDefinition omitted `kind`
+  // (pre-Phase-7 node types rely on editor-ui's legacy id-naming-convention fallback).
+  string kind = 3;
+}
+
+// Mirrors packages/core/src/schema/node-registry.ts's ConfigField. `default` is
+// `any` in TypeScript (a string, number, boolean, or raw JS source string for "code"
+// fields) so it's carried as google.protobuf.Value rather than re-typed here.
+message ConfigField {
+  string key = 1;
+  string label = 2;
+  // "text" | "select" | "number" | "code" | "boolean"
+  string type = 3;
+  repeated string options = 4;
+  google.protobuf.Value default_value = 5;
+  string hint = 6;
+}
+
+// Mirrors packages/core/src/schema/node-registry.ts's NodeDefinition, minus its
+// non-serializable `emit`/`resultIdentifier` function fields (the REST handler already
+// strips these before responding; see nodes.routes.ts).
+message NodeDefinition {
+  string type = 1;
+  string category = 2;
+  string label = 3;
+  string description = 4;
+  repeated PortDefinition inputs = 5;
+  repeated PortDefinition outputs = 6;
+  repeated ConfigField config_schema = 7;
+}
+
+// ---------------------------------------------------------------------------
+// GetNodeRegistry
+// ---------------------------------------------------------------------------
+
+message GetNodeRegistryRequest {
+  // Optional. Empty/unset = default top-level canvas scope. "function-graph" = the
+  // restricted node list valid inside a Function node's blueprint sub-canvas
+  // (mirrors the `?scope=function-graph` query param).
+  string scope = 1;
+}
+
+message GetNodeRegistryResponse {
+  repeated NodeDefinition definitions = 1;
+}
+
+// ---------------------------------------------------------------------------
+// GetFlow / SaveFlow (legacy single-file flow.json)
+// ---------------------------------------------------------------------------
+
+message GetFlowRequest {}
+
+message GetFlowResponse {
+  // False when flow.json does not exist yet (GET returned `{ flow: null }`). A
+  // flow.json that fails to parse as valid JSON/FlatBuffers today 500s in the REST
+  // handler; that failure is surfaced as an RPC error here, not a response field.
+  bool found = 1;
+  // FlatBuffers-encoded Flow. Only meaningful when `found` is true.
+  bytes flatbuffer_flow = 2;
+}
+
+message SaveFlowRequest {
+  bytes flatbuffer_flow = 1;
+}
+
+message SaveFlowResponse {
+  bool ok = 1;
+}
+
+// ---------------------------------------------------------------------------
+// ValidateFlow
+// ---------------------------------------------------------------------------
+
+message ValidateFlowRequest {
+  bytes flatbuffer_flow = 1;
+}
+
+message ValidateFlowResponse {
+  bool valid = 1;
+  repeated ValidationError errors = 2;
+}
+
+// ---------------------------------------------------------------------------
+// GenerateCode / WriteGeneratedCode
+// ---------------------------------------------------------------------------
+
+message GenerateCodeRequest {
+  bytes flatbuffer_flow = 1;
+}
+
+// Mirrors codegen-helpers.ts's CompileResult union: `{ valid: true; code } | { valid:
+// false; errors }`.
+message GenerateCodeResponse {
+  bool valid = 1;
+  string code = 2;
+  repeated ValidationError errors = 3;
+}
+
+message WriteGeneratedCodeRequest {
+  bytes flatbuffer_flow = 1;
+}
+
+message WriteGeneratedCodeResponse {
+  bool valid = 1;
+  bool written = 2;
+  // Absolute path server.js was written to. Only meaningful when `written` is true.
+  string path = 3;
+  repeated ValidationError errors = 4;
+}
+
+// ---------------------------------------------------------------------------
+// StartRun / StopRun / GetRunStatus / RunLogs
+// ---------------------------------------------------------------------------
+
+message StartRunRequest {}
+
+message RunStarted {
+  bool running = 1;
+}
+
+message RunValidationFailure {
+  repeated ValidationError errors = 1;
+}
+
+// run.routes.ts's POST /start has three distinct failure shapes today (422 invalid
+// project, 400 no-entry-file/multiple-entry-files, 409 deps not installed) plus the
+// success shape — modeled as a oneof rather than collapsing the two string-error cases
+// into RPC errors, since "no express.listen node yet" and "dependencies not installed"
+// are expected, actionable states the UI displays inline, not exceptional failures.
+message StartRunResponse {
+  oneof result {
+    RunStarted started = 1;
+    RunValidationFailure validation_failure = 2;
+    string error = 3;
+  }
+}
+
+message StopRunRequest {}
+
+message StopRunResponse {
+  bool running = 1;
+}
+
+message GetRunStatusRequest {}
+
+message GetRunStatusResponse {
+  bool running = 1;
+}
+
+message RunLogsRequest {}
+
+message ExitEvent {
+  // The child process's exit code. Absent (has_code = false) when the process was
+  // killed rather than exiting on its own (Node's `code` is `null` in that case).
+  optional int32 code = 1;
+}
+
+// Mirrors run.routes.ts's SSE frames: either a buffered/live stdout+stderr line
+// (`data: <json-string>`), or the terminal `event: exit` frame. One instance of this
+// message is streamed per SSE frame the REST endpoint would have written.
+message RunLogsResponse {
+  oneof event {
+    string log = 1;
+    ExitEvent exit = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Files: ListFiles / CreateFolder / CreateBlueprint / GetBlueprint / SaveBlueprint /
+// RenamePath / DeletePath
+// ---------------------------------------------------------------------------
+
+// Mirrors file-tree.ts's FileTreeNode discriminated union (`type: "file" | "folder"`).
+// `children` is only populated for FOLDER nodes.
+message FileTreeNode {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_FILE = 1;
+    KIND_FOLDER = 2;
+  }
+  Kind kind = 1;
+  string name = 2;
+  string relative_path = 3;
+  repeated FileTreeNode children = 4;
+}
+
+message ListFilesRequest {}
+
+message ListFilesResponse {
+  repeated FileTreeNode tree = 1;
+}
+
+message CreateFolderRequest {
+  string path = 1;
+}
+
+message CreateFolderResponse {
+  bool ok = 1;
+  string path = 2;
+}
+
+message CreateBlueprintRequest {
+  // Must end in ".blueprint".
+  string path = 1;
+}
+
+message CreateBlueprintResponse {
+  bool ok = 1;
+  string path = 2;
+  // The freshly-created empty blueprint's FlatBuffers-encoded Flow (mirrors
+  // files.routes.ts's `emptyBlueprint()`).
+  bytes flatbuffer_flow = 3;
+}
+
+message GetBlueprintRequest {
+  // Must end in ".blueprint".
+  string path = 1;
+}
+
+message GetBlueprintResponse {
+  bytes flatbuffer_flow = 1;
+}
+
+message SaveBlueprintRequest {
+  string path = 1;
+  bytes flatbuffer_flow = 2;
+}
+
+message SaveBlueprintResponse {
+  bool ok = 1;
+}
+
+message RenamePathRequest {
+  string from = 1;
+  string to = 2;
+}
+
+message RenamePathResponse {
+  bool ok = 1;
+}
+
+message DeletePathRequest {
+  string path = 1;
+}
+
+message DeletePathResponse {
+  bool ok = 1;
+}
+
+// ---------------------------------------------------------------------------
+// CompileProject / WriteCompiledProject (whole-project, all .blueprint files)
+// ---------------------------------------------------------------------------
+
+// Mirrors packages/core/src/project/compile-project.ts's CompiledProjectFile.
+message CompiledProjectFile {
+  string relative_path = 1;
+  string code = 2;
+}
+
+message CompileProjectRequest {}
+
+message CompileProjectResponse {
+  bool valid = 1;
+  repeated CompiledProjectFile results = 2;
+  repeated ValidationError errors = 3;
+}
+
+// Mirrors compile.routes.ts's POST /write response `files: [{ relativePath,
+// outputPath }]` (both currently equal — outputPath is reserved for a future
+// divergence, e.g. an output directory distinct from the project root).
+message WrittenProjectFile {
+  string relative_path = 1;
+  string output_path = 2;
+}
+
+message WriteCompiledProjectRequest {}
+
+message WriteCompiledProjectResponse {
+  bool valid = 1;
+  bool written = 2;
+  repeated WrittenProjectFile files = 3;
+  repeated ValidationError errors = 4;
+}
+
+// ---------------------------------------------------------------------------
+// PreviewFunctionGraph
+// ---------------------------------------------------------------------------
+
+// function-graph.routes.ts's FunctionGraphError shape: `{ message, blueprintNodeId }`.
+message FunctionGraphErrorDetail {
+  string message = 1;
+  string blueprint_node_id = 2;
+}
+
+message PreviewFunctionGraphRequest {
+  // The Function node's blueprint sub-graph: nodes + edges only, no `meta`/`version`
+  // (function-graph.routes.ts's `graph: { nodes, edges }`, not a full top-level Flow).
+  // Still carried as an opaque FlatBuffers-encoded Flow for consistency with every other
+  // RPC in this service — the encoder is expected to fill `meta`/`version` with
+  // placeholder values the decoder ignores for this one call.
+  bytes flatbuffer_flow = 1;
+}
+
+// Mirrors function-graph.routes.ts's always-200 `{ ok: true; body } | { ok: false;
+// error }` union.
+message PreviewFunctionGraphResponse {
+  oneof result {
+    string body = 1;
+    FunctionGraphErrorDetail error = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// InstallPlugin
+// ---------------------------------------------------------------------------
+
+message InstallPluginRequest {
+  // Raw UTF-8 JSON bytes of a PluginNodeSpec (packages/core/src/plugins/plugin-schema.ts).
+  bytes plugin_json = 1;
+}
+
+// Always returns 200/ok:false rather than a ConnectError on an expected failure (malformed
+// JSON, spec validation errors, type collision) — same "expected failure modeled as data"
+// pattern as GenerateCodeResponse/ValidateFlowResponse above.
+message InstallPluginResponse {
+  bool ok = 1;
+  // The plugin's `type` (e.g. "plugin.httpRequest"). Only meaningful when `ok` is true.
+  string type = 2;
+  // Project-relative path the spec was written to, e.g.
+  // ".flowserver/plugins/plugin.httpRequest.node.json". Only meaningful when `ok` is true.
+  string relative_path = 3;
+  repeated string errors = 4;
+}

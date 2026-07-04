@@ -1,0 +1,19 @@
+export * from "./schema/node.types.js";
+export * from "./schema/node-registry.js";
+export * from "./schema/validate.js";
+export * from "./nodes/index.js";
+export * from "./nodes/function-graph-nodes.js";
+export * from "./codegen/emit-function-graph.js";
+export * from "./codegen/graph-walker.js";
+export * from "./codegen/emit-express.js";
+export * from "./codegen/formatter.js";
+export * from "./codegen/file-writer.js";
+export * from "./project/compile-project.js";
+export * from "./project/collect-dependencies.js";
+export * from "./plugins/plugin-schema.js";
+export * from "./plugins/plugin-node.js";
+export * from "./serialization/flatbuffer-flow.js";
+export * from "./serialization/flatbuffer-flow-io.js";
+
+import { registerBuiltinNodes } from "./nodes/index.js";
+registerBuiltinNodes();
