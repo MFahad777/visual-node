@@ -161,7 +161,8 @@ export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyRe
   // declaration is textually emitted, no extra runtime engineering needed.
   for (const variable of graph.variables ?? []) {
     try {
-      statements.push(buildVariableDeclarationStatement(variable));
+      const statement = buildVariableDeclarationStatement(variable);
+      if (statement) statements.push(statement);
     } catch (err) {
       throw new FunctionGraphError(err instanceof Error ? err.message : String(err), variable.id);
     }

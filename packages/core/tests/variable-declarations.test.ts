@@ -215,5 +215,11 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       expect(validateVariableDeclaration(v)).toBeNull();
       expect(buildVariableDeclarationStatement(v)).toBe("let x;");
     });
+
+    it("produces no statement at all for a const — `const x;` with no initializer is a JS SyntaxError", () => {
+      const v = variable({ name: "x", dataType: "number", keyword: "const" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("");
+    });
   });
 });

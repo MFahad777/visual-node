@@ -285,6 +285,39 @@ describe("Phase 10: function-scoped variables are a namespace independent from t
     expect(formatted).toContain("let counter = 100;");
     expect(formatted).toContain("return counter;");
   });
+
+  it("never emits a bare `const variable;` for a no-default const with an unwired Set node (real bug repro)", () => {
+    // Matches the exact reported repro: a function-scoped `const` variable with no default
+    // value, and a freshly dropped "Set Variable" node not connected to anything. Before the
+    // fix, `buildVariableDeclarationStatement` unconditionally emitted `const variable;` for
+    // any const with no default — a JS SyntaxError, regardless of whether any Set node existed
+    // or was wired at all.
+    const graph: FunctionGraph = {
+      variables: [{ id: "fv1", name: "variable", keyword: "const", dataType: "string" }],
+      nodes: [
+        graphEntry("entry1"),
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "fv1", literals: { value: "true" } } },
+      ],
+      edges: [],
+    };
+    const { code } = emitFunctionGraphBody(graph);
+    expect(code).not.toMatch(/const variable;/);
+    expect(code).not.toContain("variable");
+  });
+
+  it("a const variable with no default is declared+initialized only by its own Set node, once wired into the reachable chain", () => {
+    const graph: FunctionGraph = {
+      variables: [{ id: "fv1", name: "variable", keyword: "const", dataType: "string" }],
+      nodes: [
+        graphEntry("entry1"),
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "fv1", literals: { value: '"hi"' } } },
+      ],
+      edges: [{ id: "e1", source: "entry1", target: "set1", sourceHandle: "out", targetHandle: "in" }],
+    };
+    const { code } = emitFunctionGraphBody(graph);
+    expect(code).not.toMatch(/^const variable;/m);
+    expect(code).toBe('const variable = ("hi");');
+  });
 });
 
 describe("logic.function mode: blueprint — real end-to-end compile + spawn + curl", () => {

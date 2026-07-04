@@ -215,6 +215,58 @@ describe("variable.get / variable.set", () => {
     expect(code).toContain("const counter = (1);");
   });
 
+  it("never emits a bare `const counter;` for a const variable with no default value — that's a JS SyntaxError", () => {
+    const flow = flowWithVariable("const");
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number" }];
+    const { code } = emitExpress(flow);
+    expect(code).not.toMatch(/const counter;/);
+    // The Set node is wired into the reachable route chain, so its own scoped declaration is
+    // the variable's only declaration+initialization point.
+    expect(code).toContain("const counter = (1);");
+  });
+
+  it("declares nothing for a const variable with no default and no Set node at all", () => {
+    const flow: Flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number" }];
+    const { code } = emitExpress(flow);
+    expect(code).not.toContain("counter");
+  });
+
+  it("drops a Set Variable node dropped on canvas but never wired into any chain — no declaration, no assignment, even for a const with no default", () => {
+    const flow: Flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+        // Freshly dropped from the Variables panel's "Set" option, not connected to anything.
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number" }];
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+    const { code } = emitExpress(flow);
+    expect(code).not.toContain("counter");
+  });
+
   it("rejects a Get Variable node with a dangling/unknown variableId", () => {
     const flow = flowWithVariable("let", [{ id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "does-not-exist" } }]);
     const result = validateFlow(flow);

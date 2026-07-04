@@ -19,8 +19,10 @@ function tryParseJson(raw: string): unknown {
  * module's own `buildVariableDeclarationStatement` (defense-in-depth at emit time), so the two
  * can never quietly disagree about what counts as a valid variable declaration.
  *
- * An empty/absent `defaultValue` is always valid regardless of `dataType` — it just means "no
- * initializer" (`let x;`).
+ * An empty/absent `defaultValue` is always valid regardless of `dataType` — for `let`/`var` it
+ * just means "no initializer" (`let x;`); for `const` it means "no top-level declaration at
+ * all" (see `buildVariableDeclarationStatement` below), since `const x;` with no initializer
+ * isn't valid JS.
  */
 export function validateVariableDeclaration(variable: VariableDeclaration): string | null {
   if (!IDENTIFIER_RE.test(variable.name)) {
@@ -186,11 +188,22 @@ function buildInitializerLiteral(variable: VariableDeclaration): string | undefi
  * docs/phase10-variables-plan.md). Throws a plain `Error` if `validateVariableDeclaration`
  * rejects the variable — defense in depth, since `schema/validate.ts` is expected to have
  * already caught this before codegen ever runs.
+ *
+ * Returns `""` (nothing to emit) for a `const` with no default value: unlike `let`/`var`,
+ * `const x;` with no initializer is a JS `SyntaxError`, so there is no valid bare declaration
+ * to emit here. Instead, a `const` with no default is left undeclared at this scope entirely —
+ * `variable-set.node.ts`'s `emit()` already compiles a Set node targeting a `const` as its own
+ * scoped `const name = expr;` redeclaration, which becomes the *only* declaration+initialization
+ * point once (and only once) that Set node is actually wired into a reachable execution chain
+ * (`exec-chain.ts` never emits an unreached node — see `graph-walker.ts`'s `collectLogicNodes`).
+ * A `const` left with no default and no reachable Set node simply never gets declared anywhere,
+ * same "trust the user" treatment as every other dangling reference in this codebase.
  */
 export function buildVariableDeclarationStatement(variable: VariableDeclaration): string {
   const error = validateVariableDeclaration(variable);
   if (error) throw new Error(error);
 
   const literal = buildInitializerLiteral(variable);
+  if (literal === undefined && variable.keyword === "const") return "";
   return `${variable.keyword} ${variable.name}${literal !== undefined ? ` = ${literal}` : ""};`;
 }

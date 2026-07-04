@@ -59,7 +59,8 @@ export function emitExpress(flow: Flow): EmitResult {
   // logic.function's 5 — though since function declarations hoist, anywhere before
   // express.listen's 100 is actually safe.
   for (const variable of flow.variables ?? []) {
-    setupFragments.push({ order: 1, setup: buildVariableDeclarationStatement(variable) });
+    const setup = buildVariableDeclarationStatement(variable);
+    if (setup) setupFragments.push({ order: 1, setup });
   }
 
   for (const node of [...structuralOrder, ...logicNodes]) {

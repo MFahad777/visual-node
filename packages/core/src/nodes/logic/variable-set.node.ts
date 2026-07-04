@@ -33,12 +33,15 @@ export const variableSetNode: NodeDefinition = {
     // A `const` can never be reassigned, so a Set node targeting one emits its own scoped
     // `const` redeclaration (`const x = expr;`) instead of a bare assignment (`x = expr;`).
     // Wherever this statement lands (a route handler, a function body, a Branch/Switch arm
-    // — each its own JS block), it shadows the outer module-level `const` for the rest of
-    // that block without ever mutating it — no `validate.ts` guard needed, this is valid JS
-    // as written. (Two Set nodes for the same const variable landing in the very same
-    // block would be a genuine duplicate-`const` `SyntaxError`, same as hand-writing it
-    // twice — not specially guarded against, consistent with this codebase's
-    // trust-the-user treatment of Custom Code.)
+    // — each its own JS block), it shadows the outer module-level `const` (if the variable
+    // has a default value and one was emitted — see `variable-declarations.ts`) for the rest
+    // of that block without ever mutating it — no `validate.ts` guard needed, this is valid
+    // JS as written. If the variable has no default value, no outer `const` was emitted at
+    // all, and this Set node's statement (once actually wired into a reachable execution
+    // chain) is the variable's *only* declaration+initialization point in that scope. (Two
+    // Set nodes for the same const variable landing in the very same block would be a genuine
+    // duplicate-`const` `SyntaxError`, same as hand-writing it twice — not specially guarded
+    // against, consistent with this codebase's trust-the-user treatment of Custom Code.)
     const statement = variable.keyword === "const" ? `const ${variable.name} = ${expr};` : `${variable.name} = ${expr};`;
     return { body: statement, order: 0 };
   },
