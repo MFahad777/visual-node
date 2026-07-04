@@ -1,4 +1,4 @@
-import type { NodeDefinition, PortDefinition } from "@flowserver/core";
+import type { NodeDefinition, PortDefinition } from "@visual-node/core";
 
 /**
  * AND/NAND/OR/NOR/XOR support a variable number of boolean value inputs beyond their two

@@ -10,7 +10,7 @@ import {
   type Connection,
   type XYPosition,
 } from "@xyflow/react";
-import type { Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@flowserver/core";
+import type { Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
 import * as api from "../api/client.js";
 import type { CompiledFile, ProjectFileError, WrittenFile } from "../api/client.js";
 import { flowToGraph, graphToFlow } from "./adapters.js";

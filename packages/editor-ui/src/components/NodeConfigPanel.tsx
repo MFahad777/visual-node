@@ -3,7 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import type { Edge, Node } from "@xyflow/react";
-import type { ConfigField, VariableDeclaration } from "@flowserver/core";
+import type { ConfigField, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { RequiredModulesPanel } from "./RequiredModulesPanel.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";

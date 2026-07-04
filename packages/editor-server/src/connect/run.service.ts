@@ -1,12 +1,12 @@
 import path from "node:path";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { EditorService } from "@flowserver/proto-gen";
+import { EditorService } from "@visual-node/proto-gen";
 import {
   collectProjectDependencies,
   writeGeneratedFile,
   type ProjectFileError,
   type ValidationError,
-} from "@flowserver/core";
+} from "@visual-node/core";
 import type { AppConfig } from "../config.js";
 import {
   compileProjectFromDisk,
@@ -28,8 +28,8 @@ import { serverRunner } from "../runner.js";
  * so TypeScript contextually types each method's parameters and return value from
  * `EditorService`'s own descriptor. That sidesteps importing anything from
  * "@bufbuild/protobuf" directly, which this package cannot resolve on its own (it's only
- * a transitive dependency here, reachable through `@flowserver/proto-gen`'s and
- * `@connectrpc/connect`'s own node_modules, not this package's) — `@flowserver/proto-gen`'s
+ * a transitive dependency here, reachable through `@visual-node/proto-gen`'s and
+ * `@connectrpc/connect`'s own node_modules, not this package's) — `@visual-node/proto-gen`'s
  * generated `.d.ts` resolves it fine from its own directory, but a direct
  * `import ... from "@bufbuild/protobuf"` written in this file would not resolve under
  * pnpm's strict per-package node_modules.

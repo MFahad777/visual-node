@@ -1,4 +1,4 @@
-import type { Flow } from "@flowserver/core";
+import type { Flow } from "@visual-node/core";
 
 /**
  * Vitest runs test files in parallel, and tests that spawn a real `node server.js`

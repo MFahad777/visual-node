@@ -11,11 +11,11 @@
 // entry point ("flatbuffers.js") only re-exports the FlatBuffers half — FlexBuffers lives
 // at the subpath below and has to be imported directly.
 // This module is intentionally free of Node builtins (no `node:fs`, etc.) — it's imported
-// at runtime by packages/editor-ui via the `@flowserver/core/flatbuffer-flow` subpath
+// at runtime by packages/editor-ui via the `@visual-node/core/flatbuffer-flow` subpath
 // export (see package.json), which exists specifically so the browser bundle never pulls
 // in Node-only code. Do not add a `node:fs`/`node:fs/promises` import here; file I/O
 // helpers that need those live in `./flatbuffer-flow-io.ts` instead, which is server-only
-// and reachable only through `@flowserver/core`'s main barrel, never the browser subpath.
+// and reachable only through `@visual-node/core`'s main barrel, never the browser subpath.
 import * as flatbuffers from "flatbuffers";
 import * as flexbuffers from "flatbuffers/js/flexbuffers.js";
 

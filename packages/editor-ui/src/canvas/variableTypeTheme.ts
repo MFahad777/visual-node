@@ -1,4 +1,4 @@
-import type { VariableDataType } from "@flowserver/core";
+import type { VariableDataType } from "@visual-node/core";
 
 export interface VariableTypeTheme {
   label: string;

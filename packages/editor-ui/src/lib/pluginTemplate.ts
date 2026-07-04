@@ -6,7 +6,7 @@
  * Plugin" to wrap a different npm package.
  *
  * Kept as a plain JS object (not typed against `PluginNodeSpec`) since this module is
- * `JSON.stringify`'d verbatim for the download — no runtime value from `@flowserver/core`
+ * `JSON.stringify`'d verbatim for the download — no runtime value from `@visual-node/core`
  * is needed here, just a literal matching its shape.
  *
  * This template declares `"async": true`, which means the node it wraps performs `await`

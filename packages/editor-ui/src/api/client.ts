@@ -1,15 +1,15 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { decodeFlow, encodeFlow } from "@flowserver/core/flatbuffer-flow";
-import type { Flow, FlowEdge, FlowNode, NodeDefinition, ValidationError, VariableDeclaration } from "@flowserver/core";
-import { EditorService, FileTreeNode_Kind } from "@flowserver/proto-gen";
+import { decodeFlow, encodeFlow } from "@visual-node/core/flatbuffer-flow";
+import type { Flow, FlowEdge, FlowNode, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
+import { EditorService, FileTreeNode_Kind } from "@visual-node/proto-gen";
 import type {
   ConfigField as ProtoConfigField,
   FileTreeNode as ProtoFileTreeNode,
   NodeDefinition as ProtoNodeDefinition,
   PortDefinition as ProtoPortDefinition,
   ValidationError as ProtoValidationError,
-} from "@flowserver/proto-gen";
+} from "@visual-node/proto-gen";
 
 // This file is a Connect-RPC-backed *facade*: every exported function/type below keeps
 // the exact name, parameter types, and return type it had when this module called REST
@@ -17,7 +17,7 @@ import type {
 // no other file in packages/editor-ui needs to change. Internally, everything now goes
 // through a single Buf Connect client talking to editor-server's `EditorService`.
 // `Flow` objects are encoded/decoded to FlatBuffers bytes at this boundary via
-// `@flowserver/core/flatbuffer-flow` (the Node-builtin-free subpath — see that package's
+// `@visual-node/core/flatbuffer-flow` (the Node-builtin-free subpath — see that package's
 // exports map and CLAUDE.md's "never a runtime import from the main core barrel" rule;
 // `NodeDefinition`/`ValidationError` above are `import type` only).
 const transport = createConnectTransport({ baseUrl: "/api" });

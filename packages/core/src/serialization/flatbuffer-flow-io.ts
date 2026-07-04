@@ -1,7 +1,7 @@
 // File I/O helpers for the FlatBuffers/FlexBuffers hybrid format (see flatbuffer-flow.ts
 // for the encode/decode logic itself). Split into its own module specifically because it
 // needs Node builtins (`node:fs`) — this file must never be reachable from
-// packages/editor-ui's browser bundle, only from `@flowserver/core`'s main barrel
+// packages/editor-ui's browser bundle, only from `@visual-node/core`'s main barrel
 // (server-side consumers like packages/editor-server).
 import { createWriteStream } from "node:fs";
 import { readFile } from "node:fs/promises";

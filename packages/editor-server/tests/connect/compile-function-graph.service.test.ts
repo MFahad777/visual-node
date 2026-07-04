@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createClient, createRouterTransport } from "@connectrpc/connect";
-import { EditorService } from "@flowserver/proto-gen";
-import { encodeFlow, type Flow, type FlowNode } from "@flowserver/core";
+import { EditorService } from "@visual-node/proto-gen";
+import { encodeFlow, type Flow, type FlowNode } from "@visual-node/core";
 import { registerCompileFunctionGraphRoutes } from "../../src/connect/compile-function-graph.service.js";
 
 let projectDir: string;

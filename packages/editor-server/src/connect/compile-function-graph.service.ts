@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { ConnectRouter } from "@connectrpc/connect";
-import { EditorService } from "@flowserver/proto-gen";
+import { EditorService } from "@visual-node/proto-gen";
 import {
   collectProjectDependencies,
   decodeFlow,
@@ -10,7 +10,7 @@ import {
   type FlowEdge,
   type FlowNode,
   type ProjectFileError,
-} from "@flowserver/core";
+} from "@visual-node/core";
 import type { AppConfig } from "../config.js";
 import { compileProjectFromDisk, ensureCommonJsPackageJson } from "../codegen-helpers.js";
 

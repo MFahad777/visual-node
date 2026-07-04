@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import type { Node } from "@xyflow/react";
-import type { NodeDefinition } from "@flowserver/core";
+import type { NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { CODE_MIRROR_BASIC_SETUP, CODE_MIRROR_THEME, extensionsForField, isJsCodeField } from "./codeEditorShared.js";
 

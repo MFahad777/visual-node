@@ -1,4 +1,4 @@
-import type { PortDefinition } from "@flowserver/core";
+import type { PortDefinition } from "@visual-node/core";
 
 /**
  * Whether a port represents execution flow (rendered as a white arrowhead, wired with a

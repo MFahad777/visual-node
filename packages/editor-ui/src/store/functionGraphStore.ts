@@ -10,7 +10,7 @@ import {
   type Connection,
   type XYPosition,
 } from "@xyflow/react";
-import type { FlowEdge, FlowNode, VariableDeclaration } from "@flowserver/core";
+import type { FlowEdge, FlowNode, VariableDeclaration } from "@visual-node/core";
 import {
   addVariadicInputPin,
   removeVariadicInputPin,

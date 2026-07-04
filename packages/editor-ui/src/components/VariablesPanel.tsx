@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { VariableDataType, VariableDeclaration } from "@flowserver/core";
+import type { VariableDataType, VariableDeclaration } from "@visual-node/core";
 import { VARIABLE_DATA_TYPES, VARIABLE_TYPE_THEME, getVariableTypeColor } from "../canvas/variableTypeTheme.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;

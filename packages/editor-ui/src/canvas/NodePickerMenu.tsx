@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { XYPosition } from "@xyflow/react";
-import type { NodeCategory, NodeDefinition } from "@flowserver/core";
+import type { NodeCategory, NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction, type ResolvedRequireModule } from "../lib/resolveRequiredFunctions.js";
 import { CATEGORY_ORDER, CATEGORY_THEME } from "./categoryTheme.js";

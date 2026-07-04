@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyflow/react";
-import type { NodeDefinition } from "@flowserver/core";
+import type { NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { useFunctionGraphNodeDefinitions } from "./functionGraphNodeDefinitions.js";
 import { useFunctionGraphEdgeContext } from "./functionGraphEdgeContext.js";

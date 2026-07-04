@@ -1,8 +1,8 @@
 import { access, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ConnectError, Code, type ConnectRouter } from "@connectrpc/connect";
-import { decodeFlow, encodeFlow, type Flow } from "@flowserver/core";
-import { EditorService, FileTreeNode_Kind } from "@flowserver/proto-gen";
+import { decodeFlow, encodeFlow, type Flow } from "@visual-node/core";
+import { EditorService, FileTreeNode_Kind } from "@visual-node/proto-gen";
 import type { AppConfig } from "../config.js";
 import { isPlausibleFlow } from "../flow-shape.js";
 import { listTree, type FileTreeNode as LocalFileTreeNode } from "../file-tree.js";
@@ -29,7 +29,7 @@ import { resolveSafePath } from "../path-safety.js";
 /** Local, plain-object mirror of proto-gen's `FileTreeNode` message shape (a
  * `MessageInitShape`, not the hydrated `Message` type) — kept untyped-against-proto-gen so
  * this file never needs a direct `@bufbuild/protobuf` import (not a declared dependency of
- * this package; only `@connectrpc/connect` and `@flowserver/proto-gen` are). */
+ * this package; only `@connectrpc/connect` and `@visual-node/proto-gen` are). */
 interface ProtoFileTreeNode {
   kind: FileTreeNode_Kind;
   name: string;

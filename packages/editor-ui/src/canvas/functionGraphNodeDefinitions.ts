@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { NodeDefinition } from "@flowserver/core";
+import type { NodeDefinition } from "@visual-node/core";
 
 /**
  * `GenericNode` normally looks up a node's metadata (label, category, config schema) from

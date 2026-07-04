@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { Flow, VariableDeclaration } from "@flowserver/core";
+import type { Flow, VariableDeclaration } from "@visual-node/core";
 
 /** Converts a persisted `Flow` into React Flow's native node/edge shape for the canvas. */
 export function flowToGraph(flow: Flow): { nodes: Node[]; edges: Edge[] } {

@@ -1,15 +1,18 @@
 {
-  "name": "@flowserver/editor-server",
-  "version": "0.0.0",
-  "description": "Local Express server for the FlowServer editor: serves the editor UI, persists flow.json, and runs codegen",
+  "name": "visual-node",
+  "version": "0.1.0",
+  "description": "Visual, node-based backend builder for Node.js. Drag-and-drop flows compile to real, readable Express.js source code.",
   "type": "module",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
+  "bin": {
+    "visual-node": "./dist/server.js"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/copy-ui-assets.mjs",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run"
@@ -18,8 +21,8 @@
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-express": "^2.1.2",
     "@connectrpc/connect-node": "^2.1.2",
-    "@flowserver/core": "workspace:*",
-    "@flowserver/proto-gen": "workspace:*",
+    "@visual-node/core": "workspace:*",
+    "@visual-node/proto-gen": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.19.2"
   },

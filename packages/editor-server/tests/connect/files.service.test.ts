@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
-import { EditorService } from "@flowserver/proto-gen";
-import { decodeFlow, encodeFlow, type Flow } from "@flowserver/core";
+import { EditorService } from "@visual-node/proto-gen";
+import { decodeFlow, encodeFlow, type Flow } from "@visual-node/core";
 import { registerFilesRoutes } from "../../src/connect/files.service.js";
 
 // Mirrors tests/files.routes.test.ts's REST suite (same scenarios, including the explicit

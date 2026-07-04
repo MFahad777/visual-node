@@ -1,0 +1,47 @@
+{
+  "version": "1",
+  "meta": { "name": "npm-package-require", "target": "express" },
+  "nodes": [
+    { "id": "init_1", "type": "express.init", "position": { "x": 0, "y": 0 }, "data": {} },
+    {
+      "id": "json_parser_1",
+      "type": "express.middleware.jsonParser",
+      "position": { "x": 200, "y": 0 },
+      "data": {}
+    },
+    {
+      "id": "req_uuid",
+      "type": "logic.require",
+      "position": { "x": 0, "y": 150 },
+      "data": { "sourceType": "npm", "path": "uuid", "variableName": "uuid", "version": "^9.0.0" }
+    },
+    {
+      "id": "route_1",
+      "type": "express.route",
+      "position": { "x": 400, "y": 0 },
+      "data": { "method": "GET", "path": "/id", "isAsync": true }
+    },
+    {
+      "id": "handler_1",
+      "type": "handler.customCode",
+      "position": { "x": 600, "y": 0 },
+      "data": {
+        "code": "await new Promise((resolve) => setTimeout(resolve, 5));\nres.status(200).json({ id: uuid.v4(), generatedAt: new Date().toISOString() });",
+        "npmDependencies": ""
+      }
+    },
+    {
+      "id": "listen_1",
+      "type": "express.listen",
+      "position": { "x": 200, "y": 300 },
+      "data": { "port": 3005 }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "init_1", "target": "json_parser_1", "sourceHandle": "out", "targetHandle": "in" },
+    { "id": "e2", "source": "json_parser_1", "target": "route_1", "sourceHandle": "out", "targetHandle": "in" },
+    { "id": "e3", "source": "route_1", "target": "handler_1", "sourceHandle": "out", "targetHandle": "in" },
+    { "id": "e4", "source": "init_1", "target": "listen_1", "sourceHandle": "out", "targetHandle": "in" }
+  ],
+  "variables": []
+}

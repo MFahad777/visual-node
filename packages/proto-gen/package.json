@@ -1,6 +1,9 @@
 {
-  "name": "@flowserver/proto-gen",
-  "version": "0.0.0",
+  "name": "@visual-node/proto-gen",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Generated Protobuf/Connect TypeScript code for FlowServer's editor-server EditorService, shared by editor-server and editor-ui",
   "type": "module",
   "main": "./dist/index.js",

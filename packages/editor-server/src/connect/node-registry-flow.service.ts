@@ -11,8 +11,8 @@ import {
   type Flow,
   type NodeDefinition as CoreNodeDefinition,
   type PortDefinition as CorePortDefinition,
-} from "@flowserver/core";
-import { EditorService } from "@flowserver/proto-gen";
+} from "@visual-node/core";
+import { EditorService } from "@visual-node/proto-gen";
 import type { AppConfig } from "../config.js";
 import { isPlausibleFlow } from "../flow-shape.js";
 
@@ -20,7 +20,7 @@ import { isPlausibleFlow } from "../flow-shape.js";
 // the proto message's init shape (e.g. `{ found: true, flatbufferFlow: ... }`) rather than
 // calling `@bufbuild/protobuf`'s `create()` themselves. `@bufbuild/protobuf` is only a
 // *peer* dependency of `@connectrpc/connect` (not a direct dependency of
-// `@flowserver/editor-server`'s package.json, which this task is not allowed to touch), so
+// `visual-node`'s package.json, which this task is not allowed to touch), so
 // it isn't resolvable from this package's own imports. This is fine: Connect's own
 // `invokeUnaryImplementation` (`@connectrpc/connect/dist/esm/protocol/normalize.js`) always
 // runs every handler's return value through `create(method.output, returnValue)` internally
@@ -87,7 +87,7 @@ function toProtoNodeDefinition(def: CoreNodeDefinition) {
  *   `<projectDir>/flow.json` path, same on-disk JSON storage format (Phase 8 hasn't cut
  *   storage over to FlatBuffers yet, only the RPC wire format). A `Flow` crossing the RPC
  *   boundary is carried as the wire's opaque `flatbuffer_flow` bytes field, converted via
- *   `@flowserver/core`'s `encodeFlow`/`decodeFlow`.
+ *   `@visual-node/core`'s `encodeFlow`/`decodeFlow`.
  */
 export function registerNodeRegistryFlowRoutes(router: ConnectRouter, config: AppConfig): ConnectRouter {
   const flowPath = path.join(config.projectDir, "flow.json");

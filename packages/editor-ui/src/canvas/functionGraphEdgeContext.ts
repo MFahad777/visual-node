@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { VariableDeclaration } from "@flowserver/core";
+import type { VariableDeclaration } from "@visual-node/core";
 
 export interface FunctionGraphEdgeContextValue {
   edges: Array<{ id: string; source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }>;

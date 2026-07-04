@@ -1,5 +1,5 @@
 {
-  "name": "flowserver",
+  "name": "visual-node-workspace",
   "private": true,
   "version": "0.0.0",
   "description": "Visual node-based backend builder for Node.js - compiles flows to real Express/Fastify code",
@@ -10,7 +10,9 @@
     "dev": "node scripts/dev.mjs",
     "proto:gen": "buf generate",
     "fbs:gen": "node scripts/gen-fbs.mjs",
-    "migrate:blueprints": "node scripts/migrate-blueprints.mjs"
+    "migrate:blueprints": "node scripts/migrate-blueprints.mjs",
+    "publish:packages": "node scripts/publish.mjs",
+    "publish:packages:dry-run": "node scripts/publish.mjs --dry-run"
   },
   "engines": {
     "node": ">=18"

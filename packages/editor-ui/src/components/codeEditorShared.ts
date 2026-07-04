@@ -2,7 +2,7 @@ import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import type { Extension } from "@uiw/react-codemirror";
-import type { ConfigField } from "@flowserver/core";
+import type { ConfigField } from "@visual-node/core";
 
 /**
  * Shared CodeMirror setup for every `"code"`-type config field, used by both the

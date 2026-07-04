@@ -1,4 +1,4 @@
-import type { NodeCategory } from "@flowserver/core";
+import type { NodeCategory } from "@visual-node/core";
 
 export interface CategoryTheme {
   label: string;

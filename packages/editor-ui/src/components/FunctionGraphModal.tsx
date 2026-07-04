@@ -14,7 +14,7 @@ import {
   type XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { FlowEdge, FlowNode, NodeDefinition, VariableDeclaration } from "@flowserver/core";
+import type { FlowEdge, FlowNode, NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { createFunctionGraphStore, type FunctionGraphStore } from "../store/functionGraphStore.js";
 import { nodeTypes } from "../canvas/nodeTypes.js";

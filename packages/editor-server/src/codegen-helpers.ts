@@ -11,7 +11,7 @@ import {
   type ProjectFile,
   type ProjectFileError,
   type ValidationError,
-} from "@flowserver/core";
+} from "@visual-node/core";
 import { listBlueprintFiles } from "./file-tree.js";
 
 const EXPRESS_DEPENDENCY_VERSION = "^4.19.2";
@@ -112,7 +112,7 @@ async function pathExists(target: string): Promise<boolean> {
  * package.json's fields (including any hand-edited `dependencies` entries) are preserved,
  * `express` is added only if missing, and `options.dependencies` (the flow/project's
  * collected npm-mode `logic.require`/Custom Code declarations — see
- * `@flowserver/core`'s `collectFlowDependencies`/`collectProjectDependencies`) is merged in
+ * `@visual-node/core`'s `collectFlowDependencies`/`collectProjectDependencies`) is merged in
  * without ever downgrading/overwriting an already-pinned real version. A dependency
  * key is only written/updated when it's currently absent or currently the placeholder
  * `"*"` (an earlier compile's "unpinned" marker) — a real pinned version a user hand-edited

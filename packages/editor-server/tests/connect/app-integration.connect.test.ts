@@ -5,8 +5,8 @@ import type { Server } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-node";
-import { encodeFlow } from "@flowserver/core";
-import { EditorService } from "@flowserver/proto-gen";
+import { encodeFlow } from "@visual-node/core";
+import { EditorService } from "@visual-node/proto-gen";
 import { buildApp } from "../../src/app.js";
 import { helloWorldFlow } from "../fixtures.js";
 

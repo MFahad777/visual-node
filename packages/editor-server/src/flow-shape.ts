@@ -1,4 +1,4 @@
-import type { Flow } from "@flowserver/core";
+import type { Flow } from "@visual-node/core";
 
 /**
  * Shallow shape check for a client-supplied "flow" request body — just enough to catch

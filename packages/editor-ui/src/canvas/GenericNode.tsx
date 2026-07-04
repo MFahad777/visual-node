@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import type { PortDefinition, VariableDeclaration } from "@flowserver/core";
+import type { PortDefinition, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { useFunctionGraphNodeDefinitions } from "./functionGraphNodeDefinitions.js";
 import { useFunctionGraphEdgeContext } from "./functionGraphEdgeContext.js";

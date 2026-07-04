@@ -2,7 +2,7 @@
 #
 # Generates Protobuf-ES v2 TypeScript (messages + Connect-compatible GenService
 # descriptors for EditorService) into packages/proto-gen/src/generated, consumed by
-# packages/editor-server and packages/editor-ui via the "@flowserver/proto-gen"
+# packages/editor-server and packages/editor-ui via the "@visual-node/proto-gen"
 # workspace package (see packages/proto-gen/src/index.ts).
 version: v2
 inputs:

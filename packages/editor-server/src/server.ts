@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { buildApp } from "./app.js";
 import { resolveProjectDir } from "./config.js";
 import { loadInstalledPlugins } from "./plugin-loading.js";

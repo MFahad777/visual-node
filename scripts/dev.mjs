@@ -19,13 +19,13 @@ const isWindows = process.platform === "win32";
 const pnpmCmd = isWindows ? "pnpm.cmd" : "pnpm";
 
 const children = [
-  spawn(pnpmCmd, ["--filter", "@flowserver/editor-server", "run", "dev"], {
+  spawn(pnpmCmd, ["--filter", "visual-node", "run", "dev"], {
     cwd: rootDir,
     stdio: "inherit",
     shell: isWindows,
     env: { ...process.env, FLOWSERVER_PROJECT_DIR: projectDir },
   }),
-  spawn(pnpmCmd, ["--filter", "@flowserver/editor-ui", "run", "dev"], {
+  spawn(pnpmCmd, ["--filter", "@visual-node/editor-ui", "run", "dev"], {
     cwd: rootDir,
     stdio: "inherit",
     shell: isWindows,

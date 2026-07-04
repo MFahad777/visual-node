@@ -6,7 +6,7 @@ import {
   registerNode,
   validatePluginNodeSpec,
   type PluginNodeSpec,
-} from "@flowserver/core";
+} from "@visual-node/core";
 
 export interface LoadInstalledPluginsResult {
   /** `type` of each plugin successfully (re-)registered. */

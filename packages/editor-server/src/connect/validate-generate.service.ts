@@ -7,7 +7,7 @@ import {
   writeGeneratedFile,
   type Flow,
   type ValidationError as CoreValidationError,
-} from "@flowserver/core";
+} from "@visual-node/core";
 import {
   EditorService,
   type ValidationError as ProtoValidationError,
@@ -17,7 +17,7 @@ import {
   type GenerateCodeResponse,
   type WriteGeneratedCodeRequest,
   type WriteGeneratedCodeResponse,
-} from "@flowserver/proto-gen";
+} from "@visual-node/proto-gen";
 import type { AppConfig } from "../config.js";
 import { compile, ensureCommonJsPackageJson } from "../codegen-helpers.js";
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { VariableDeclaration } from "@flowserver/core";
+import type { VariableDeclaration } from "@visual-node/core";
 
 export interface VariableDropMenuProps {
   variableName: string;

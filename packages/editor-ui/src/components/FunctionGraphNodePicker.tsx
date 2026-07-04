@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { XYPosition } from "@xyflow/react";
-import type { NodeDefinition } from "@flowserver/core";
+import type { NodeDefinition } from "@visual-node/core";
 import * as api from "../api/client.js";
 import { useFlowStore } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
