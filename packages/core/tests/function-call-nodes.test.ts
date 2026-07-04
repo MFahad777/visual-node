@@ -15,8 +15,10 @@ registerBuiltinNodes();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const GENERATED_DIR = path.join(__dirname, "fixtures", "generated-function-call-project");
 // Distinct from other core/editor-server test files spawning real servers:
-// integration.test.ts=3000, editor-server run.routes.test.ts=3001, compile-project.test.ts=3997.
+// integration.test.ts=3000/3993/3998, editor-server run.routes.test.ts=3001,
+// compile-project.test.ts=3997, branch/switch/operator/function-graph=3991-3995.
 const PORT = 3996;
+const BEGIN_INLINE_PORT = 3999;
 
 afterAll(() => {
   rmSync(GENERATED_DIR, { recursive: true, force: true });
@@ -32,7 +34,7 @@ function makeFlow(nodes: Flow["nodes"], edges: Flow["edges"] = []): Flow {
 // rather than calling emitExpress on a bare require+functionCall flow (which would silently emit
 // nothing at the top level, since collectLogicNodes only surfaces `setup` fragments).
 describe("logic.functionCall — emit", () => {
-  it("emits a call with a literal arg-0 value when param-0 has no incoming edge", () => {
+  it("emits a bare call statement (no assignment) with a literal arg-0 value when Result is unwired", () => {
     const flow = makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
@@ -61,7 +63,98 @@ describe("logic.functionCall — emit", () => {
     );
 
     const { code } = emitExpress(flow);
+    // Result output has no outgoing edge: a pure fire-and-forget call, not an unused `const`.
+    expect(code).toContain('printerFunctions.printer("hello");');
+    expect(code).not.toContain("printerResult");
+  });
+
+  it("inlines the call directly into an immediately-adjacent Set Variable node's assignment, skipping resultVariable entirely", () => {
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "test", target: "express" },
+      variables: [{ id: "var1", name: "printResult", keyword: "let", dataType: "string" }],
+      nodes: [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "call1",
+          type: "logic.functionCall",
+          position: { x: 0, y: 0 },
+          data: {
+            requirePath: "../helpers/printer",
+            variableName: "printerFunctions",
+            functionName: "printer",
+            params: "data",
+            "arg-0": '"hello"',
+            resultVariable: "printerResult",
+          },
+        },
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      edges: [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+        { id: "e5", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    };
+
+    const { code } = emitExpress(flow);
+    // Set node sits directly next in the exec chain, so the call is embedded straight into its
+    // assignment — no intermediate `resultVariable` declaration at all.
+    expect(code).toContain('printResult = printerFunctions.printer("hello");');
+    expect(code).not.toContain("printerResult");
+  });
+
+  it("falls back to declaring resultVariable when the Set Variable node is NOT the immediate next exec node", () => {
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "test", target: "express" },
+      variables: [{ id: "var1", name: "printResult", keyword: "let", dataType: "string" }],
+      nodes: [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "call1",
+          type: "logic.functionCall",
+          position: { x: 0, y: 0 },
+          data: {
+            requirePath: "../helpers/printer",
+            variableName: "printerFunctions",
+            functionName: "printer",
+            params: "data",
+            "arg-0": '"hello"',
+            resultVariable: "printerResult",
+          },
+        },
+        { id: "log1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      edges: [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
+        // call1's exec successor is log1, NOT set1 — set1 is still call1's Result's sole
+        // consumer, but it isn't the immediate next node, so inlining would fire the call later
+        // than wired (after log1 runs) and must not happen.
+        { id: "e3", source: "call1", target: "log1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+        { id: "e5", source: "log1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e7", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    };
+
+    const { code } = emitExpress(flow);
     expect(code).toContain('const printerResult = printerFunctions.printer("hello");');
+    expect(code).toContain("printResult = (printerResult);");
   });
 
   it("chains call B's param-0 to call A's resultVariable, not a literal", () => {
@@ -110,8 +203,12 @@ describe("logic.functionCall — emit", () => {
     );
 
     const { code } = emitExpress(flow);
+    // callA's Result is wired into callB's param-0, so callA still gets its assignment...
     expect(code).toContain("const doubled = mathHelpers.double(21);");
-    expect(code).toContain("const incremented = mathHelpers.increment(doubled);");
+    // ...but callB's own Result is unwired, so it's a bare fire-and-forget call, not an
+    // unused `const incremented`.
+    expect(code).toContain("mathHelpers.increment(doubled);");
+    expect(code).not.toContain("const incremented");
     // Must reference the upstream result variable, never a literal "21" as call B's argument.
     expect(code).not.toContain("mathHelpers.increment(21)");
   });
@@ -302,6 +399,10 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
     return {
       version: "1",
       meta: { name: "server", target: "express" },
+      // Function Call's Result output is only assigned when wired (see function-call.node.ts) —
+      // a `variable.set` node is how the call's return value is kept under a stable name for
+      // later reference from Custom Code, same pattern as the Phase 10/11 variables tests.
+      variables: [{ id: "var1", name: "squared", keyword: "let", dataType: "number" }],
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         {
@@ -321,9 +422,10 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
             functionName: "square",
             params: "n",
             "arg-0": "7",
-            resultVariable: "squared",
+            resultVariable: "squaredResult",
           },
         },
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
         {
           id: "handler",
           type: "handler.customCode",
@@ -335,8 +437,10 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
       edges: [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
         { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "call1", target: "handler", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+        { id: "e5", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
   }
@@ -369,6 +473,103 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.squared).toBe(49); // the real square(7) return value, not a plausible-looking stub
+      } finally {
+        child.kill();
+      }
+    },
+    15_000,
+  );
+});
+
+describe("logic.functionCall — Begin-driven inlined Set, real end-to-end compile + spawn + curl", () => {
+  const adderHelperFlow: Flow = {
+    version: "1",
+    meta: { name: "adderHelper", target: "express" },
+    nodes: [
+      { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "add", params: "a, b", body: "return a + b;" } },
+      { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+    ],
+    edges: [{ id: "e1", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" }],
+  };
+
+  function serverFlow(port: number): Flow {
+    return {
+      version: "1",
+      meta: { name: "server", target: "express" },
+      variables: [{ id: "var1", name: "total", keyword: "let", dataType: "number" }],
+      nodes: [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        {
+          id: "req1",
+          type: "logic.require",
+          position: { x: 0, y: 0 },
+          data: { path: "../helpers/adderHelper", variableName: "adderHelper" },
+        },
+        {
+          id: "call1",
+          type: "logic.functionCall",
+          position: { x: 0, y: 0 },
+          data: {
+            requirePath: "../helpers/adderHelper",
+            variableName: "adderHelper",
+            functionName: "add",
+            params: "a, b",
+            "arg-0": "2",
+            "arg-1": "3",
+            resultVariable: "sum",
+          },
+        },
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/total" } },
+        { id: "handler", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.status(200).json({ total });" } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
+      ],
+      edges: [
+        // Begin -> Function Call -> Set, exactly the reported shape: the call is inlined
+        // straight into Set's own assignment, running once at module load.
+        { id: "e1", source: "begin", target: "call1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+        { id: "e4", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    };
+  }
+
+  it(
+    "inlines the call into Begin's Set node (no intermediate resultVariable), and the very first request sees the real computed value",
+    async () => {
+      const result = await compileProject([
+        { relativePath: "helpers/adderHelper.blueprint", flow: adderHelperFlow },
+        { relativePath: "src/beginServer.blueprint", flow: serverFlow(BEGIN_INLINE_PORT) },
+      ]);
+
+      expect(result.valid).toBe(true);
+      if (!result.valid) return;
+
+      const serverFile = result.files.find((f) => f.relativePath === "src/beginServer.js");
+      expect(serverFile).toBeDefined();
+      // Inlined straight into the Set assignment — no `const sum = ...` anywhere.
+      expect(serverFile!.code).toContain("total = adderHelper.add(2, 3);");
+      expect(serverFile!.code).not.toContain("sum");
+
+      for (const file of result.files) {
+        await writeGeneratedFile(path.join(GENERATED_DIR, file.relativePath), file.code);
+      }
+      writeFileSync(path.join(GENERATED_DIR, "package.json"), JSON.stringify({ name: "generated-function-call-project", private: true }));
+
+      const serverPath = path.join(GENERATED_DIR, "src", "beginServer.js");
+      const child = spawn(process.execPath, [serverPath], { stdio: ["ignore", "pipe", "pipe"] });
+
+      try {
+        await waitForOutput(child, `Server running on port ${BEGIN_INLINE_PORT}`, 10_000);
+
+        const res = await fetch(`http://localhost:${BEGIN_INLINE_PORT}/total`);
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.total).toBe(5); // the real add(2, 3) return value, computed once at module load
       } finally {
         child.kill();
       }

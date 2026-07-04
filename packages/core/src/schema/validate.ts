@@ -55,6 +55,13 @@ export function validateFlow(flow: Flow): ValidationResult {
     }
   }
 
+  const beginNodes = flow.nodes.filter((n) => n.type === "logic.begin");
+  if (beginNodes.length > 1) {
+    for (const n of beginNodes) {
+      errors.push({ nodeId: n.id, message: 'Only one "logic.begin" node is allowed per flow' });
+    }
+  }
+
   const exportNodes = flow.nodes.filter((n) => n.type === "logic.export");
   if (exportNodes.length > 1) {
     for (const n of exportNodes) {
@@ -151,6 +158,7 @@ export function validateFlow(flow: Flow): ValidationResult {
   errors.push(...checkCrossArmValueReferences(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
   errors.push(...validateExecOutputArity(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
   errors.push(...validateVariables(flow.nodes, flow.variables ?? [], (nodeId, message) => ({ nodeId, message })));
+  errors.push(...checkBeginReachableConstOverwrite(flow, (nodeId, message) => ({ nodeId, message })));
 
   const cycleError = detectCycle(flow);
   if (cycleError) errors.push(cycleError);
@@ -599,21 +607,31 @@ function isPrefixOf(shorter: string[], longer: string[]): boolean {
  * to decide what a fork node's arms are, so validation and codegen can never disagree about
  * scope. Pure value-only nodes (no exec pins at all) are never visited by this BFS — see
  * `resolveArmPath`, which derives their scope from their value dependencies instead.
+ *
+ * `seedIds`, when given, replaces the auto-detect-every-root behavior with a BFS seeded from
+ * exactly those node ids (each starting at path `[]`) — used by
+ * `checkBeginReachableConstOverwrite` below to ask "what's reachable from a Begin node
+ * specifically," which auto-detection can't answer on its own (it would also seed from
+ * `express.init`, conflating an unrelated root's trunk with Begin's). Omitting it preserves
+ * today's exact behavior for both existing callers.
  */
-function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[]): Map<string, string[]> {
+function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[], seedIds?: string[]): Map<string, string[]> {
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
   const defs = new Map(nodes.map((n) => [n.id, requireNodeDefinition(n.type)]));
 
-  const hasIncomingExec = new Set<string>();
-  for (const e of edges) {
-    const targetDef = defs.get(e.target);
-    if (targetDef && isExecInputHandle(targetDef, e.targetHandle)) hasIncomingExec.add(e.target);
-  }
-
   const armPathOf = new Map<string, string[]>();
   const queue: Array<{ id: string; path: string[] }> = [];
-  for (const n of nodes) {
-    if (hasAnyExecPort(defs.get(n.id)!) && !hasIncomingExec.has(n.id)) queue.push({ id: n.id, path: [] });
+  if (seedIds) {
+    for (const id of seedIds) queue.push({ id, path: [] });
+  } else {
+    const hasIncomingExec = new Set<string>();
+    for (const e of edges) {
+      const targetDef = defs.get(e.target);
+      if (targetDef && isExecInputHandle(targetDef, e.targetHandle)) hasIncomingExec.add(e.target);
+    }
+    for (const n of nodes) {
+      if (hasAnyExecPort(defs.get(n.id)!) && !hasIncomingExec.has(n.id)) queue.push({ id: n.id, path: [] });
+    }
   }
 
   while (queue.length > 0) {
@@ -762,6 +780,53 @@ function checkCrossArmValueReferences(
   } catch {
     // Supplementary, best-effort check — never let an unexpected node/edge shape here block
     // the higher-value structural checks (operator arity, Branch/Switch wiring) above.
+  }
+  return errors;
+}
+
+/**
+ * Begin's emitted `setup` is raw, un-blocked module-top-level code (see
+ * `nodes/logic/begin.node.ts`) — the one exec-chain owner in this codebase with no enclosing
+ * function/handler scope (deliberately: that's what lets a `const`-with-no-default variable
+ * get its real top-level declaration from a Begin-driven Set at all). A `variable.set` node
+ * with an EMPTY Begin-relative arm path therefore sits in the exact same lexical scope as the
+ * module-level variable-declarations loop (`emit-express.ts`, order 1); one reached through a
+ * Branch/Switch arm instead gets that arm's own `{ }` block, a fresh scope regardless of what
+ * it declares, so it's excluded. Reuses `computeExecArmPaths` (seeded from Begin nodes only) so
+ * this can never disagree with what `exec-chain.ts` actually emits. Only `const` variables that
+ * already have a `defaultValue` are at risk — that's the only case where `emit-express.ts`
+ * already emitted a top-level declaration for `variable-set.node.ts`'s own scoped `const`
+ * redeclaration to collide with (see docs/phase11-begin-node-plan.md).
+ */
+function checkBeginReachableConstOverwrite(
+  flow: Flow,
+  makeError: (nodeId: string, message: string) => ValidationError,
+): ValidationError[] {
+  const beginIds = flow.nodes.filter((n) => n.type === "logic.begin").map((n) => n.id);
+  if (beginIds.length === 0) return [];
+
+  const armPathOf = computeExecArmPaths(flow.nodes, flow.edges, beginIds);
+  const variablesById = new Map((flow.variables ?? []).map((v) => [v.id, v]));
+  const errors: ValidationError[] = [];
+
+  for (const n of flow.nodes) {
+    if (n.type !== "variable.set") continue;
+    const path = armPathOf.get(n.id);
+    if (!path || path.length > 0) continue; // not Begin-reachable, or safely inside an arm's own block
+
+    const variableId = (n.data as Record<string, unknown> | undefined)?.variableId;
+    const variable = typeof variableId === "string" ? variablesById.get(variableId) : undefined;
+    if (variable?.keyword === "const" && (variable.defaultValue?.trim().length ?? 0) > 0) {
+      errors.push(
+        makeError(
+          n.id,
+          `Set Variable node "${n.id}" targets const variable "${variable.name}", which already has a default value ` +
+            `declared at module scope. Reached directly from a Begin node (not inside a Branch/Switch arm), this would ` +
+            `emit a duplicate top-level "const ${variable.name}" declaration. Change "${variable.name}" to "let"/"var", ` +
+            `clear its default value, or move this Set node behind a Branch, Switch, Route, or Function instead.`,
+        ),
+      );
+    }
   }
   return errors;
 }

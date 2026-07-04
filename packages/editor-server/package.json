@@ -1,6 +1,6 @@
 {
   "name": "visual-node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Visual, node-based backend builder for Node.js. Drag-and-drop flows compile to real, readable Express.js source code.",
   "type": "module",
   "main": "./dist/server.js",
@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node ../../scripts/copy-ui-assets.mjs",
+    "build": "tsc -p tsconfig.json && node ../../scripts/copy-ui-assets.mjs && node ../../scripts/copy-examples.mjs",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run"

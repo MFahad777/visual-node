@@ -34,6 +34,7 @@ import { controlFlowBranchNode } from "./control-flow/branch.node.js";
 import { controlFlowSwitchNode } from "./control-flow/switch.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
+import { beginNode } from "./logic/begin.node.js";
 
 const BUILTIN_NODES = [
   expressInitNode,
@@ -78,6 +79,11 @@ const BUILTIN_NODES = [
   // blueprint graph — see docs/phase10-variables-plan.md).
   variableGetNode,
   variableSetNode,
+  // Phase 11: Begin — per-file entry point, runs once at module load. Available on the main
+  // canvas of any .blueprint file; deliberately absent from FUNCTION_GRAPH_NODE_DEFINITIONS
+  // below since a Function's nested blueprint graph already has its own entry concept
+  // (logic.graphEntry) — see docs/phase11-begin-node-plan.md.
+  beginNode,
 ];
 
 /** Registers all built-in MVP node definitions. Safe to call more than once (e.g. after clearRegistry()). */
@@ -121,4 +127,5 @@ export {
   controlFlowSwitchNode,
   variableGetNode,
   variableSetNode,
+  beginNode,
 };

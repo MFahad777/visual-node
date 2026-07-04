@@ -310,7 +310,7 @@ describe("Phase 10: function-scoped variables are a namespace independent from t
       variables: [{ id: "fv1", name: "variable", keyword: "const", dataType: "string" }],
       nodes: [
         graphEntry("entry1"),
-        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "fv1", literals: { value: '"hi"' } } },
+        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "fv1", literals: { value: "hi" } } },
       ],
       edges: [{ id: "e1", source: "entry1", target: "set1", sourceHandle: "out", targetHandle: "in" }],
     };

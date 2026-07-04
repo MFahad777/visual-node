@@ -39,11 +39,11 @@ const sampleFlow: Flow = {
 };
 
 describe("GetNodeRegistry (Connect)", () => {
-  it("returns the same 33 built-ins as GET /api/node-registry, without emit, with defaults preserved", async () => {
+  it("returns the same 34 built-ins as GET /api/node-registry, without emit, with defaults preserved", async () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({});
 
-    expect(res.definitions).toHaveLength(33);
+    expect(res.definitions).toHaveLength(34);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
@@ -55,6 +55,7 @@ describe("GetNodeRegistry (Connect)", () => {
         "controlFlow.switch",
         "variable.get",
         "variable.set",
+        "logic.begin",
       ]),
     );
 

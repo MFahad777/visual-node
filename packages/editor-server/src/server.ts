@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.js";
 import { resolveProjectDir } from "./config.js";
 import { loadInstalledPlugins } from "./plugin-loading.js";
@@ -26,6 +29,14 @@ const app = buildApp({ projectDir });
 app.listen(port, () => {
   console.log(`FlowServer editor running at http://localhost:${port}`);
   console.log(`Project directory: ${projectDir}`);
+
+  // Bundled worked examples (see scripts/copy-examples.mjs) — copied into dist/examples
+  // at build time, so this path resolves whether running from source or from the
+  // installed npm package.
+  const examplesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "examples");
+  if (existsSync(examplesDir)) {
+    console.log(`Example flows: ${examplesDir}`);
+  }
 });
 
 // Never leave an orphaned generated-server process running after editor-server exits.

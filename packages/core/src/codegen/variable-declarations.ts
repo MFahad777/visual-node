@@ -1,4 +1,4 @@
-import type { VariableDeclaration } from "../schema/node.types.js";
+import type { VariableDataType, VariableDeclaration } from "../schema/node.types.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -139,20 +139,24 @@ export function validateVariableDeclaration(variable: VariableDeclaration): stri
 }
 
 /**
- * Builds the initializer literal text (the part after `=`), or `undefined` when there's no
- * default. `"string"` is JSON-stringified (so the panel's plain-text input never needs manual
- * quoting/escaping); `"object"`/`"array"` JSON text is emitted as-is (valid JSON is always
- * valid JS literal syntax); `"map"`/`"set"`/`"weakset"` wrap their JSON array text in
+ * Turns a raw, already-non-empty user-entered value into the actual JS literal expression
+ * text for `dataType`. `"string"` is JSON-stringified (so a plain-text input never needs
+ * manual quoting/escaping); `"object"`/`"array"` JSON text is emitted as-is (valid JSON is
+ * always valid JS literal syntax); `"map"`/`"set"`/`"weakset"` wrap their JSON array text in
  * `new Map(...)`/`new Set(...)`/`new WeakSet(...)`; `"bigint"` appends the `n` suffix;
  * `"symbol"`/`"buffer"`/`"url"` wrap plain text in `Symbol(...)`/`Buffer.from(...)`/
  * `new URL(...)`; `"null"`/`"undefined"` are already-valid JS source as their own literal text
  * (validated equal to their own name by `validateVariableDeclaration` above).
+ *
+ * Shared by `buildInitializerLiteral` below (a variable's own default value) and
+ * `variable-set.node.ts`'s `emit()` (a Set node's unwired "Value" literal, via
+ * `resolveValuePin`'s `formatLiteral` hook) — both need the exact same raw-text-per-dataType
+ * transform, so a Set node's literal box can hold a plain, unquoted value (e.g. `hi`, not
+ * `"hi"`) exactly like the Variables panel's default-value field already does, instead of
+ * requiring the user to hand-write JS source.
  */
-function buildInitializerLiteral(variable: VariableDeclaration): string | undefined {
-  const raw = variable.defaultValue?.trim();
-  if (!raw) return undefined;
-
-  switch (variable.dataType) {
+export function formatLiteralForType(dataType: VariableDataType, raw: string): string {
+  switch (dataType) {
     case "string":
       return JSON.stringify(raw);
     case "map":
@@ -178,6 +182,16 @@ function buildInitializerLiteral(variable: VariableDeclaration): string | undefi
     default:
       return raw;
   }
+}
+
+/**
+ * Builds the initializer literal text (the part after `=`), or `undefined` when there's no
+ * default.
+ */
+function buildInitializerLiteral(variable: VariableDeclaration): string | undefined {
+  const raw = variable.defaultValue?.trim();
+  if (!raw) return undefined;
+  return formatLiteralForType(variable.dataType, raw);
 }
 
 /**

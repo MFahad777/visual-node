@@ -19,10 +19,15 @@ const GENERATED_PATH = path.join(__dirname, "fixtures", "generated", "server.js"
 // and to avoid any accidental interaction between the two generated projects.
 const VARIABLES_PORT = 3993;
 const VARIABLES_GENERATED_PATH = path.join(__dirname, "fixtures", "generated-variables", "server.js");
+// Distinct from other core spawn-test ports: 3000, 3991-3997 are all taken by other test files
+// (see the port-registry comments in branch-node.test.ts/switch-node.test.ts/etc.).
+const BEGIN_PORT = 3998;
+const BEGIN_GENERATED_PATH = path.join(__dirname, "fixtures", "generated-begin", "server.js");
 
 afterAll(() => {
   rmSync(path.join(__dirname, "fixtures", "generated"), { recursive: true, force: true });
   rmSync(path.join(__dirname, "fixtures", "generated-variables"), { recursive: true, force: true });
+  rmSync(path.join(__dirname, "fixtures", "generated-begin"), { recursive: true, force: true });
 });
 
 describe("end-to-end: flow.json -> server.js -> real HTTP request", () => {
@@ -125,6 +130,62 @@ describe("end-to-end: Phase 10 variables — module-level state persists across 
       // both mutated the SAME `counter` binding, not a per-request-scoped one.
       const after = await fetch(`http://localhost:${VARIABLES_PORT}/counter`);
       expect(await after.json()).toEqual({ counter: 2 });
+    } finally {
+      child.kill();
+    }
+  }, 15_000);
+});
+
+describe("end-to-end: Phase 11 Begin — module-scope setup runs once at load", () => {
+  it("gives a const variable its value via a Begin-driven Set node, visible to the very first real HTTP request", async () => {
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "begin-api", target: "express" },
+      variables: [
+        // No defaultValue: Begin's Set node is this variable's ONLY declaration+initialization
+        // point — proves Begin ran before the route handler ever read it.
+        { id: "var1", name: "DIR", keyword: "const", dataType: "string" },
+      ],
+      nodes: [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        {
+          id: "var_set",
+          type: "variable.set",
+          position: { x: 0, y: 0 },
+          data: { variableId: "var1", literals: { value: "/srv/app" } },
+        },
+        { id: "route_config", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/config" } },
+        { id: "handler_config", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.status(200).json({ dir: DIR });" } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: BEGIN_PORT } },
+      ],
+      edges: [
+        { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "init", target: "route_config", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "route_config", target: "handler_config", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    };
+
+    const { code } = emitExpress(flow);
+    const formatted = await formatCode(code);
+    expect(formatted).toContain('const DIR = "/srv/app";');
+    await writeGeneratedFile(BEGIN_GENERATED_PATH, formatted);
+    writeFileSync(
+      path.join(path.dirname(BEGIN_GENERATED_PATH), "package.json"),
+      JSON.stringify({ name: "begin-api", private: true }),
+    );
+
+    const child = spawn(process.execPath, [BEGIN_GENERATED_PATH], { stdio: ["ignore", "pipe", "pipe"] });
+
+    try {
+      await waitForOutput(child, `Server running on port ${BEGIN_PORT}`, 10_000);
+
+      // The very first request to this freshly spawned server already sees the Begin-set
+      // value — proving it ran once at module load, not lazily on first use.
+      const res = await fetch(`http://localhost:${BEGIN_PORT}/config`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ dir: "/srv/app" });
     } finally {
       child.kill();
     }

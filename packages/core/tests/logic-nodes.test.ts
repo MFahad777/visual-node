@@ -2,10 +2,25 @@ import { describe, expect, it } from "vitest";
 import { emitExpress } from "../src/codegen/emit-express.js";
 import { formatCode } from "../src/codegen/formatter.js";
 import { validateFlow } from "../src/schema/validate.js";
-import type { Flow } from "../src/schema/node.types.js";
+import { getNodeDefinition, registerNode, type NodeDefinition } from "../src/schema/node-registry.js";
+import type { Flow, VariableDataType } from "../src/schema/node.types.js";
 import { registerBuiltinNodes } from "../src/nodes/index.js";
 
 registerBuiltinNodes();
+
+/** Test-only node declaring requiresAsync: true, for logic.begin's async-IIFE-wrap test. */
+const beginAsyncRequiringNode: NodeDefinition = {
+  type: "test.beginAsyncRequiring",
+  category: "handler",
+  label: "Test Begin Async Requiring",
+  description: "Test-only node that declares requiresAsync: true.",
+  inputs: [{ id: "in", label: "In" }],
+  outputs: [],
+  configSchema: [],
+  requiresAsync: true,
+  emit: () => ({ body: "await Promise.resolve();", order: 0 }),
+};
+if (!getNodeDefinition(beginAsyncRequiringNode.type)) registerNode(beginAsyncRequiringNode);
 
 function makeFlow(nodes: Flow["nodes"], edges: Flow["edges"] = []): Flow {
   return { version: "1", meta: { name: "test", target: "express" }, nodes, edges };
@@ -310,6 +325,211 @@ describe("variable.get / variable.set", () => {
     const flow = flowWithVariable("let", [{ id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } }]);
     const result = validateFlow(flow);
     expect(result.valid).toBe(true);
+  });
+
+  describe("Set Variable literal formatting is per-dataType, not raw JS source", () => {
+    function flowWithTypedVariable(dataType: VariableDataType, literalValue: unknown): Flow {
+      const flow = makeFlow(
+        [
+          { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+          { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+          { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: literalValue } } },
+          { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+          { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+        ],
+        [
+          { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+          { id: "e2", source: "route", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+          { id: "e3", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+          { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        ],
+      );
+      flow.variables = [{ id: "v1", name: "myVar", keyword: "let", dataType }];
+      return flow;
+    }
+
+    it("wraps a plain, unquoted literal into a proper JS string literal for a string variable", () => {
+      // The reported bug: typing `eqeqeqwec` (no manual quotes) used to be spliced verbatim as
+      // raw JS source (a bare, undeclared identifier), not a string. It must now compile to an
+      // actual quoted string literal.
+      const flow = flowWithTypedVariable("string", "eqeqeqwec");
+      const { code } = emitExpress(flow);
+      expect(code).toContain('myVar = ("eqeqeqwec");');
+    });
+
+    it("JSON-escapes special characters in a plain string literal", () => {
+      const flow = flowWithTypedVariable("string", 'say "hi"');
+      const { code } = emitExpress(flow);
+      expect(code).toContain('myVar = ("say \\"hi\\"");');
+    });
+
+    it("still passes a numeric literal through unwrapped for a number variable", () => {
+      const flow = flowWithTypedVariable("number", 42);
+      const { code } = emitExpress(flow);
+      expect(code).toContain("myVar = (42);");
+    });
+
+    it("still passes a boolean literal through unwrapped for a boolean variable", () => {
+      const flow = flowWithTypedVariable("boolean", true);
+      const { code } = emitExpress(flow);
+      expect(code).toContain("myVar = (true);");
+    });
+
+    it("wraps a plain JSON array literal in new Map(...) for a map variable", () => {
+      const flow = flowWithTypedVariable("map", '[["a", 1]]');
+      const { code } = emitExpress(flow);
+      expect(code).toContain('myVar = (new Map([["a", 1]]));');
+    });
+  });
+});
+
+describe("logic.begin", () => {
+  it("compiles to a no-op when unwired", () => {
+    const flow = makeFlow([
+      { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+      { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "helper", params: "", body: "return 1;" } },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+    const { code } = emitExpress(flow);
+    expect(code).toContain("function helper() {");
+  });
+
+  it("does not require an express.init node in a pure logic-only file with an unwired Begin node", () => {
+    const flow = makeFlow([
+      { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+      { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "helper", params: "", body: "return 1;" } },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects more than one Begin node per flow", () => {
+    const flow = makeFlow([
+      { id: "begin1", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+      { id: "begin2", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('Only one "logic.begin"'))).toBe(true);
+  });
+
+  it("emits a plain assignment for a Begin-driven Set on a let variable, ordered before routes", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain("let counter = 0;");
+    expect(code).toContain("counter = (1);");
+    expect(code.indexOf("let counter = 0;")).toBeLessThan(code.indexOf("counter = (1);"));
+    expect(code.indexOf("counter = (1);")).toBeLessThan(code.indexOf("app.get("));
+  });
+
+  it("gives a const variable with no default its sole top-level declaration, readable afterward via variable.get", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "/srv/app" } } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "route", target: "log", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "var_get", target: "log", sourceHandle: "value", targetHandle: "value" },
+        { id: "e5", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "DIR", keyword: "const", dataType: "string" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain('const DIR = ("/srv/app");');
+    expect(code).toContain("console.log(DIR);");
+  });
+
+  it("rejects a const-with-default Set placed directly on Begin's trunk (would duplicate the top-level declaration)", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "5" } } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number", defaultValue: "0" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('duplicate top-level "const'))).toBe(true);
+  });
+
+  it("allows the same const-with-default Set when placed inside a Branch arm reachable from Begin (no false positive)", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        { id: "branch", type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { literals: { condition: "true" } } },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "5" } } },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "begin", target: "branch", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "branch", target: "var_set", sourceHandle: "true", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number", defaultValue: "0" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain("const counter = 0;");
+    expect(code).toMatch(/if \(\(true\)\) \{\s*const counter = \(5\);/);
+  });
+
+  it("wraps a requiresAsync chain in a fire-and-forget async IIFE", () => {
+    const flow = makeFlow(
+      [
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        { id: "asyncNode", type: "test.beginAsyncRequiring", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [{ id: "e1", source: "begin", target: "asyncNode", sourceHandle: "out", targetHandle: "in" }],
+    );
+    const { code } = emitExpress(flow);
+    expect(code).toContain("(async () => {");
+    expect(code).toContain("await Promise.resolve();");
   });
 });
 

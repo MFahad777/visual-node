@@ -1,5 +1,7 @@
 import type { NodeDefinition } from "../../schema/node-registry.js";
 import { resolveValuePin } from "../../codegen/value-pins.js";
+import { formatLiteralForType } from "../../codegen/variable-declarations.js";
+import { buildFunctionCallExpression, functionCallResultInlinesInto } from "./function-call.node.js";
 
 /**
  * Assigns a new value to a declared variable (see `variable-get.node.ts` for the shared
@@ -29,7 +31,26 @@ export const variableSetNode: NodeDefinition = {
       throw new Error(`Set Variable node "${node.id}" references unknown variable "${String(variableId)}"`);
     }
 
-    const expr = resolveValuePin(node, ctx, "value");
+    // If the "Value" pin is wired directly from a Function Call node placed immediately before
+    // this Set node (its sole Result consumer), inline the call straight into this assignment
+    // instead of going through the usual declare-then-reference path — collapses
+    // `const result = fn(); counter = result;` into `counter = fn();`. See
+    // `functionCallResultInlinesInto` for why this is only safe in that exact shape.
+    const incomingValue = ctx.getIncoming(node.id, "value")[0];
+    const incomingSource = incomingValue ? ctx.getNode(incomingValue.source) : undefined;
+    const inlinedCall =
+      incomingSource?.type === "logic.functionCall" && functionCallResultInlinesInto(incomingSource, node.id, ctx)
+        ? buildFunctionCallExpression(incomingSource, ctx)
+        : undefined;
+
+    // Only the literal (unwired) fallback needs per-dataType formatting — a wired value is
+    // already a proper JS expression (an identifier, a computed result) and must be spliced
+    // as-is; formatLiteral is never invoked on that branch (see resolveValuePin).
+    const expr =
+      inlinedCall ??
+      resolveValuePin(node, ctx, "value", {
+        formatLiteral: (raw) => formatLiteralForType(variable.dataType, raw),
+      });
     // A `const` can never be reassigned, so a Set node targeting one emits its own scoped
     // `const` redeclaration (`const x = expr;`) instead of a bare assignment (`x = expr;`).
     // Wherever this statement lands (a route handler, a function body, a Branch/Switch arm

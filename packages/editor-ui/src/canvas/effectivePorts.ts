@@ -51,11 +51,13 @@ const BOOLEAN_LITERAL_TYPES = new Set([
 // Switch's "Selection" accepts any type (number, string, or boolean) — its case values are
 // fully user-defined, so unlike every other literal pin, its inline box is free-form raw JS
 // text (the same convention used everywhere else literal text is stored) rather than a
-// number/checkbox control gated to one JS type. `variable.set`'s "Value" pin is the same
-// situation for the same reason: the variable it's bound to can be any of Phase 10's 14
-// `dataType`s, so there's no single fixed literalKind to give it — free-form raw JS text
-// (e.g. `0`, `"hi"`, `true`) is the only literal kind flexible enough, and it's exactly what
-// `resolveValuePin` already does with an unwired literal (interpolates it as raw JS source).
+// number/checkbox control gated to one JS type. `variable.set`'s "Value" pin gets the same
+// baseline "text" kind here (this function only knows the node's static `type`, never the
+// bound variable) — but `GenericNode.tsx` refines it further for `variable.set` once a
+// `variableId` is actually bound: a plain box holding the RAW per-type value (e.g. `hi`, not
+// `"hi"`), which `variable-set.node.ts`'s `emit()` formats into real JS source via
+// `formatLiteralForType`, keyed by the bound variable's `dataType` — so, unlike Switch's
+// Selection, a `variable.set` literal is never interpreted as raw JS source to hand-splice.
 const TEXT_LITERAL_TYPES = new Set(["controlFlow.switch", "variable.set"]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {

@@ -27,6 +27,11 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
     }
     case "logic.require":
       return `${data.variableName ?? "?"} = require(${JSON.stringify(data.path ?? "")})`;
+    case "logic.functionCall": {
+      const variableName = String(data.variableName ?? "");
+      const functionName = String(data.functionName ?? "");
+      return functionName.length > 0 ? `${variableName}.${functionName}(${data.params ?? ""})` : "(unnamed)";
+    }
     case "debug.consoleLog": {
       const expression = String(data.expression ?? "");
       return expression.length > 0 ? expression : "(empty)";
@@ -112,6 +117,23 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const valuePinColor = (port: PortDefinition): string =>
     boundVariable && port.id === "value" ? getVariableTypeColor(boundVariable.dataType) : accentHex;
 
+  // variable.set's "Value" pin is a generic TEXT_LITERAL_TYPES entry (effectivePorts.ts) since
+  // the bound variable could be any of Phase 10's 14 dataTypes — but once actually bound, the
+  // variable's own dataType tells us exactly which widget is right: the same number/checkbox
+  // controls every other numeric/boolean literal pin already gets, or (for every other type,
+  // including "string") a plain text box holding the RAW value with no manual quoting —
+  // `variable-set.node.ts`'s emit() wraps it into real JS source per dataType at compile time.
+  // A dangling `variableId` (variable deleted, node left on canvas) falls back to the generic
+  // raw-JS-source text box, same as before this existed.
+  const resolvedLiteralKindFor = (portId: string): "number" | "boolean" | "text" | null => {
+    if (type === "variable.set" && portId === "value" && boundVariable) {
+      if (boundVariable.dataType === "number") return "number";
+      if (boundVariable.dataType === "boolean") return "boolean";
+      return "text";
+    }
+    return literalKind;
+  };
+
   const showSubtitle = !!summary && !isLongForm(type ?? "");
   const showBodyChip = !!summary && isLongForm(type ?? "");
 
@@ -196,7 +218,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
             <div className="flex flex-col gap-1">
               {effectiveInputs.map((port) => {
                 const connected = isInputConnected(port.id);
-                const showLiteral = literalKind !== null && !isExecPort(port) && !connected;
+                const portLiteralKind = resolvedLiteralKindFor(port.id);
+                const showLiteral = portLiteralKind !== null && !isExecPort(port) && !connected;
                 const isRemovableInput = isVariadicBooleanNode && extraInputIds.has(port.id);
                 return (
                   // `relative` makes this row (not the whole node) the offset parent for its
@@ -214,7 +237,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                       style={handleStyle(port, connected)}
                     />
                     <span className="ml-2 text-[10px] text-neutral-300">{port.label}</span>
-                    {showLiteral && literalKind === "number" && (
+                    {showLiteral && portLiteralKind === "number" && (
                       <input
                         type="number"
                         className="nodrag nopan w-10 rounded border border-neutral-700 bg-[#1f1f1f] px-1 py-0.5 text-[10px] text-neutral-100"
@@ -222,7 +245,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                         onChange={(e) => setLiteral(port.id, Number(e.target.value))}
                       />
                     )}
-                    {showLiteral && literalKind === "boolean" && (
+                    {showLiteral && portLiteralKind === "boolean" && (
                       <input
                         type="checkbox"
                         className="nodrag nopan"
@@ -230,10 +253,14 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                         onChange={(e) => setLiteral(port.id, e.target.checked)}
                       />
                     )}
-                    {showLiteral && literalKind === "text" && (
+                    {showLiteral && portLiteralKind === "text" && (
                       <input
                         type="text"
-                        title="Any JS literal: a number, a quoted string, or true/false"
+                        title={
+                          type === "variable.set"
+                            ? "The value to assign — plain text, no manual quoting needed even for a string variable"
+                            : "Any JS literal: a number, a quoted string, or true/false"
+                        }
                         className="nodrag nopan w-16 rounded border border-neutral-700 bg-[#1f1f1f] px-1 py-0.5 text-[10px] text-neutral-100"
                         defaultValue={String(literals[port.id] ?? "0")}
                         onBlur={(e) => setLiteral(port.id, e.target.value)}

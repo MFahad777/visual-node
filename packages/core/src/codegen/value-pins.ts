@@ -5,6 +5,15 @@ import { resultIdentifierFor } from "./emit-function-graph.js";
 export interface ResolveValuePinOptions {
   /** Raw JS text used when the pin has neither an incoming edge nor a `data.literals` entry. */
   defaultLiteral?: string;
+  /**
+   * When the pin falls back to its literal (not wired), transforms the raw stored value into
+   * the actual JS literal expression text to splice — e.g. `variable-set.node.ts` wraps its
+   * "Value" literal per the bound variable's `dataType` (a bare `hi` becomes the string
+   * literal `"hi"`, not the bare identifier `hi`) via `variable-declarations.ts`'s
+   * `formatLiteralForType`. Omitted everywhere else (operators/Branch/Switch), which keep
+   * treating a literal as already-valid raw JS source, unchanged.
+   */
+  formatLiteral?: (raw: string) => string;
 }
 
 /**
@@ -47,5 +56,6 @@ export function resolveValuePin(
     if (opts.defaultLiteral !== undefined) return `(${opts.defaultLiteral})`;
     throw new Error(`Node "${node.id}" input "${pinId}" is not connected and has no literal value`);
   }
-  return `(${value})`;
+  const text = opts.formatLiteral ? opts.formatLiteral(String(value)) : String(value);
+  return `(${text})`;
 }
