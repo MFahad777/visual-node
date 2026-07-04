@@ -314,7 +314,14 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
  *    in this scope's variable list — catches a variable deleted out from under a still-wired
  *    node, consistent with this codebase's "refuse to compile rather than silently emit broken
  *    code" philosophy.
- * 4. A `variable.set` node may not reference a `keyword: "const"` variable.
+ *
+ * Deliberately NOT checked here: a `variable.set` node targeting a `keyword: "const"`
+ * variable. That used to be a hard block, but it broke the moment a variable's keyword
+ * could be flipped to `const` after a Set node already existed (via the Variables panel),
+ * surfacing as a confusing, un-actionable Problems-panel error. `variable-set.node.ts`'s
+ * `emit()` instead compiles a Set-on-const as its own scoped `const` redeclaration rather
+ * than a bare assignment — valid JS (block-scoped shadowing, not a mutation) in the
+ * common case, so there is nothing to block here.
  */
 function validateVariables(
   nodes: FlowNode[],
@@ -346,9 +353,6 @@ function validateVariables(
     if (!variable) {
       errors.push(makeError(node.id, `${label} node "${node.id}" references unknown variable "${String(variableId)}"`));
       continue;
-    }
-    if (node.type === "variable.set" && variable.keyword === "const") {
-      errors.push(makeError(node.id, `Set Variable node "${node.id}" cannot assign to "${variable.name}", which is declared as "const"`));
     }
   }
 

@@ -149,7 +149,6 @@ export function FlowCanvas() {
           return (
             <VariableDropMenu
               variableName={variable.name}
-              variableKeyword={variable.keyword}
               x={variableDrop.screenX}
               y={variableDrop.screenY}
               onChoose={(kind) => {

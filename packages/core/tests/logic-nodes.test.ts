@@ -206,11 +206,13 @@ describe("variable.get / variable.set", () => {
     expect(code).toContain("counter = (1);");
   });
 
-  it("rejects a Set Variable node targeting a const variable", () => {
+  it("compiles a Set Variable node targeting a const variable as its own scoped const redeclaration", () => {
     const flow = flowWithVariable("const");
     const result = validateFlow(flow);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('cannot assign to "counter"') && e.message.includes("const"))).toBe(true);
+    expect(result.valid).toBe(true);
+    const { code } = emitExpress(flow);
+    expect(code).toContain("const counter = 0;");
+    expect(code).toContain("const counter = (1);");
   });
 
   it("rejects a Get Variable node with a dangling/unknown variableId", () => {

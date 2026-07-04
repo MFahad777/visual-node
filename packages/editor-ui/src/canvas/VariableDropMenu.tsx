@@ -1,9 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { VariableDeclaration } from "@visual-node/core";
 
 export interface VariableDropMenuProps {
   variableName: string;
-  variableKeyword: VariableDeclaration["keyword"];
   x: number;
   y: number;
   onChoose: (kind: "get" | "set") => void;
@@ -20,7 +18,7 @@ const MENU_MAX_HEIGHT = 90;
  * click-outside-via-pointerdown + Escape dismissal) without any of its search/catalog
  * logic, since this menu only ever has up to two fixed options.
  */
-export function VariableDropMenu({ variableName, variableKeyword, x, y, onChoose, onClose }: VariableDropMenuProps) {
+export function VariableDropMenu({ variableName, x, y, onChoose, onClose }: VariableDropMenuProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,16 +51,15 @@ export function VariableDropMenu({ variableName, variableKeyword, x, y, onChoose
       >
         Get {variableName}
       </button>
-      {/* A `const` can never be reassigned — omitting "Set" here avoids offering an
-          obviously-invalid choice; core-side validation remains the enforced safety net. */}
-      {variableKeyword !== "const" && (
-        <button
-          onClick={() => onChoose("set")}
-          className="px-2.5 py-1.5 text-left text-xs text-neutral-100 hover:bg-neutral-700"
-        >
-          Set {variableName}
-        </button>
-      )}
+      {/* Offered even for a `const` variable — `variable-set.node.ts`'s `emit()` compiles a
+          Set-on-const as its own scoped `const` redeclaration rather than an assignment,
+          which is valid JS block-scope shadowing, not a mutation of the outer const. */}
+      <button
+        onClick={() => onChoose("set")}
+        className="px-2.5 py-1.5 text-left text-xs text-neutral-100 hover:bg-neutral-700"
+      >
+        Set {variableName}
+      </button>
     </div>
   );
 }
