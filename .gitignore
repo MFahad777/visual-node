@@ -6,3 +6,5 @@ dist/
 /playground/
 docs/
 .claude/
+.docusaurus/
+build/
