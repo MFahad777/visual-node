@@ -1,25 +1,49 @@
 {
-  "name": "visual-node-workspace",
-  "private": true,
+  "name": "visual-node-docs",
   "version": "0.0.0",
-  "description": "Visual node-based backend builder for Node.js - compiles flows to real Express/Fastify code",
+  "private": true,
   "scripts": {
-    "build": "pnpm -r run build",
-    "test": "pnpm -r run test",
-    "lint": "pnpm -r run lint",
-    "dev": "node scripts/dev.mjs",
-    "proto:gen": "buf generate",
-    "fbs:gen": "node scripts/gen-fbs.mjs",
-    "migrate:blueprints": "node scripts/migrate-blueprints.mjs",
-    "publish:packages": "node scripts/publish.mjs",
-    "publish:packages:dry-run": "node scripts/publish.mjs --dry-run"
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.1",
+    "@docusaurus/faster": "3.10.1",
+    "@docusaurus/preset-classic": "3.10.1",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.10.1",
+    "@docusaurus/tsconfig": "3.10.1",
+    "@docusaurus/types": "3.10.1",
+    "@types/react": "^19.0.0",
+    "typescript": "~6.0.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
   },
   "engines": {
-    "node": ">=18"
-  },
-  "packageManager": "pnpm@10.34.4",
-  "devDependencies": {
-    "@bufbuild/buf": "^1.71.0",
-    "@bufbuild/protoc-gen-es": "^2.12.1"
+    "node": ">=20.0"
   }
 }

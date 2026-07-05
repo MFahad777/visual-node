@@ -1,0 +1,46 @@
+---
+title: Server
+---
+
+# Server nodes
+
+Creating and starting the Express application itself. Every flow with any
+server/routing/middleware node needs exactly one `express.init`.
+
+## Express App — `express.init`
+
+Creates the Express application instance.
+
+- **Inputs**: none
+- **Outputs**: `out` — "App"
+- **Config fields**: none
+- **Constraints**: exactly one per flow — compiling rejects a flow with two.
+
+Always generates the same two lines, regardless of config:
+
+```js
+const express = require("express");
+
+const app = express();
+```
+
+## Listen — `express.listen`
+
+Starts the HTTP server on a port.
+
+- **Inputs**: `in` — "App"
+- **Outputs**: none
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `port` | number | `3000` | Falls back to `3000` if not a finite number. |
+
+This is always emitted **last** in the generated file, no matter how it's wired — every
+other node type's setup code is ordered to land before it.
+
+```js
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+```
