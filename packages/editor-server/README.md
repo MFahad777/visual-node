@@ -8,6 +8,8 @@ Visual, node-based backend builder for Node.js. Drag-and-drop flows **compile** 
 readable, git-friendly Express.js source — this is a codegen tool, not a runtime
 interpreter. Nothing from this package ships inside the servers it generates.
 
+Full documentation, core concepts, and guides are available at [Documentation](https://mfahad777.github.io/visual-node).
+
 ## Install & run
 
 ```bash
