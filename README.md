@@ -9,6 +9,8 @@ readable, git-friendly Express.js source — this is a codegen tool, not a runti
 interpreter like Node-RED/n8n. The code it produces is meant to be read, committed, and
 hand-edited afterward, not hidden behind the tool forever.
 
+Full documentation, core concepts, and guides are available at [Documentation](https://mfahad777.github.io/visual-node).
+
 ## Quick start
 
 ```bash
