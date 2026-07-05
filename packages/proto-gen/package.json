@@ -1,6 +1,6 @@
 {
   "name": "@visual-node/proto-gen",
-  "version": "0.2.0",
+  "version": "0.2.4",
   "publishConfig": {
     "access": "public"
   },
