@@ -45,14 +45,26 @@ const _op_add1 = (17 + 5);
 Inputs `a`, `b` (value); output `result` (value). Same shape as arithmetic, just a
 different operator.
 
-| Node type | Label | Generated expression |
+| Node type | Label | Generated expression (default) |
 | --- | --- | --- |
-| `operators.equal` | Equal | `a === b` |
-| `operators.notEqual` | Not Equal | `a !== b` |
+| `operators.equal` | Equal | `a === b` (strict); `a == b` (loose) |
+| `operators.notEqual` | Not Equal | `a !== b` (strict); `a != b` (loose) |
 | `operators.greaterThan` | Greater Than | `a > b` |
 | `operators.lessThan` | Less Than | `a < b` |
 | `operators.greaterOrEqual` | Greater Or Equal | `a >= b` |
 | `operators.lessOrEqual` | Less Or Equal | `a <= b` |
+
+### Strict vs. Loose Comparison (Equal and Not Equal)
+
+**Equal** and **Not Equal** nodes have a **Strict** checkbox in their config panel (on by
+default). When enabled, they use JavaScript's strict comparison operators (`===` / `!==`),
+which compare both value and type. When disabled, they use loose comparison operators
+(`==` / `!=`), which perform type coercion before comparing — for example, `1 == "1"`
+evaluates to `true`, while `1 === "1"` evaluates to `false`.
+
+**Other comparison nodes** (Greater Than, Less Than, Greater Or Equal, Less Or Equal) do
+not have a Strict option — JavaScript has no loose-comparison counterparts for `>`, `<`,
+`>=`, `<=`, so they always use their single behavior unchanged.
 
 **Equal and Not Equal's unwired literal inputs accept any JS value** — strings (type them
 with quotes, e.g. `"hello"`), booleans (`true`/`false`), `null`, object/array expressions,
