@@ -22,6 +22,7 @@ import { CustomEdge } from "../canvas/CustomEdge.js";
 import { CategoryLegend } from "../canvas/CategoryLegend.js";
 import { FunctionGraphNodeDefinitionsContext, useFunctionGraphNodeDefinitions } from "../canvas/functionGraphNodeDefinitions.js";
 import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
+import { isValidPinConnection } from "../canvas/connectionValidation.js";
 import { FunctionGraphEdgeContext } from "../canvas/functionGraphEdgeContext.js";
 import { VariableDropMenu } from "../canvas/VariableDropMenu.js";
 import { FunctionGraphNodePicker } from "./FunctionGraphNodePicker.js";
@@ -351,6 +352,12 @@ function GraphCanvas({
   const { screenToFlowPosition } = useReactFlow();
   const scopedDefinitions = useFunctionGraphNodeDefinitions();
 
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) =>
+      isValidPinConnection(connection, nodes, (type) => scopedDefinitions?.[type ?? ""]),
+    [nodes, scopedDefinitions],
+  );
+
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
@@ -394,6 +401,7 @@ function GraphCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         onNodeClick={(_, node) => onSelectNode(node.id)}
         onPaneClick={() => onSelectNode(null)}
         onPaneContextMenu={onPaneContextMenu}

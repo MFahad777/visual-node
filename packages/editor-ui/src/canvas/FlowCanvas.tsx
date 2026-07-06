@@ -5,6 +5,7 @@ import {
   BackgroundVariant,
   Controls,
   useReactFlow,
+  type Connection,
   type Edge,
   type XYPosition,
 } from "@xyflow/react";
@@ -15,6 +16,7 @@ import { CustomEdge } from "./CustomEdge.js";
 import { NodePickerMenu } from "./NodePickerMenu.js";
 import { CategoryLegend } from "./CategoryLegend.js";
 import { VariableDropMenu } from "./VariableDropMenu.js";
+import { isValidPinConnection } from "./connectionValidation.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 
 const edgeTypes = { "flow-edge": CustomEdge };
@@ -45,8 +47,14 @@ export function FlowCanvas() {
   const variables = useFlowStore((s) => s.variables);
   const openFunctionGraph = useFlowStore((s) => s.openFunctionGraph);
   const isFunctionGraphOpen = useFlowStore((s) => s.openFunctionGraphNodeId !== null);
+  const nodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
 
   const { screenToFlowPosition } = useReactFlow();
+
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => isValidPinConnection(connection, nodes, (type) => nodeDefinitions[type ?? ""]),
+    [nodes, nodeDefinitions],
+  );
 
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [variableDrop, setVariableDrop] = useState<VariableDropState | null>(null);
@@ -109,6 +117,7 @@ export function FlowCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         onNodeClick={(_, node) => selectNode(node.id)}
         onNodeDoubleClick={(_, node) => {
           if (node.type === "logic.function" && node.data?.mode === "blueprint") {
