@@ -27,7 +27,7 @@ and spawns `node server.js` (or a custom entry file you specify).
 
 Runs the currently open `.blueprint` file as a plain Node.js script (no Express requirement).
 Useful for running helper files, logic libraries, or any standalone code without the
-overhead of a full server. The **Run** button reads `Run <filename>.js` (dynamic, showing
+overhead of a full server. The **Run** button reads `Run &lt;filename&gt;.js` (dynamic, showing
 the currently open file).
 
 - **No entry file needed** — whichever `.blueprint` file you have open in the editor runs.
@@ -72,7 +72,7 @@ It's safe to switch between Server and Script mode at any time. The Run button's
 updates immediately:
 
 - **Switch to Server mode**: Run button reads "Run Server"; compiles and spawns a server.
-- **Switch to Script mode**: Run button reads "Run <filename>.js"; runs the open file as a
+- **Switch to Script mode**: Run button reads "Run &lt;filename&gt;.js"; runs the open file as a
   script.
 
 If you switch to Server mode after using Script mode, the Run button falls back to auto-detect
