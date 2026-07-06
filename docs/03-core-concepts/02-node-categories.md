@@ -15,7 +15,7 @@ this is also how the [Node Reference](/node-reference) is organized.
 | **Middleware** | amber | Request-processing middleware, built-in or custom (`app.use(...)`). |
 | **Handler** | emerald | Terminal request handlers — the end of a route's chain. |
 | **Operators** | cyan | Pure, value-producing arithmetic/comparison/boolean nodes — no execution pins. |
-| **Control Flow** | lime | Branching execution: `Branch` (if/else) and `Switch`. |
+| **Control Flow** | lime | Directing execution: `Branch` (if/else), `Switch`, and `Sequence` (run every wired output, in order). |
 | **Logic** | violet | Functions, variables, requiring modules, and module-load-time setup. |
 | **Debugging** | rose | `Console Log`. |
 
@@ -32,11 +32,12 @@ available in both places:
 - **Main canvas only**: `express.init`, `express.listen`, `express.middleware.jsonParser`,
   `middleware.customCode`, `express.route`, `handler.sendJson`, `logic.function`,
   `logic.export`, `logic.require`, `logic.begin`.
-- **Function Graph only**: `logic.graphEntry` (the graph's entry point), `logic.graphReturn`
-  (ends the graph with a return value) — never added manually, managed via the Function
-  Graph editor's own panel.
+- **Function Graph only**: `logic.graphEntry` (the graph's entry point, never added
+  manually — managed via the Function Graph editor's own panel) and `logic.graphReturn`
+  (ends the chain it's wired into with a return value; any number allowed, added from the
+  picker like any other node).
 - **Both, full parity**: `logic.functionCall`, `variable.get`, `variable.set`,
-  `debug.consoleLog`, `handler.customCode`, all 17 `operators.*` nodes, and both
-  `controlFlow.*` nodes.
+  `debug.consoleLog`, `handler.customCode`, all 17 `operators.*` nodes, and all three
+  `controlFlow.*` nodes (`branch`, `switch`, `sequence`).
 
 Each node's page in the [Node Reference](/node-reference) notes which of these applies.

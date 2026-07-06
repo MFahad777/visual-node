@@ -103,7 +103,7 @@ const printerResult = printerFunctions.printer("hello");
 
 Usable both on the main canvas and inside a Function Graph.
 
-## Start & Return — `logic.graphEntry` / `logic.graphReturn`
+## Start — `logic.graphEntry`
 
 **Function Graph only** — see [Function Graphs & Blueprint
 Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture. Never
@@ -112,9 +112,45 @@ added manually.
 - **`logic.graphEntry`** ("Start"): no inputs; a static `out` exec output plus one
   dynamic value output per current function parameter, managed by the Function Graph
   editor's own panel.
-- **`logic.graphReturn`** ("Return"): a `value` input; ends the graph with
-  `return <expr>;` if wired, or falls off the end with no return if not. At most one per
-  graph.
+
+## Return — `logic.graphReturn`
+
+**Function Graph only** — see [Function Graphs & Blueprint
+Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture.
+
+- **Inputs**: `in` (exec) — "In"; `value` (value) — "Value"
+- **Outputs**: none — Return ends the chain it's wired into.
+
+Unlike Start, **any number of Return instances are allowed per graph**, and each one is an
+ordinary node addable from the picker just like Branch/Switch — there's no singleton panel
+managing it. Each instance has its own execution-in pin:
+
+- If a Return's exec-in **is** wired (e.g. from inside a Branch/Switch arm), it emits its
+  `return <expr>;` **in place**, right where it's wired — a real early return.
+- A Return with **no** exec-in wire falls back to the pre-existing trunk-trailing
+  behavior: its `return <expr>;` is appended once after the whole compiled function body.
+  This is the only shape Return could take before it gained an exec-in pin, so every
+  pre-existing `.blueprint` file with a single unwired Return keeps compiling identically.
+
+If "Value" is unwired, the returned Return falls off with no return value emitted for
+that arm; the Value pin also supports typing a literal directly on the pin, the same as
+any other value input.
+
+```js
+// Two Return instances, each wired from inside its own Branch arm — real early returns
+if (score >= 90) {
+  return "A";
+} else {
+  if (score >= 80) {
+    return "B";
+  } else {
+    return "C";
+  }
+}
+```
+
+See [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode)
+for a worked early-return example.
 
 ## Begin — `logic.begin`
 
@@ -154,7 +190,9 @@ async IIFE — there's no "Async" checkbox on Begin itself:
 ## Get Variable — `variable.get`
 
 Reads the current value of a declared variable. Bound to a specific variable at creation
-time (dragged from the Variables panel) — its config panel is intentionally empty.
+time (dragged from the Variables panel — grab the row by its **⠿** drag handle, not the
+name/type fields, which are separately editable) — its config panel is intentionally
+empty.
 
 - **Inputs**: none
 - **Outputs**: `value` (value) — "Value"

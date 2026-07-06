@@ -4,9 +4,9 @@ title: Control Flow
 
 # Control Flow nodes
 
-Both nodes here are compiled specially: their own `emit()` functions are defensive stubs
-that always throw — the real compilation happens inside the shared [exec-chain
-walker](/core-concepts/how-codegen-works), since a fork into two independent downstream
+All three nodes here are compiled specially: their own `emit()` functions are defensive
+stubs that always throw — the real compilation happens inside the shared [exec-chain
+walker](/core-concepts/how-codegen-works), since a fork into independent downstream
 sub-chains can't be expressed as a flat `{imports, setup, body}` fragment the way every
 other node type's output can.
 
@@ -89,3 +89,60 @@ share one block scope — this keeps each arm's locally-declared variables from 
 into the next case, the same scoping guarantee Branch's arms get from `if`/`else`. A case
 left unwired on canvas simply gets **no clause at all** in the generated `switch`; a
 wired Default still catches any selection that would have matched it.
+
+## Sequence — `controlFlow.sequence`
+
+Unlike Branch/Switch, which each pick exactly **one** output to run per request, Sequence
+runs **every wired output, unconditionally, in left-to-right pin order**. Use it whenever
+the relative order of two or more independent pieces of logic matters, but nothing about
+how they're wired otherwise forces that order.
+
+- **Inputs**: `in` (exec) — "In"
+- **Outputs**: one static `then-0` (exec) — "Then 0" — plus any number of additional
+  dynamic `then-<n>` exec outputs, added via a **"+ Add pin"** button rendered directly on
+  the node face itself (not in the side panel — the same on-canvas affordance the variadic
+  boolean operators use). Each pin has its own "×" button to remove just that pin and its
+  wire.
+- **Config fields**: none.
+- **Constraints**: none of the "Then" pins are required to be wired — an unwired pin is
+  simply skipped, with no clause emitted for it. Removing a pin never renumbers or
+  re-targets a later pin's existing wire; a removed slot is never reused.
+
+A pin left unwired contributes nothing to the output; every wired pin's arm compiles into
+its own `{ }` block and all of them run, in pin order, on every request that reaches the
+Sequence node:
+
+```js
+// Then 0 wired to a Branch, Then 1 wired to another Branch, Then 2 unwired
+{
+  // ...Then 0 arm
+}
+{
+  // ...Then 1 arm
+}
+```
+
+The canonical use case is a chain of independent early-return guard clauses, where the
+*order* the checks run in matters even though each check is otherwise self-contained:
+
+```js
+function getDiscount(customer) {
+  if (!customer.isActive) return 0; // Then 0
+  if (customer.isEmployee) return 30; // Then 1
+  if (customer.isPremium) return 20; // Then 2
+  if (customer.totalSpent >= 1000) return 10; // Then 3
+  return 5; // Then 4
+}
+```
+
+Each guard clause here is its own `Branch` (or other exec chain) wired into a separate
+Sequence pin, in the order the checks should run.
+
+Like Branch/Switch, each wired pin's arm gets its own scope — a value computed inside one
+pin's chain can't be read from a different pin's chain. Share a value across pins by
+wiring the same producer node into every pin that needs it, exactly like the workaround
+described for Branch in the [Function Graph & Blueprint Mode
+example](/core-concepts/function-graphs-and-blueprint-mode).
+
+Usable both on the main canvas and inside a [Function
+Graph](/core-concepts/function-graphs-and-blueprint-mode).

@@ -54,6 +54,13 @@ different operator.
 | `operators.greaterOrEqual` | Greater Or Equal | `a >= b` |
 | `operators.lessOrEqual` | Less Or Equal | `a <= b` |
 
+**Equal and Not Equal's unwired literal inputs accept any JS value** — strings (type them
+with quotes, e.g. `"hello"`), booleans (`true`/`false`), `null`, object/array expressions,
+not just numbers. A wired connection already accepted any type; this only affects the
+inline literal box on the pin itself. The other four comparisons (Greater Than, Less Than,
+Greater Or Equal, Less Or Equal) are unchanged and remain numeric-only, since `>`/`<` on a
+non-number is rarely what's intended.
+
 ## Boolean (variadic)
 
 Inputs `a`, `b`, plus any number of extra inputs added on canvas via a **"+ Add pin"**

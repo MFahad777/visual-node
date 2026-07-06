@@ -16,7 +16,7 @@ legend and main-canvas vs. Function-Graph availability rules referenced througho
 | [Middleware](/node-reference/middleware) | `express.middleware.jsonParser`, `middleware.customCode` |
 | [Handler](/node-reference/handler) | `handler.sendJson`, `handler.customCode` |
 | [Operators](/node-reference/operators) | 17 arithmetic/comparison/boolean nodes |
-| [Control Flow](/node-reference/control-flow) | `controlFlow.branch`, `controlFlow.switch` |
+| [Control Flow](/node-reference/control-flow) | `controlFlow.branch`, `controlFlow.switch`, `controlFlow.sequence` |
 | [Logic](/node-reference/logic) | `logic.function`, `logic.export`, `logic.require`, `logic.functionCall`, `logic.graphEntry`, `logic.graphReturn`, `logic.begin`, `variable.get`, `variable.set` |
 | [Debugging](/node-reference/debugging) | `debug.consoleLog` |
 

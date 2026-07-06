@@ -36,14 +36,18 @@ single shared exec-chain compiler. It handles:
 
 - **Linear chains** — the common case: Console Log → Custom Code → Send JSON, walked in
   wire order and assembled into one function body.
-- **Branch/Switch forks** — `controlFlow.branch`/`controlFlow.switch` don't emit their
-  own code at all; the exec-chain walker special-cases them directly, compiling each
-  wired arm as its **own independent scope** (a real `if`/`else` block or `switch` case).
-  This is why a value computed *inside* one Branch arm can't be read by a node outside
-  that arm, or by a sibling arm — it's out of scope, exactly like in hand-written
-  JavaScript. **Reconvergence is fine**: if both arms wire back to the same downstream
-  node, that node's code is simply emitted once per arm (safe, since only one arm ever
-  executes per request).
+- **Branch/Switch/Sequence forks** — none of `controlFlow.branch`/`controlFlow.switch`/
+  `controlFlow.sequence` emit their own code directly; the exec-chain walker
+  special-cases them, compiling each wired arm as its **own independent scope** (a real
+  `if`/`else` block, `switch` case, or plain `{ }` block for Sequence). This is why a
+  value computed *inside* one arm can't be read by a node outside that arm, or by a
+  sibling arm — it's out of scope, exactly like in hand-written JavaScript.
+  **Reconvergence is fine**: if two arms wire back to the same downstream node, that
+  node's code is simply emitted once per arm (safe for Branch/Switch since only one arm
+  ever executes per request — and safe for Sequence too, since each of its arms is a
+  distinct block that legitimately does run every time). The only difference between
+  Sequence and Branch/Switch is which/how-many wired arms actually run: Branch/Switch
+  each pick exactly one; Sequence runs every wired arm, unconditionally, in pin order.
 - **Hoisting pure value dependencies** — a pure value node (an operator, a Get Variable)
   referenced from the middle of a chain is automatically hoisted to just before it's
   needed, even if nothing wired it in at the top level. This is also what lets an
