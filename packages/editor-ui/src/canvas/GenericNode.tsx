@@ -28,9 +28,11 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
     case "logic.require":
       return `${data.variableName ?? "?"} = require(${JSON.stringify(data.path ?? "")})`;
     case "logic.functionCall": {
-      const variableName = String(data.variableName ?? "");
       const functionName = String(data.functionName ?? "");
-      return functionName.length > 0 ? `${variableName}.${functionName}(${data.params ?? ""})` : "(unnamed)";
+      if (functionName.length === 0) return "(unnamed)";
+      if (data.callKind === "sameFile") return `${functionName}(${data.params ?? ""})`;
+      const variableName = String(data.variableName ?? "");
+      return `${variableName}.${functionName}(${data.params ?? ""})`;
     }
     case "debug.consoleLog": {
       const expression = String(data.expression ?? "");

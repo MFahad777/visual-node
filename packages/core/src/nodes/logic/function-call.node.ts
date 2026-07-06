@@ -29,18 +29,30 @@ export function functionCallResultInlinesInto(callNode: FlowNode, consumerId: st
   return ctx.getNode(consumerId)?.type === "variable.set";
 }
 
-/** Builds the raw `module.function(args)` call expression text — shared by `emit()`'s own
- * statement construction and by a consumer that inlines this call (see
- * `functionCallResultInlinesInto`). Throws the same validation errors either way. */
+/** Builds the raw call expression text — shared by `emit()`'s own statement construction
+ * and by a consumer that inlines this call (see `functionCallResultInlinesInto`). Throws
+ * the same validation errors either way.
+ *
+ * Two call kinds (`node.data.callKind`, default `"require"` for backward compat — every
+ * `.blueprint` file predating this field has no such property and keeps compiling
+ * identically): `"require"` emits `variableName.functionName(args)` (a call through an
+ * imported module binding, the only shape this node ever had); `"sameFile"` emits a bare
+ * `functionName(args)` — a call to a sibling `logic.function` declared in the same file
+ * (or, inside that function's own Blueprint graph, to itself — recursion). */
 export function buildFunctionCallExpression(node: FlowNode, ctx: EmitContext): string {
-  const variableName = String(node.data?.variableName ?? "").trim();
+  const callKind = node.data?.callKind === "sameFile" ? "sameFile" : "require";
   const functionName = String(node.data?.functionName ?? "").trim();
 
-  if (!IDENTIFIER_RE.test(variableName)) {
-    throw new Error(`Function Call node "${node.id}" has an invalid module variable name "${node.data?.variableName}"`);
-  }
   if (!IDENTIFIER_RE.test(functionName)) {
     throw new Error(`Function Call node "${node.id}" has an invalid function name "${node.data?.functionName}"`);
+  }
+
+  let variableName = "";
+  if (callKind === "require") {
+    variableName = String(node.data?.variableName ?? "").trim();
+    if (!IDENTIFIER_RE.test(variableName)) {
+      throw new Error(`Function Call node "${node.id}" has an invalid module variable name "${node.data?.variableName}"`);
+    }
   }
 
   const params = String(node.data?.params ?? "")
@@ -59,20 +71,25 @@ export function buildFunctionCallExpression(node: FlowNode, ctx: EmitContext): s
     return resultIdentifierFor(source, incoming.sourceHandle, ctx);
   });
 
-  return `${variableName}.${functionName}(${args.join(", ")})`;
+  return callKind === "sameFile" ? `${functionName}(${args.join(", ")})` : `${variableName}.${functionName}(${args.join(", ")})`;
 }
 
 /**
- * Calls an exported function from a `logic.require`'d module. Unlike other node types,
- * instances of this one are never hand-configured from a blank default — the editor
+ * Calls a function — either an exported function from a `logic.require`'d module
+ * (`data.callKind === "require"`, the default/only shape this node originally had), or a
+ * sibling `logic.function` declared in the same file, including the function whose own
+ * Blueprint graph this call sits inside — i.e. recursion (`data.callKind === "sameFile"`,
+ * only ever offered inside a Function's nested Blueprint graph editor). Unlike other node
+ * types, instances of this one are never hand-configured from a blank default — the editor
  * creates them pre-filled from a specific resolved function (picked via search), and
- * `params`/`variableName`/`functionName` are treated as fixed for the node's lifetime.
- * A parameter's value comes from whatever's wired into its `param-<N>` input, or falls back
- * to the raw JS expression in `arg-<N>` when that pin has no incoming edge. At the top level
- * of a flow, `validate.ts` restricts a wired source to another Function Call node (chaining
- * that call's `resultVariable`); this node is also reused inside a Function's blueprint body
- * graph (see `emit-function-graph.ts`), where a wired source may instead be a Parameter or
- * an operator node — `resultIdentifierFor()` resolves either uniformly.
+ * `params`/`variableName`/`functionName`/`callKind` are treated as fixed for the node's
+ * lifetime. A parameter's value comes from whatever's wired into its `param-<N>` input, or
+ * falls back to the raw JS expression in `arg-<N>` when that pin has no incoming edge. At
+ * the top level of a flow, `validate.ts` restricts a wired source to another Function Call
+ * node (chaining that call's `resultVariable`); this node is also reused inside a
+ * Function's blueprint body graph (see `emit-function-graph.ts`), where a wired source may
+ * instead be a Parameter or an operator node — `resultIdentifierFor()` resolves either
+ * uniformly.
  *
  * The "Result" output is optional: `emit()` only declares/assigns `resultVariable` when that
  * pin actually has an outgoing wire (another Function Call's param, a `variable.set` node's
@@ -99,6 +116,7 @@ export const logicFunctionCallNode: NodeDefinition = {
     { id: "result", label: "Result" },
   ],
   configSchema: [
+    { key: "callKind", label: "Call Kind", type: "text", default: "require" },
     { key: "requirePath", label: "Module Path", type: "text", default: "" },
     { key: "variableName", label: "Module Variable", type: "text", default: "" },
     { key: "functionName", label: "Function Name", type: "text", default: "" },

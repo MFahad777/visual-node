@@ -191,13 +191,15 @@ function ConfigFieldInput({
 
 /**
  * `logic.functionCall`'s configSchema (in packages/core) is generic text fields for
- * requirePath/variableName/functionName/params/resultVariable, but those first four are
- * fixed at node-creation time — editing them would desync the node from the real function
- * it was resolved from. This renders a read-only call signature instead, plus the one
- * field that *is* editable (resultVariable), plus one row per parsed parameter: either a
- * read-only "wired from" indicator (when a param-<N> pin has an incoming edge) or an
- * editable raw-JS-expression fallback (arg-<N>), since the core configSchema has no field
- * for those at all — the parameter count varies per instance, not per node type.
+ * callKind/requirePath/variableName/functionName/params/resultVariable, but all but the
+ * last are fixed at node-creation time — editing them would desync the node from the real
+ * function it was resolved from. This renders a read-only call signature instead (the
+ * `variableName.functionName(...)` shape for a Require-based call, or a bare
+ * `functionName(...)` when `callKind === "sameFile"`), plus the one field that *is*
+ * editable (resultVariable), plus one row per parsed parameter: either a read-only "wired
+ * from" indicator (when a param-<N> pin has an incoming edge) or an editable
+ * raw-JS-expression fallback (arg-<N>), since the core configSchema has no field for those
+ * at all — the parameter count varies per instance, not per node type.
  */
 function FunctionCallConfig({
   node,
@@ -210,6 +212,7 @@ function FunctionCallConfig({
   nodes: Node[];
   updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
 }) {
+  const isSameFile = node.data?.callKind === "sameFile";
   const variableName = String(node.data?.variableName ?? "");
   const functionName = String(node.data?.functionName ?? "");
   const paramsRaw = String(node.data?.params ?? "");
@@ -221,8 +224,19 @@ function FunctionCallConfig({
   return (
     <div className="flex flex-col gap-3">
       <div className="mb-3 rounded bg-black/40 px-2 py-1.5 font-mono text-xs text-neutral-200">
-        {variableName}.{functionName}({paramsRaw})
+        {isSameFile ? (
+          <>
+            {functionName}({paramsRaw})
+          </>
+        ) : (
+          <>
+            {variableName}.{functionName}({paramsRaw})
+          </>
+        )}
       </div>
+      <p className="text-[11px] text-neutral-500">
+        {isSameFile ? "Calls a function defined in this same file." : "Calls an exported function from a required module."}
+      </p>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">Result Variable Name</span>

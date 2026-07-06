@@ -231,15 +231,46 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   }
 
   const requireVariableNames = new Set(flow.nodes.filter((n) => n.type === "logic.require").map((n) => String(n.data?.variableName ?? "").trim()));
+  // Includes the function whose graph is currently being validated (it's a `logic.function`
+  // node in `flow.nodes` like any other) — so a recursive self-call validates for free with
+  // no extra special-casing.
+  const sameFileFunctionNames = new Set(
+    flow.nodes.filter((n) => n.type === "logic.function").map((n) => String(n.data?.name ?? "").trim()),
+  );
   const resultVarOwners = new Map<string, string[]>();
   for (const call of graphNodes.filter((n) => n.type === "logic.functionCall")) {
-    const variableName = String(call.data?.variableName ?? "").trim();
-    if (!requireVariableNames.has(variableName)) {
-      errors.push({
-        nodeId: functionNode.id,
-        blueprintNodeId: call.id,
-        message: `Function "${functionName}" blueprint graph's Function Call node references variable "${variableName}", but no Require node in this file defines it`,
-      });
+    const callKind = call.data?.callKind === "sameFile" ? "sameFile" : "require";
+    if (callKind === "sameFile") {
+      const calledFunctionName = String(call.data?.functionName ?? "").trim();
+      if (!sameFileFunctionNames.has(calledFunctionName)) {
+        errors.push({
+          nodeId: functionNode.id,
+          blueprintNodeId: call.id,
+          message: `Function "${functionName}" blueprint graph's Function Call node calls "${calledFunctionName}", but no Function node with that name exists in this file`,
+        });
+      }
+    } else {
+      const variableName = String(call.data?.variableName ?? "").trim();
+      if (!requireVariableNames.has(variableName)) {
+        errors.push({
+          nodeId: functionNode.id,
+          blueprintNodeId: call.id,
+          message: `Function "${functionName}" blueprint graph's Function Call node references variable "${variableName}", but no Require node in this file defines it`,
+        });
+      }
+    }
+    // Validate that all declared parameters are wired to a value source
+    // Parameter pins are indexed as "param-0", "param-1", etc., not by their names
+    const paramNames = String(call.data?.params ?? "").split(",").map((p) => p.trim()).filter((p) => p.length > 0);
+    for (let i = 0; i < paramNames.length; i++) {
+      const hasWiredInput = graphEdges.some((e) => e.target === call.id && e.targetHandle === `param-${i}`);
+      if (!hasWiredInput) {
+        errors.push({
+          nodeId: functionNode.id,
+          blueprintNodeId: call.id,
+          message: `Function "${functionName}" blueprint graph's Function Call node's parameter "${paramNames[i]}" is not wired to a value`,
+        });
+      }
     }
     const resultVariable = String(call.data?.resultVariable ?? "").trim();
     if (resultVariable) resultVarOwners.set(resultVariable, [...(resultVarOwners.get(resultVariable) ?? []), call.id]);

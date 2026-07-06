@@ -222,32 +222,61 @@ export function createFunctionGraphStore(
       const trimmed = name.trim();
       if (!trimmed) return;
       set({
-        nodes: get().nodes.map((n) =>
-          n.type === "logic.graphEntry"
-            ? { ...n, data: { ...n.data, params: [...paramsOf(n), trimmed] } }
-            : n,
-        ),
+        nodes: get().nodes.map((n) => {
+          if (n.type === "logic.graphEntry") {
+            return { ...n, data: { ...n.data, params: [...paramsOf(n), trimmed] } };
+          }
+          // Also sync same-file function call nodes (recursion): append the new param
+          if (n.type === "logic.functionCall" && n.data?.callKind === "sameFile") {
+            const currentParams = String(n.data?.params ?? "")
+              .split(",")
+              .map((p) => p.trim())
+              .filter((p) => p.length > 0);
+            return { ...n, data: { ...n.data, params: [...currentParams, trimmed].join(", ") } };
+          }
+          return n;
+        }),
       });
     },
     removeParam: (name) => {
       const entry = get().nodes.find((n) => n.type === "logic.graphEntry");
       set({
-        nodes: get().nodes.map((n) =>
-          n.type === "logic.graphEntry"
-            ? { ...n, data: { ...n.data, params: paramsOf(n).filter((p) => p !== name) } }
-            : n,
-        ),
+        nodes: get().nodes.map((n) => {
+          if (n.type === "logic.graphEntry") {
+            return { ...n, data: { ...n.data, params: paramsOf(n).filter((p) => p !== name) } };
+          }
+          // Also sync same-file function call nodes (recursion): remove the param
+          if (n.type === "logic.functionCall" && n.data?.callKind === "sameFile") {
+            const currentParams = String(n.data?.params ?? "")
+              .split(",")
+              .map((p) => p.trim())
+              .filter((p) => p.length > 0);
+            const updated = currentParams.filter((p) => p !== name);
+            return { ...n, data: { ...n.data, params: updated.join(", ") } };
+          }
+          return n;
+        }),
         edges: entry ? get().edges.filter((e) => !(e.source === entry.id && e.sourceHandle === name)) : get().edges,
       });
     },
     renameParam: (oldName, newName) => {
       const entry = get().nodes.find((n) => n.type === "logic.graphEntry");
       set({
-        nodes: get().nodes.map((n) =>
-          n.type === "logic.graphEntry"
-            ? { ...n, data: { ...n.data, params: paramsOf(n).map((p) => (p === oldName ? newName : p)) } }
-            : n,
-        ),
+        nodes: get().nodes.map((n) => {
+          if (n.type === "logic.graphEntry") {
+            return { ...n, data: { ...n.data, params: paramsOf(n).map((p) => (p === oldName ? newName : p)) } };
+          }
+          // Also sync same-file function call nodes (recursion): rename the param
+          if (n.type === "logic.functionCall" && n.data?.callKind === "sameFile") {
+            const currentParams = String(n.data?.params ?? "")
+              .split(",")
+              .map((p) => p.trim())
+              .filter((p) => p.length > 0);
+            const updated = currentParams.map((p) => (p === oldName ? newName : p));
+            return { ...n, data: { ...n.data, params: updated.join(", ") } };
+          }
+          return n;
+        }),
         edges: entry
           ? get().edges.map((e) =>
               e.source === entry.id && e.sourceHandle === oldName ? { ...e, sourceHandle: newName } : e,

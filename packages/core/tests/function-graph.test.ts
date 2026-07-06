@@ -213,6 +213,71 @@ describe("emitFunctionGraphBody", () => {
     // eslint-disable-next-line no-new-func
     expect(new Function(body)()).toBe("A");
   });
+
+  it('a `callKind: "sameFile"` Function Call emits a bare `functionName(args)` call, not `variableName.functionName(...)`', () => {
+    const graph: FunctionGraph = {
+      nodes: [
+        graphEntry("entry1"),
+        {
+          id: "call1",
+          type: "logic.functionCall",
+          position: { x: 0, y: 0 },
+          data: { callKind: "sameFile", functionName: "helper", params: "n", resultVariable: "result1" },
+        },
+        graphReturn("ret1"),
+      ],
+      edges: [
+        { id: "e1", source: "entry1", target: "call1", sourceHandle: "n", targetHandle: "param-0" },
+        { id: "e2", source: "call1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
+      ],
+    };
+    const { code: body } = emitFunctionGraphBody(graph);
+    expect(body).toContain("const result1 = helper(n);");
+    expect(body).not.toContain("undefined.helper");
+    expect(body).not.toContain(".helper(");
+  });
+
+  it("recursion: a factorial-shaped graph (Branch guard + a sameFile self-call in the recursive arm) compiles to real, correctly-recursing code", () => {
+    const graph: FunctionGraph = {
+      nodes: [
+        graphEntry("entry1"),
+        { id: "le1", type: "operators.lessOrEqual", position: { x: 0, y: 0 }, data: { literals: { b: "1" } } },
+        branchNode("guard"),
+        graphReturnWithLiteral("retBase", "1"),
+        { id: "sub1", type: "operators.subtract", position: { x: 0, y: 0 }, data: { literals: { b: "1" } } },
+        {
+          id: "call1",
+          type: "logic.functionCall",
+          position: { x: 0, y: 0 },
+          data: { callKind: "sameFile", functionName: "factorial", params: "n", resultVariable: "rec" },
+        },
+        { id: "mul1", type: "operators.multiply", position: { x: 0, y: 0 }, data: {} },
+        graphReturn("retRec"),
+      ],
+      edges: [
+        { id: "e1", source: "entry1", target: "guard", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "entry1", target: "le1", sourceHandle: "n", targetHandle: "a" },
+        { id: "e3", source: "le1", target: "guard", sourceHandle: "result", targetHandle: "condition" },
+        { id: "e4", source: "guard", target: "retBase", sourceHandle: "true", targetHandle: "in" },
+        { id: "e5", source: "guard", target: "retRec", sourceHandle: "false", targetHandle: "in" },
+        { id: "e6", source: "entry1", target: "sub1", sourceHandle: "n", targetHandle: "a" },
+        { id: "e7", source: "sub1", target: "call1", sourceHandle: "result", targetHandle: "param-0" },
+        { id: "e8", source: "entry1", target: "mul1", sourceHandle: "n", targetHandle: "a" },
+        { id: "e9", source: "call1", target: "mul1", sourceHandle: "result", targetHandle: "b" },
+        { id: "e10", source: "mul1", target: "retRec", sourceHandle: "result", targetHandle: "value" },
+      ],
+    };
+    const { code: body } = emitFunctionGraphBody(graph);
+    expect(body).toContain("<=");
+    expect(body).toContain("factorial(");
+    expect(body).not.toContain(".factorial(");
+
+    // eslint-disable-next-line no-new-func
+    const factorial = new Function(`return function factorial(n) { ${body} };`)();
+    expect(factorial(5)).toBe(120);
+    expect(factorial(1)).toBe(1);
+    expect(factorial(0)).toBe(1);
+  });
 });
 
 describe("logic.function mode: blueprint — validation", () => {
@@ -316,6 +381,69 @@ describe("logic.function mode: blueprint — validation", () => {
     expect(result.errors.some((e) => e.message.includes("no Require node in this file defines it"))).toBe(true);
   });
 
+  it('rejects a `callKind: "sameFile"` Function Call node whose functionName matches no Function node in the file', () => {
+    const flow = makeFlow([
+      {
+        id: "fn1",
+        type: "logic.function",
+        position: { x: 0, y: 0 },
+        data: {
+          name: "wrapper",
+          params: "n",
+          mode: "blueprint",
+          graph: {
+            nodes: [
+              graphEntry("entry1"),
+              {
+                id: "call1",
+                type: "logic.functionCall",
+                position: { x: 0, y: 0 },
+                data: { callKind: "sameFile", functionName: "nonexistent", params: "n", resultVariable: "result1" },
+              },
+            ],
+            edges: [{ id: "e1", source: "entry1", target: "call1", sourceHandle: "n", targetHandle: "param-0" }],
+          },
+        },
+      },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('no Function node with that name exists in this file'))).toBe(true);
+  });
+
+  it('accepts a `callKind: "sameFile"` Function Call node that recursively calls its own owning Function', () => {
+    const flow = makeFlow([
+      {
+        id: "fn1",
+        type: "logic.function",
+        position: { x: 0, y: 0 },
+        data: {
+          name: "factorial",
+          params: "n",
+          mode: "blueprint",
+          graph: {
+            nodes: [
+              graphEntry("entry1"),
+              {
+                id: "call1",
+                type: "logic.functionCall",
+                position: { x: 0, y: 0 },
+                data: { callKind: "sameFile", functionName: "factorial", params: "n", resultVariable: "rec" },
+              },
+              graphReturn("ret1"),
+            ],
+            edges: [
+              { id: "e1", source: "entry1", target: "call1", sourceHandle: "n", targetHandle: "param-0" },
+              { id: "e2", source: "call1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
+            ],
+          },
+        },
+      },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+  });
+
   it("accepts a valid blueprint graph wired to a real Require node", () => {
     const flow = makeFlow([
       { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/math", variableName: "mathHelpers" } },
@@ -348,6 +476,41 @@ describe("logic.function mode: blueprint — validation", () => {
     ]);
     const result = validateFlow(flow);
     expect(result.valid).toBe(true);
+  });
+
+  it("rejects a Function Call with unwired parameters", () => {
+    const flow = makeFlow([
+      {
+        id: "fn1",
+        type: "logic.function",
+        position: { x: 0, y: 0 },
+        data: {
+          name: "test",
+          params: "a, b",
+          mode: "blueprint",
+          graph: {
+            nodes: [
+              graphEntry("entry1"),
+              {
+                id: "call1",
+                type: "logic.functionCall",
+                position: { x: 0, y: 0 },
+                data: { callKind: "sameFile", functionName: "test", params: "a, b", resultVariable: "rec" },
+              },
+              graphReturn("ret1"),
+            ],
+            edges: [
+              // Only parameter "a" is wired; "b" is missing
+              { id: "e1", source: "entry1", target: "call1", sourceHandle: "a", targetHandle: "param-0" },
+              { id: "e2", source: "call1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
+            ],
+          },
+        },
+      },
+    ]);
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('parameter "b"') && e.message.includes("not wired"))).toBe(true);
   });
 });
 

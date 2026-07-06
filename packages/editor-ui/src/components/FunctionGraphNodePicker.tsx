@@ -10,10 +10,19 @@ export interface FunctionGraphNodePickerProps {
   screenX: number;
   screenY: number;
   flowPosition: XYPosition;
-  /** Current local sub-graph nodes, used only for best-effort resultVariable collision avoidance. */
+  /** Current local sub-graph nodes, used for best-effort resultVariable collision avoidance
+   * and (via its `logic.graphEntry` node) the live, possibly-unsaved parameter list of the
+   * function currently being edited — see `sameFileEntries` below. */
   localNodes: Array<{ type?: string; data?: Record<string, unknown> }>;
   onAddNode: (type: string, position: XYPosition, data: Record<string, unknown>) => void;
   onClose: () => void;
+}
+
+interface SameFileFunctionEntry {
+  nodeId: string;
+  functionName: string;
+  params: string;
+  isSelf: boolean;
 }
 
 const MENU_WIDTH = 260;
@@ -40,7 +49,8 @@ function generateUniqueResultVariable(functionName: string, nodes: Array<{ type?
 // `logic.graphEntry` is managed exclusively via the Details panel's Inputs section in
 // `FunctionGraphModal.tsx` (at most one per graph) — never offered here.
 // `logic.functionCall` is excluded too: it's only ever added pre-filled from a specific
-// resolved Require'd function (the "Function Calls" section below), never blank.
+// resolved function — either Require'd ("Function Calls" section below) or declared in
+// this same file ("Functions in This File" section below) — never blank.
 // `variable.get`/`variable.set` are excluded for the same reason as `logic.functionCall`:
 // they need a bound `data.variableId`, only ever set via dragging a row out of the Details
 // panel's Variables section, never via this generic catalog. They still need to be present
@@ -61,9 +71,12 @@ const PANEL_MANAGED_TYPES = new Set([
  * counterpart to `canvas/NodePickerMenu.tsx` (that file's click-outside/Escape pattern and
  * viewport-clamped positioning are reused here almost verbatim). Generically offers every
  * node type from `FUNCTION_GRAPH_NODE_DEFINITIONS` (fetched via `?scope=function-graph`)
- * except `PANEL_MANAGED_TYPES` above, plus a resolved Function Call per exported function
- * reachable from the outer flow's Require nodes (same resolution `NodePickerMenu.tsx` uses
- * on the top-level canvas).
+ * except `PANEL_MANAGED_TYPES` above, plus two resolved-Function-Call sections: "Function
+ * Calls" (Require-based, one per exported function reachable from the outer flow's Require
+ * nodes — same resolution `NodePickerMenu.tsx` uses on the top-level canvas) and "Functions
+ * in This File" (same-file, one per sibling `logic.function` node declared at the outer
+ * flow's top level, including the function whose graph is currently open — selecting that
+ * one wires up a recursive self-call).
  */
 export function FunctionGraphNodePicker({
   screenX,
@@ -75,6 +88,8 @@ export function FunctionGraphNodePicker({
 }: FunctionGraphNodePickerProps) {
   const currentFilePath = useFlowStore((s) => s.currentFilePath);
   const requireNodes = useFlowStore((s) => s.nodes.filter((n) => n.type === "logic.require"));
+  const siblingFunctionNodes = useFlowStore((s) => s.nodes.filter((n) => n.type === "logic.function"));
+  const currentFunctionNodeId = useFlowStore((s) => s.openFunctionGraphNodeId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +163,36 @@ export function FunctionGraphNodePicker({
     });
   }, [functionCallEntries, query]);
 
+  // The self entry's params must reflect the LIVE (possibly-unsaved) parameter list from the
+  // local sub-graph's own `logic.graphEntry` node, not the outer flow node's `data.params` —
+  // the outer node only gets the current param list written back on "Save & Close" (Phase 6),
+  // so a param just added/renamed in the Details panel would otherwise be invisible here until
+  // after a save. Every other (non-self) sibling function isn't concurrently being edited in
+  // this modal session, so its own outer-flow node's `data.params` is already authoritative.
+  const sameFileEntries = useMemo((): SameFileFunctionEntry[] => {
+    const graphEntryNode = localNodes.find((n) => n.type === "logic.graphEntry");
+    const liveSelfParams = Array.isArray(graphEntryNode?.data?.params) ? (graphEntryNode!.data!.params as string[]) : [];
+    return siblingFunctionNodes
+      .map((n): SameFileFunctionEntry => {
+        const isSelf = n.id === currentFunctionNodeId;
+        return {
+          nodeId: n.id,
+          functionName: String(n.data?.name ?? "").trim(),
+          params: isSelf ? liveSelfParams.join(", ") : String(n.data?.params ?? ""),
+          isSelf,
+        };
+      })
+      .filter((entry) => entry.functionName.length > 0);
+  }, [siblingFunctionNodes, currentFunctionNodeId, localNodes]);
+
+  const filteredSameFileEntries = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return sameFileEntries.filter((fn) => {
+      const label = `${fn.functionName}(${fn.params})`;
+      return label.toLowerCase().includes(q);
+    });
+  }, [sameFileEntries, query]);
+
   const left = Math.max(8, Math.min(screenX, window.innerWidth - MENU_WIDTH - 8));
   const top = Math.max(8, Math.min(screenY, window.innerHeight - MENU_MAX_HEIGHT - 8));
 
@@ -164,8 +209,22 @@ export function FunctionGraphNodePicker({
     // only — not required for correctness since a real collision still surfaces as a
     // compile error once the project is compiled, which the user can fix by renaming.
     const data = {
+      callKind: "require",
       requirePath: entry.requirePath,
       variableName: entry.variableName,
+      functionName: entry.functionName,
+      params: entry.params,
+      resultVariable: generateUniqueResultVariable(entry.functionName, localNodes),
+    };
+    onAddNode("logic.functionCall", flowPosition, data);
+    onClose();
+  }
+
+  function handleAddSameFileFunctionCall(entry: SameFileFunctionEntry) {
+    const data = {
+      callKind: "sameFile",
+      requirePath: "",
+      variableName: "",
       functionName: entry.functionName,
       params: entry.params,
       resultVariable: generateUniqueResultVariable(entry.functionName, localNodes),
@@ -201,6 +260,22 @@ export function FunctionGraphNodePicker({
           ))}
         </div>
 
+        {filteredSameFileEntries.length > 0 && (
+          <div className="mt-3">
+            <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Functions in This File</h3>
+            <div className="flex flex-col gap-1.5">
+              {filteredSameFileEntries.map((fn) => (
+                <PickerCard
+                  key={fn.nodeId}
+                  label={fn.isSelf ? `${fn.functionName}(${fn.params}) (recursive)` : `${fn.functionName}(${fn.params})`}
+                  description={fn.isSelf ? "Call this function itself" : "Call a function defined in this file"}
+                  onClick={() => handleAddSameFileFunctionCall(fn)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {filteredFunctionCallEntries.length > 0 && (
           <div className="mt-3">
             <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Function Calls</h3>
@@ -217,7 +292,7 @@ export function FunctionGraphNodePicker({
           </div>
         )}
 
-        {addableDefinitions.length === 0 && filteredFunctionCallEntries.length === 0 && (
+        {addableDefinitions.length === 0 && filteredFunctionCallEntries.length === 0 && filteredSameFileEntries.length === 0 && (
           <div className="px-1 py-2 text-xs text-neutral-500">No matching nodes</div>
         )}
       </div>
