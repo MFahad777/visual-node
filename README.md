@@ -55,3 +55,9 @@ demonstrates.
   the canvas (to create a "Get"/"Set" node) could silently do nothing if you clicked
   anywhere on the row's own name/type fields instead of an empty sliver of padding. The row
   now has a dedicated drag handle (⠿) so grabbing it always works.
+- **Change-3 (MINOR)** — Operators: the "Equal" and "Not Equal" nodes' unwired literal
+  inputs now accept any JS value (strings, booleans, `null`, object expressions, etc.), not
+  just numbers — e.g. type `"hello"` (with quotes) to compare strings, or `true`/`false` for
+  booleans. Wired connections already supported any type; this only changes the inline
+  literal input box. Other comparisons (Greater Than, Less Than, etc.) are unchanged and
+  remain numeric-only.

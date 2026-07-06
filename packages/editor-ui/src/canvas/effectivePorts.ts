@@ -32,8 +32,6 @@ const NUMBER_LITERAL_TYPES = new Set([
   "operators.multiply",
   "operators.divide",
   "operators.modulo",
-  "operators.equal",
-  "operators.notEqual",
   "operators.greaterThan",
   "operators.lessThan",
   "operators.greaterOrEqual",
@@ -62,7 +60,15 @@ const BOOLEAN_LITERAL_TYPES = new Set([
 // boolean/expression), so it gets the same free-form raw-JS-text box, keyed only off the
 // node's static type the same way the others are (no per-instance refinement needed, unlike
 // `variable.set`).
-const TEXT_LITERAL_TYPES = new Set(["controlFlow.switch", "variable.set", "logic.graphReturn"]);
+// `operators.equal`/`operators.notEqual` (Phase 13) join this group too — `===`/`!==` are
+// meaningful across every JS type, unlike the arithmetic/ordering ops which stay numeric-only.
+const TEXT_LITERAL_TYPES = new Set([
+  "controlFlow.switch",
+  "variable.set",
+  "logic.graphReturn",
+  "operators.equal",
+  "operators.notEqual",
+]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {
   if (!type) return null;

@@ -173,6 +173,46 @@ describe("comparison operators", () => {
   }
 });
 
+describe("comparison operators — non-numeric types", () => {
+  const CASES: Array<{ type: string; op: (a: unknown, b: unknown) => boolean }> = [
+    { type: "operators.equal", op: (a, b) => a === b },
+    { type: "operators.notEqual", op: (a, b) => a !== b },
+  ];
+
+  for (const { type, op } of CASES) {
+    it(`${type}: string equality via wired inputs`, () => {
+      expect(runBinaryWired(type, "foo", "foo")).toBe(op("foo", "foo"));
+      expect(runBinaryWired(type, "foo", "bar")).toBe(op("foo", "bar"));
+    });
+
+    it(`${type}: boolean operands via wired inputs`, () => {
+      expect(runBinaryWired(type, true, true)).toBe(op(true, true));
+      expect(runBinaryWired(type, true, false)).toBe(op(true, false));
+    });
+
+    it(`${type}: null vs undefined via wired inputs`, () => {
+      expect(runBinaryWired(type, null, undefined)).toBe(op(null, undefined));
+      expect(runBinaryWired(type, null, null)).toBe(op(null, null));
+    });
+
+    it(`${type}: object reference (in)equality via wired inputs`, () => {
+      const obj = { a: 1 };
+      expect(runBinaryWired(type, obj, obj)).toBe(op(obj, obj));
+      expect(runBinaryWired(type, { a: 1 }, { a: 1 })).toBe(op({}, {}));
+    });
+
+    it(`${type}: quoted-string literal inputs`, () => {
+      expect(runBinaryLiteral(type, '"foo"', '"foo"')).toBe(op("foo", "foo"));
+      expect(runBinaryLiteral(type, '"foo"', '"bar"')).toBe(op("foo", "bar"));
+    });
+
+    it(`${type}: boolean literal inputs`, () => {
+      expect(runBinaryLiteral(type, "true", "true")).toBe(op(true, true));
+      expect(runBinaryLiteral(type, "true", "false")).toBe(op(true, false));
+    });
+  }
+});
+
 describe("boolean variadic operators — truth tables", () => {
   const EXPECTATIONS: Record<string, (operands: boolean[]) => boolean> = {
     "operators.and": (ops) => ops.every(Boolean),
