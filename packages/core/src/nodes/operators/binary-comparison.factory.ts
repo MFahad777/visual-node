@@ -7,6 +7,12 @@ export interface ComparisonNodeOptions {
   label: string;
   description: string;
   operator: "===" | "!==" | ">" | "<" | ">=" | "<=";
+  /**
+   * When set, this node exposes a "strict" boolean config field (default true) letting the
+   * user opt into the loose variant instead. Only Equal/NotEqual set this — GreaterThan/
+   * LessThan/GreaterOrEqual/LessOrEqual have no loose counterpart and must not gain it.
+   */
+  looseOperator?: "==" | "!=";
 }
 
 /**
@@ -14,6 +20,7 @@ export interface ComparisonNodeOptions {
  * LessThan/GreaterOrEqual/LessOrEqual). Same shape as `binary-math.factory.ts` — fixed "a"/"b"
  * value inputs, one "result" value output — only the operator string and label/description
  * differ, so this is kept as its own small factory rather than sharing code with the math one.
+ * Equal/NotEqual additionally set `looseOperator`, adding a "strict" config checkbox.
  */
 export function createComparisonNode(opts: ComparisonNodeOptions): NodeDefinition {
   return {
@@ -26,12 +33,25 @@ export function createComparisonNode(opts: ComparisonNodeOptions): NodeDefinitio
       { id: "b", label: "B", kind: "value" },
     ],
     outputs: [{ id: "result", label: "Result", kind: "value" }],
-    configSchema: [],
+    configSchema:
+      opts.looseOperator !== undefined
+        ? [
+            {
+              key: "strict",
+              label: "Strict",
+              type: "boolean",
+              default: true,
+              hint: `When off, emits JS "${opts.looseOperator}" (loose) instead of "${opts.operator}" (strict).`,
+            },
+          ]
+        : [],
     emit: (node, ctx) => {
       const a = resolveValuePin(node, ctx, "a", { defaultLiteral: "0" });
       const b = resolveValuePin(node, ctx, "b", { defaultLiteral: "0" });
       const resultVar = `_op_${sanitizeIdentifier(node.id)}`;
-      return { body: `const ${resultVar} = (${a} ${opts.operator} ${b});`, order: 0 };
+      const operator =
+        opts.looseOperator !== undefined && node.data?.strict === false ? opts.looseOperator : opts.operator;
+      return { body: `const ${resultVar} = (${a} ${operator} ${b});`, order: 0 };
     },
     resultIdentifier: (node) => `_op_${sanitizeIdentifier(node.id)}`,
   };

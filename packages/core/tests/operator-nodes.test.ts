@@ -99,11 +99,19 @@ function runBinaryWired(type: string, x: unknown, y: unknown): unknown {
   return runGraph(nodes, edges, [x, y], ["x", "y"]);
 }
 
-/** Both "a" and "b" come from `data.literals` — no wiring at all. */
-function runBinaryLiteral(type: string, a: unknown, b: unknown): unknown {
-  const nodes = [opNode("op1", type, { literals: { a, b } }), graphReturn("ret1")];
+/** Both "a" and "b" come from `data.literals` — no wiring at all. `extraData` is merged
+ * into the node's `data` alongside `literals`, e.g. to pass `{ strict: false }`. */
+function runBinaryLiteral(type: string, a: unknown, b: unknown, extraData: Record<string, unknown> = {}): unknown {
+  const nodes = [opNode("op1", type, { literals: { a, b }, ...extraData }), graphReturn("ret1")];
   const edges: FlowEdge[] = [{ id: "e1", source: "op1", target: "ret1", sourceHandle: "result", targetHandle: "value" }];
   return runGraph(nodes, edges);
+}
+
+/** Same as `runBinaryLiteral` but returns the generated code string instead of executing it. */
+function emitBinaryLiteral(type: string, a: unknown, b: unknown, extraData: Record<string, unknown> = {}): string {
+  const nodes = [opNode("op1", type, { literals: { a, b }, ...extraData }), graphReturn("ret1")];
+  const edges: FlowEdge[] = [{ id: "e1", source: "op1", target: "ret1", sourceHandle: "result", targetHandle: "value" }];
+  return emitFunctionGraphBody({ nodes, edges } as FunctionGraph).code;
 }
 
 /** A variadic boolean node ("a"/"b" plus optional `extraInputs`), all operands from `data.literals`. */
@@ -211,6 +219,50 @@ describe("comparison operators — non-numeric types", () => {
       expect(runBinaryLiteral(type, "true", "false")).toBe(op(true, false));
     });
   }
+});
+
+describe("operators.equal / operators.notEqual — strict config field", () => {
+  const CASES: Array<{ type: string; strictOp: string; looseOp: string }> = [
+    { type: "operators.equal", strictOp: "===", looseOp: "==" },
+    { type: "operators.notEqual", strictOp: "!==", looseOp: "!=" },
+  ];
+
+  for (const { type, strictOp, looseOp } of CASES) {
+    it(`${type}: emits "${strictOp}" when data.strict is absent (backward compatible)`, () => {
+      expect(emitBinaryLiteral(type, "1", "1")).toContain(`((1) ${strictOp} (1))`);
+    });
+
+    it(`${type}: emits "${strictOp}" when data.strict is explicitly true`, () => {
+      expect(emitBinaryLiteral(type, "1", "1", { strict: true })).toContain(`((1) ${strictOp} (1))`);
+    });
+
+    it(`${type}: emits "${looseOp}" when data.strict is false`, () => {
+      expect(emitBinaryLiteral(type, "1", "1", { strict: false })).toContain(`((1) ${looseOp} (1))`);
+    });
+  }
+
+  it('operators.equal: strict=false performs type coercion (1 == "1")', () => {
+    expect(runBinaryLiteral("operators.equal", "1", '"1"', { strict: false })).toBe(true);
+  });
+
+  it('operators.equal: default/strict=true does NOT coerce (1 === "1")', () => {
+    expect(runBinaryLiteral("operators.equal", "1", '"1"')).toBe(false);
+  });
+
+  it('operators.notEqual: strict=false performs type coercion (1 != "1")', () => {
+    expect(runBinaryLiteral("operators.notEqual", "1", '"1"', { strict: false })).toBe(false);
+  });
+
+  it('operators.notEqual: default/strict=true does NOT coerce (1 !== "1")', () => {
+    expect(runBinaryLiteral("operators.notEqual", "1", '"1"')).toBe(true);
+  });
+
+  it("operators.greaterThan/lessThan/greaterOrEqual/lessOrEqual have no strict config field", () => {
+    for (const type of ["operators.greaterThan", "operators.lessThan", "operators.greaterOrEqual", "operators.lessOrEqual"]) {
+      const def = getNodeDefinition(type)!;
+      expect(def.configSchema.find((f) => f.key === "strict")).toBeUndefined();
+    }
+  });
 });
 
 describe("boolean variadic operators — truth tables", () => {

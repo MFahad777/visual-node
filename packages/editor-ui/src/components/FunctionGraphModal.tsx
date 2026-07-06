@@ -563,6 +563,12 @@ function SubCanvasNodeConfig({
                 onChange={(next) => updateNodeData(node.id, field.key, next)}
               />
             </div>
+          ) : field.type === "boolean" ? (
+            <input
+              type="checkbox"
+              checked={Boolean(node.data?.[field.key] ?? field.default ?? false)}
+              onChange={(e) => updateNodeData(node.id, field.key, e.target.checked)}
+            />
           ) : (
             <input
               type="text"

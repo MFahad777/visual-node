@@ -54,6 +54,10 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
       const variable = variables.find((v) => v.id === data.variableId);
       return variable ? `Set ${variable.name}` : "Set (missing variable)";
     }
+    case "operators.equal":
+      return data.strict === false ? "==" : "===";
+    case "operators.notEqual":
+      return data.strict === false ? "!=" : "!==";
     default:
       return null;
   }
