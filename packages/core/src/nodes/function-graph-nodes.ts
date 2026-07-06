@@ -23,6 +23,7 @@ import { xorNode } from "./operators/xor.node.js";
 import { notNode } from "./operators/not.node.js";
 import { controlFlowBranchNode } from "./control-flow/branch.node.js";
 import { controlFlowSwitchNode } from "./control-flow/switch.node.js";
+import { controlFlowSequenceNode } from "./control-flow/sequence.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
 
@@ -77,6 +78,7 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   notNode,
   controlFlowBranchNode,
   controlFlowSwitchNode,
+  controlFlowSequenceNode,
 ];
 
 /**

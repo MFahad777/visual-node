@@ -21,6 +21,17 @@ export function getSwitchCases(node: FlowNode): SwitchCase[] {
   return Array.isArray(raw) ? (raw as SwitchCase[]) : [];
 }
 
+export interface SequencePin {
+  /** Stable identifier minted by editor-ui for every pin beyond the static "then-0". */
+  id: string;
+}
+
+/** Reads `node.data.pins`, tolerating a missing/malformed value as "no extra pins yet." */
+export function getSequencePins(node: FlowNode): SequencePin[] {
+  const raw = (node.data as Record<string, unknown> | undefined)?.pins;
+  return Array.isArray(raw) ? (raw as SequencePin[]) : [];
+}
+
 /**
  * The ordered list of this node's execution-output pin ids if it's a "fork" node (one that
  * branches into independent sub-chains instead of a single linear "out"), or `null` for
@@ -31,6 +42,9 @@ export function getForkArmPinIds(node: FlowNode): string[] | null {
   if (node.type === "controlFlow.branch") return ["true", "false"];
   if (node.type === "controlFlow.switch") {
     return [...getSwitchCases(node).map((c) => `case-${c.id}`), "default"];
+  }
+  if (node.type === "controlFlow.sequence") {
+    return ["then-0", ...getSequencePins(node).map((p) => `then-${p.id}`)];
   }
   return null;
 }
@@ -80,6 +94,21 @@ function assembleSwitchStatement(selectionText: string, cases: SwitchCase[], arm
 
   lines.push(`}`);
   return lines.join("\n");
+}
+
+/**
+ * Unlike assembleIfElse/assembleSwitchStatement, Sequence arms are NOT mutually exclusive —
+ * every wired arm fires, unconditionally, in pin order. Each arm is wrapped in its own `{ }`
+ * block purely for independent const/let scoping (consistent with each arm already getting
+ * its own fresh `emitted` copy in emitBlock) — there is no conditional guarding any of them.
+ * An unwired pin contributes nothing (same "unwired = does nothing" convention as Branch's
+ * unwired False / Switch's unwired case).
+ */
+function assembleSequence(arms: ForkArm[]): string {
+  return arms
+    .filter((a) => a.wired)
+    .map((a) => `{\n${indent(a.code)}\n}`)
+    .join("\n");
 }
 
 /**
@@ -242,7 +271,9 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
       const assembled =
         node.type === "controlFlow.branch"
           ? assembleIfElse(resolveValuePin(node, ctx, "condition", { defaultLiteral: "false" }), arms)
-          : assembleSwitchStatement(resolveValuePin(node, ctx, "selection", { defaultLiteral: "0" }), getSwitchCases(node), arms);
+          : node.type === "controlFlow.switch"
+            ? assembleSwitchStatement(resolveValuePin(node, ctx, "selection", { defaultLiteral: "0" }), getSwitchCases(node), arms)
+            : assembleSequence(arms); // controlFlow.sequence
       statements.push(assembled);
       return { code: statements.join("\n"), emitted, requiresAsync, imports }; // fork nodes are always block-terminal
     }

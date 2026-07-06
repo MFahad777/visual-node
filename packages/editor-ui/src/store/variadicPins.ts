@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import { getSwitchCases, type SwitchCase } from "../canvas/effectivePorts.js";
+import { getSwitchCases, getSequencePins, type SwitchCase, type SequencePin } from "../canvas/effectivePorts.js";
 
 /**
  * Pure node/edge-mutation helpers for the two Phase 7 "dynamic pin count" node families:
@@ -73,6 +73,37 @@ export function removeSwitchCase(
       n.id === nodeId ? { ...n, data: { ...n.data, cases: getSwitchCases(n.data as Record<string, unknown>).filter((c) => c.id !== caseId) } } : n,
     ),
     edges: edges.filter((e) => !(e.source === nodeId && e.sourceHandle === pinId)),
+  };
+}
+
+/**
+ * Appends a new execution-output pin (`then-<seq>`) to a Sequence node. `nextPinSeq` is a
+ * monotonic counter, never reused — same convention as `addSwitchCase`'s `nextCaseSeq`.
+ * Unlike Switch's cases, a Sequence pin carries no per-pin config value — it's purely an
+ * ordering slot.
+ */
+export function addSequencePin(node: Node): Node {
+  const pins = getSequencePins(node.data as Record<string, unknown>);
+  const seq = Number(node.data?.nextPinSeq ?? 0);
+  const newPin: SequencePin = { id: String(seq) };
+  return { ...node, data: { ...node.data, pins: [...pins, newPin], nextPinSeq: seq + 1 } };
+}
+
+/** Removes one dynamic pin from a Sequence node by its stable id, dropping any wire sourced from its exec-output pin. */
+export function removeSequencePin(
+  nodeId: string,
+  pinId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const handle = `then-${pinId}`;
+  return {
+    nodes: nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, pins: getSequencePins(n.data as Record<string, unknown>).filter((p) => p.id !== pinId) } }
+        : n,
+    ),
+    edges: edges.filter((e) => !(e.source === nodeId && e.sourceHandle === handle)),
   };
 }
 

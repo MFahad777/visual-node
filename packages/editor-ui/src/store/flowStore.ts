@@ -21,6 +21,8 @@ import {
   addSwitchCase,
   removeSwitchCase,
   updateSwitchCaseValue as updateSwitchCaseValueHelper,
+  addSequencePin as addSequencePinHelper,
+  removeSequencePin as removeSequencePinHelper,
 } from "./variadicPins.js";
 import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
 
@@ -149,6 +151,8 @@ export interface FlowStoreState {
   addSwitchCasePin: (nodeId: string) => void;
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
+  addSequencePin: (nodeId: string) => void;
+  removeSequencePin: (nodeId: string, pinId: string) => void;
   selectNode: (nodeId: string | null) => void;
   deleteSelectedNode: () => void;
   deleteEdge: (edgeId: string) => void;
@@ -433,6 +437,20 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   removeSwitchCasePin: (nodeId, caseId) => {
     const { nodes, edges } = removeSwitchCase(nodeId, caseId, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
+  addSequencePin: (nodeId) => {
+    set({
+      nodes: get().nodes.map((n) => (n.id === nodeId ? addSequencePinHelper(n) : n)),
+      isDirty: true,
+    });
+    get().runValidation();
+  },
+
+  removeSequencePin: (nodeId, pinId) => {
+    const { nodes, edges } = removeSequencePinHelper(nodeId, pinId, get().nodes, get().edges);
     set({ nodes, edges, isDirty: true });
     get().runValidation();
   },

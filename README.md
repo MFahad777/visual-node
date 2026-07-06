@@ -61,3 +61,32 @@ demonstrates.
   booleans. Wired connections already supported any type; this only changes the inline
   literal input box. Other comparisons (Greater Than, Less Than, etc.) are unchanged and
   remain numeric-only.
+- **Change-4 (MINOR)** — Control Flow: adds a new **Sequence** node (category "Control
+  Flow", same lime color as Branch/Switch). It has one execution input, and one execution
+  output ("Then 0") by default. Click the **"+ Add pin"** button rendered directly on the
+  node itself to add another execution output ("Then 1", "Then 2", ...) — there's no limit
+  on how many. Every wired output fires, unconditionally, in left-to-right order (this is
+  the key difference from Branch/Switch, which each choose exactly *one* output to run per
+  request — Sequence runs *all* of its wired outputs, every time). Use it whenever the
+  order two or more independent pieces of logic run in matters, but nothing about how
+  they're wired together otherwise forces an order — the canonical example is a chain of
+  independent early-return guard clauses:
+
+  ```js
+  function getDiscount(customer) {
+    if (!customer.isActive) return 0;      // Sequence pin "Then 0"
+    if (customer.isEmployee) return 30;    // Sequence pin "Then 1"
+    if (customer.isPremium) return 20;     // Sequence pin "Then 2"
+    if (customer.totalSpent >= 1000) return 10; // Sequence pin "Then 3"
+    return 5;                               // Sequence pin "Then 4"
+  }
+  ```
+
+  Wire each guard-clause chain (e.g. a Branch node) into its own Sequence pin, in the
+  order you want them checked, and the compiled code runs them in exactly that order.
+  Each pin's remove button (×) deletes that pin and its wire together; a removed pin's
+  slot is never reused by a later pin, so removing one never re-targets another pin's
+  existing wire. Sequence works identically on the main canvas and inside a Function
+  Graph's nested blueprint canvas. Like Branch/Switch, a value computed inside one pin's
+  chain cannot be read from a different pin's chain — share a value across pins by wiring
+  the same producer node into each pin that needs it.

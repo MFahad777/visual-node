@@ -128,6 +128,8 @@ function FunctionGraphModalContent({
   const addSwitchCasePin = useGraphStore((s) => s.addSwitchCasePin);
   const removeSwitchCasePin = useGraphStore((s) => s.removeSwitchCasePin);
   const updateSwitchCaseValue = useGraphStore((s) => s.updateSwitchCaseValue);
+  const addSequencePin = useGraphStore((s) => s.addSequencePin);
+  const removeSequencePin = useGraphStore((s) => s.removeSequencePin);
   const addParam = useGraphStore((s) => s.addParam);
   const removeParam = useGraphStore((s) => s.removeParam);
   const renameParam = useGraphStore((s) => s.renameParam);
@@ -220,6 +222,8 @@ function FunctionGraphModalContent({
                   addSwitchCasePin,
                   removeSwitchCasePin,
                   updateSwitchCaseValue,
+                  addSequencePin,
+                  removeSequencePin,
                   variables,
                 }}
               >

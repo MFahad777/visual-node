@@ -92,9 +92,13 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const globalUpdateNodeConfig = useFlowStore((s) => s.updateNodeConfig);
   const globalAddInputPin = useFlowStore((s) => s.addInputPin);
   const globalRemoveInputPin = useFlowStore((s) => s.removeInputPin);
+  const globalAddSequencePin = useFlowStore((s) => s.addSequencePin);
+  const globalRemoveSequencePin = useFlowStore((s) => s.removeSequencePin);
   const updateNodeData = scopedEdgeContext?.updateNodeData ?? globalUpdateNodeConfig;
   const addInputPin = scopedEdgeContext?.addInputPin ?? globalAddInputPin;
   const removeInputPin = scopedEdgeContext?.removeInputPin ?? globalRemoveInputPin;
+  const addSequencePin = scopedEdgeContext?.addSequencePin ?? globalAddSequencePin;
+  const removeSequencePin = scopedEdgeContext?.removeSequencePin ?? globalRemoveSequencePin;
 
   if (!definition) {
     return (
@@ -195,6 +199,10 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
 
   const isVariadicBooleanNode = !!type && VARIADIC_BOOLEAN_TYPES.has(type);
   const extraInputIds = new Set(Array.isArray(nodeData.extraInputs) ? (nodeData.extraInputs as string[]) : []);
+  const isSequenceNode = type === "controlFlow.sequence";
+  const sequencePinIds = new Set(
+    (Array.isArray(nodeData.pins) ? (nodeData.pins as Array<{ id: string }>) : []).map((p) => `then-${p.id}`),
+  );
 
   return (
     <div
@@ -300,8 +308,19 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
             <div className="flex flex-col items-end gap-1">
               {effectiveOutputs.map((port) => {
                 const connected = isOutputConnected(port.id);
+                const isRemovableOutput = isSequenceNode && sequencePinIds.has(port.id);
                 return (
                   <div key={port.id} className="relative flex items-center gap-1.5">
+                    {isRemovableOutput && (
+                      <button
+                        type="button"
+                        onClick={() => removeSequencePin(id, port.id.replace(/^then-/, ""))}
+                        title="Remove pin"
+                        className="nodrag nopan flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-red-400 text-[9px] leading-none text-red-400 hover:bg-red-500 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    )}
                     <span className="mr-2 text-[10px] text-neutral-300">{port.label}</span>
                     <Handle
                       type="source"
@@ -312,6 +331,15 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                   </div>
                 );
               })}
+              {isSequenceNode && (
+                <button
+                  type="button"
+                  onClick={() => addSequencePin(id)}
+                  className="nodrag nopan mt-0.5 self-end text-right text-[10px] text-sky-400 hover:text-sky-300"
+                >
+                  + Add pin
+                </button>
+              )}
             </div>
           </div>
         )}

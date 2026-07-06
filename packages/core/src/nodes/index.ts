@@ -32,6 +32,7 @@ import { xorNode } from "./operators/xor.node.js";
 import { notNode } from "./operators/not.node.js";
 import { controlFlowBranchNode } from "./control-flow/branch.node.js";
 import { controlFlowSwitchNode } from "./control-flow/switch.node.js";
+import { controlFlowSequenceNode } from "./control-flow/sequence.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
 import { beginNode } from "./logic/begin.node.js";
@@ -75,6 +76,7 @@ const BUILTIN_NODES = [
   notNode,
   controlFlowBranchNode,
   controlFlowSwitchNode,
+  controlFlowSequenceNode,
   // Phase 10: variables (module-scope on the main canvas, function-scope inside a Function's
   // blueprint graph — see docs/phase10-variables-plan.md).
   variableGetNode,
@@ -125,6 +127,7 @@ export {
   notNode,
   controlFlowBranchNode,
   controlFlowSwitchNode,
+  controlFlowSequenceNode,
   variableGetNode,
   variableSetNode,
   beginNode,

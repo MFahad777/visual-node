@@ -110,6 +110,14 @@ export function getSwitchCases(data: Record<string, unknown> | undefined): Switc
   return Array.isArray(data?.cases) ? (data!.cases as SwitchCase[]) : [];
 }
 
+export interface SequencePin {
+  id: string;
+}
+
+export function getSequencePins(data: Record<string, unknown> | undefined): SequencePin[] {
+  return Array.isArray(data?.pins) ? (data!.pins as SequencePin[]) : [];
+}
+
 /**
  * Computes a node instance's actual input ports, layering per-instance dynamic pins on top
  * of the node type's static `NodeDefinition.inputs`. Shared by `GenericNode.tsx` (rendering)
@@ -172,6 +180,17 @@ export function computeEffectiveOutputs(
     return [
       ...getSwitchCases(data).map((c) => ({ id: `case-${c.id}`, label: String(c.value), kind: "exec" as const })),
       ...definition.outputs,
+    ];
+  }
+
+  if (type === "controlFlow.sequence") {
+    // "then-0" (definition.outputs[0]) first, then dynamic pins in the order they were added —
+    // append order IS pin order here (unlike Switch, where display order doesn't carry
+    // codegen meaning). Label is a live display index, not the stored id, so removing a
+    // middle pin relabels the remainder without renumbering their stored ids/wires.
+    return [
+      ...definition.outputs,
+      ...getSequencePins(data).map((p, i) => ({ id: `then-${p.id}`, label: `Then ${i + 1}`, kind: "exec" as const })),
     ];
   }
 

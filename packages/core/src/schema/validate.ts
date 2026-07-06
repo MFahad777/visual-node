@@ -498,6 +498,42 @@ function validateOperatorsAndControlFlow(
       }
     }
 
+    if (node.type === "controlFlow.sequence") {
+      const rawPins = (node.data as Record<string, unknown> | undefined)?.pins;
+      const pinsArray = Array.isArray(rawPins) ? (rawPins as unknown[]) : undefined;
+      const validPins: string[] = [];
+      if (!pinsArray) {
+        errors.push(makeError(node.id, `Sequence node "${node.id}" has an invalid "pins" list (must be an array)`));
+      } else {
+        const seenIds = new Set<string>();
+        for (const entry of pinsArray) {
+          const p = entry as { id?: unknown } | undefined;
+          const id = typeof p?.id === "string" ? p.id : undefined;
+          if (!id) {
+            errors.push(makeError(node.id, `Sequence node "${node.id}" has an invalid pin entry (needs a string "id")`));
+            continue;
+          }
+          if (seenIds.has(id)) {
+            errors.push(makeError(node.id, `Sequence node "${node.id}" has duplicate pin id "${id}"`));
+            continue;
+          }
+          seenIds.add(id);
+          validPins.push(id);
+        }
+      }
+
+      const validHandles = new Set<string>(["then-0", ...validPins.map((id) => `then-${id}`)]);
+      const outgoing = edges.filter((e) => e.source === node.id);
+      for (const e of outgoing) {
+        if (!validHandles.has(e.sourceHandle ?? "")) {
+          errors.push(makeError(node.id, `Sequence node "${node.id}" has an outgoing connection ("${e.sourceHandle ?? ""}") that references a pin that no longer exists`));
+        }
+      }
+      if (!outgoing.some((e) => validHandles.has(e.sourceHandle ?? ""))) {
+        errors.push(makeError(node.id, `Sequence node "${node.id}" has no outgoing connections on any "Then" pin — it would do nothing`));
+      }
+    }
+
     // Phase 12: Return's "value" pin follows the same arity/literal-fallback rule as Branch's
     // "condition"/Switch's "selection" above. Deliberately no check on the "in" (exec) pin
     // here: an unwired "in" is legal — `emit-function-graph.ts` treats it as the backward-

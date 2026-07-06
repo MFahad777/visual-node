@@ -17,6 +17,8 @@ import {
   addSwitchCase,
   removeSwitchCase,
   updateSwitchCaseValue as updateSwitchCaseValueHelper,
+  addSequencePin as addSequencePinHelper,
+  removeSequencePin as removeSequencePinHelper,
 } from "./variadicPins.js";
 
 let nextId = 1;
@@ -51,6 +53,8 @@ export interface FunctionGraphState {
   addSwitchCasePin: (nodeId: string) => void;
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
+  addSequencePin: (nodeId: string) => void;
+  removeSequencePin: (nodeId: string, pinId: string) => void;
   addParam: (name: string) => void;
   removeParam: (name: string) => void;
   renameParam: (oldName: string, newName: string) => void;
@@ -202,6 +206,13 @@ export function createFunctionGraphStore(
     },
     removeSwitchCasePin: (nodeId, caseId) => {
       const { nodes, edges } = removeSwitchCase(nodeId, caseId, get().nodes, get().edges);
+      set({ nodes, edges });
+    },
+    addSequencePin: (nodeId) => {
+      set({ nodes: get().nodes.map((n) => (n.id === nodeId ? addSequencePinHelper(n) : n)) });
+    },
+    removeSequencePin: (nodeId, pinId) => {
+      const { nodes, edges } = removeSequencePinHelper(nodeId, pinId, get().nodes, get().edges);
       set({ nodes, edges });
     },
     updateSwitchCaseValue: (nodeId, caseId, value) => {

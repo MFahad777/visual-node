@@ -45,6 +45,7 @@ const explicitNodeTypes: NodeTypes = {
   // Phase 7: execution-fork nodes (Branch's True/False, Switch's per-case + Default).
   "controlFlow.branch": ControlFlowNode,
   "controlFlow.switch": ControlFlowNode,
+  "controlFlow.sequence": ControlFlowNode,
 };
 
 /**
