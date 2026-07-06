@@ -36,6 +36,11 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
       const expression = String(data.expression ?? "");
       return expression.length > 0 ? expression : "(empty)";
     }
+    case "logic.graphReturn": {
+      const literals = data.literals as Record<string, unknown> | undefined;
+      const literal = typeof literals?.value === "string" ? literals.value : "";
+      return literal.length > 0 ? `return ${literal}` : "return (wired)";
+    }
     // Phase 10: resolved live from the current store's `variables` list (not cached on the
     // node, which only ever stores the opaque `variableId`) so a rename in the Variables
     // panel is reflected on every referencing canvas node instantly.

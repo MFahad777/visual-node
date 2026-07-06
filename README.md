@@ -42,3 +42,16 @@ See [`examples/`](examples/) for five worked flows, from a minimal "Hello World"
 through Variables, visual Function Graphs with branching, and npm-package dependencies —
 each includes the source flow, the compiled output, and a short write-up of what it
 demonstrates.
+
+## Changelog
+
+- **Change-1 (MINOR)** — Function Graphs: the "Return" node can now be used more than once
+  per function, and each instance has its own execution-in pin. This enables real early
+  returns authored visually — e.g. an `if (score >= 90) return "A"; else if (...) ...`
+  grading chain, or a guard clause that returns early and lets the rest of the function run
+  otherwise — without dropping down to a Custom Code node. Existing projects and saved
+  `.blueprint` files are unaffected and keep compiling exactly as before.
+- **Change-2 (FIX)** — Function Graphs: dragging a variable from the Variables panel onto
+  the canvas (to create a "Get"/"Set" node) could silently do nothing if you clicked
+  anywhere on the row's own name/type fields instead of an empty sliver of padding. The row
+  now has a dedicated drag handle (⠿) so grabbing it always works.

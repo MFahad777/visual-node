@@ -58,7 +58,11 @@ const BOOLEAN_LITERAL_TYPES = new Set([
 // `"hi"`), which `variable-set.node.ts`'s `emit()` formats into real JS source via
 // `formatLiteralForType`, keyed by the bound variable's `dataType` — so, unlike Switch's
 // Selection, a `variable.set` literal is never interpreted as raw JS source to hand-splice.
-const TEXT_LITERAL_TYPES = new Set(["controlFlow.switch", "variable.set"]);
+// `logic.graphReturn`'s "Value" pin is the same: it can hold any type (string/number/
+// boolean/expression), so it gets the same free-form raw-JS-text box, keyed only off the
+// node's static type the same way the others are (no per-instance refinement needed, unlike
+// `variable.set`).
+const TEXT_LITERAL_TYPES = new Set(["controlFlow.switch", "variable.set", "logic.graphReturn"]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {
   if (!type) return null;

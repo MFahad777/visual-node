@@ -145,16 +145,27 @@ function VariableRow({
   }
 
   return (
-    <div
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.setData("application/flowserver-variable", JSON.stringify({ variableId: variable.id }));
-        event.dataTransfer.effectAllowed = "move";
-      }}
-      className="flex flex-col gap-1 rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5"
-      title="Drag onto the canvas to add a Get/Set node"
-    >
+    <div className="flex flex-col gap-1 rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5">
       <div className="flex items-center gap-1">
+        {/* A dedicated grip handle, not the whole row: the row's own keyword/name/dataType/
+            default controls are native <select>/<input> elements that swallow the initial
+            mousedown themselves (opening/focusing instead of letting it bubble into a native
+            HTML5 drag gesture on an ancestor) — making the entire row `draggable` meant a
+            real drag only ever started if the user's grab happened to land on the one or two
+            remaining pixels of bare padding. Found via a real repro: dragging from the row's
+            center never fired even a `dragstart` event, while dragging from this handle does
+            every time. */}
+        <span
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.setData("application/flowserver-variable", JSON.stringify({ variableId: variable.id }));
+            event.dataTransfer.effectAllowed = "move";
+          }}
+          title="Drag onto the canvas to add a Get/Set node"
+          className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-neutral-500 hover:text-neutral-300"
+        >
+          ⠿
+        </span>
         <select
           value={variable.keyword}
           onChange={(e) => onSetKeyword(variable.id, e.target.value as VariableDeclaration["keyword"])}

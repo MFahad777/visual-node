@@ -230,17 +230,6 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
     }
   }
 
-  const returnNodes = graphNodes.filter((n) => n.type === "logic.graphReturn");
-  if (returnNodes.length > 1) {
-    for (const n of returnNodes) {
-      errors.push({
-        nodeId: functionNode.id,
-        blueprintNodeId: n.id,
-        message: `Function "${functionName}" blueprint graph can have at most one Return node`,
-      });
-    }
-  }
-
   const requireVariableNames = new Set(flow.nodes.filter((n) => n.type === "logic.require").map((n) => String(n.data?.variableName ?? "").trim()));
   const resultVarOwners = new Map<string, string[]>();
   for (const call of graphNodes.filter((n) => n.type === "logic.functionCall")) {
@@ -273,7 +262,7 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
     }
   }
 
-  const emittableIds = graphNodes.filter((n) => n.type !== "logic.graphReturn").map((n) => n.id);
+  const emittableIds = graphNodes.map((n) => n.id);
   try {
     topologicalSort(emittableIds, graphEdges);
   } catch (err) {
@@ -508,6 +497,19 @@ function validateOperatorsAndControlFlow(
         errors.push(makeError(node.id, `Switch node "${node.id}" input "selection" is not connected and has no literal value`));
       }
     }
+
+    // Phase 12: Return's "value" pin follows the same arity/literal-fallback rule as Branch's
+    // "condition"/Switch's "selection" above. Deliberately no check on the "in" (exec) pin
+    // here: an unwired "in" is legal — `emit-function-graph.ts` treats it as the backward-
+    // compat fallback (append as a trailing trunk-level return), not an error.
+    if (node.type === "logic.graphReturn") {
+      const valueIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "value");
+      if (valueIncoming.length > 1) {
+        errors.push(makeError(node.id, `Return node "${node.id}" input "value" has more than one incoming connection`));
+      } else if (valueIncoming.length === 0 && !hasLiteral(node, "value")) {
+        errors.push(makeError(node.id, `Return node "${node.id}" input "value" is not connected and has no literal value`));
+      }
+    }
   }
 
   return errors;
@@ -669,17 +671,18 @@ function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[], seedIds?: str
 /**
  * Resolves the effective arm path used to decide whether reading `nodeId`'s value from some
  * other point in the graph is legal. Exec-spine nodes (found in `armPathOf`) use their fixed,
- * BFS-assigned path. `logic.graphReturn` is force-pinned to `[]` (trunk-only) regardless of
- * what it's wired from — a Function Graph's Return node has no exec-in pin of its own (see the
- * "Known limitation" in docs/phase7-operators-and-branch-plan.md), so a per-arm return value
- * needs a `handler.customCode` explicit `return` inside that arm instead. Every other node
- * (a pure value node with no exec pins) derives its path from the join of its own value
- * dependencies' resolved paths — the most specific (deepest) one, as long as they're mutually
- * consistent (each a prefix of the other); an inconsistent join (combining two sibling arms'
- * values into one pure node) is left for the edge-level check in `checkCrossArmValueReferences`
- * to report concretely. This is what lets a value node fed only from the trunk (or from a
- * single arm) be safely referenced whenever it's actually reachable, while a value that only
- * exists inside one arm still can't leak into a sibling arm or the trunk.
+ * BFS-assigned path — this covers `logic.graphReturn` too (Phase 12 gave it a real exec-in
+ * pin): an unwired Return is its own BFS root at path `[]` (trunk, matching the backward-compat
+ * fallback in `emit-function-graph.ts`), while a Return wired into a Branch/Switch arm gets
+ * that arm's real nested path, exactly like any other exec-participating node — no special
+ * case needed here. Every other node (a pure value node with no exec pins) derives its path
+ * from the join of its own value dependencies' resolved paths — the most specific (deepest)
+ * one, as long as they're mutually consistent (each a prefix of the other); an inconsistent
+ * join (combining two sibling arms' values into one pure node) is left for the edge-level check
+ * in `checkCrossArmValueReferences` to report concretely. This is what lets a value node fed
+ * only from the trunk (or from a single arm) be safely referenced whenever it's actually
+ * reachable, while a value that only exists inside one arm still can't leak into a sibling arm
+ * or the trunk.
  */
 function resolveArmPath(
   nodeId: string,
@@ -696,10 +699,6 @@ function resolveArmPath(
 
   const node = nodesById.get(nodeId);
   if (!node) return [];
-  if (node.type === "logic.graphReturn") {
-    memo.set(nodeId, []);
-    return [];
-  }
   if (inProgress.has(nodeId)) return []; // defensive only: a real cycle is already rejected elsewhere
   inProgress.add(nodeId);
 
@@ -722,15 +721,17 @@ function resolveArmPath(
 }
 
 /**
- * Best-effort "cross-arm value reference" check (see docs/phase7-operators-and-branch-plan.md):
- * a value computed only inside one Branch/Switch arm can't be read from a sibling arm, from the
- * trunk, or (for a Function Graph) from the Return node. Catches the two concrete failure
- * modes exec-chain.ts's hoisting can't safely paper over: reading an exec-spine node's value
- * (e.g. a `logic.functionCall`'s result) from outside the arm that owns it, and a Function
- * Graph's Return node reaching into an arm for its value. A value-only node with no exec pins
- * (operators) fed *purely* from the trunk or from a single consistent arm
- * is unaffected — that's the explicitly-supported "same upstream value node wired into both
- * arms' consumers" pattern, safe because `hoistValueDeps` re-hoists it independently per arm.
+ * Best-effort "cross-arm value reference" check: a value computed only inside one Branch/
+ * Switch arm can't be read from a sibling arm, from the trunk, or from a Return node that
+ * isn't itself part of that same arm. Catches the concrete failure mode exec-chain.ts's
+ * hoisting can't safely paper over: reading an exec-spine node's value (e.g. a
+ * `logic.functionCall`'s result, or a Return's "Value" pin — Phase 12 made `logic.graphReturn`
+ * a real arm-scoped exec participant, so this now falls out of the same generic rule as any
+ * other node rather than a Return-specific special case) from outside the arm that owns it. A
+ * value-only node with no exec pins (operators) fed *purely* from the trunk or from a single
+ * consistent arm is unaffected — that's the explicitly-supported "same upstream value node
+ * wired into both arms' consumers" pattern, safe because `hoistValueDeps` re-hoists it
+ * independently per arm.
  *
  * Deliberately does NOT trace through a chain of several pure nodes to find the ultimate
  * exec-owned source in every possible topology beyond what `resolveArmPath`'s recursive join
@@ -766,11 +767,8 @@ function checkCrossArmValueReferences(
 
       const armLabel = sourcePath.join(" > ");
       const message =
-        targetNode.type === "logic.graphReturn"
-          ? `Node "${sourceNode.id}" is computed only inside Branch/Switch arm "${armLabel}" and can't be used as this ` +
-            `function's Return value — a per-arm return needs a "Custom Code" node with an explicit "return" inside that arm instead.`
-          : `Node "${targetNode.id}" reads a value from node "${sourceNode.id}", which is computed only inside Branch/Switch ` +
-            `arm "${armLabel}" that "${targetNode.id}" isn't part of.`;
+        `Node "${targetNode.id}" reads a value from node "${sourceNode.id}", which is computed only inside Branch/Switch ` +
+        `arm "${armLabel}" that "${targetNode.id}" isn't part of.`;
 
       const key = `${targetNode.id}:${sourceNode.id}:${message}`;
       if (reported.has(key)) continue;

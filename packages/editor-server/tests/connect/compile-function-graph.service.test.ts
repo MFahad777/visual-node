@@ -214,7 +214,7 @@ describe("PreviewFunctionGraph RPC", () => {
     const res = await client().previewFunctionGraph({ flatbufferFlow: encodeGraph(nodes, edges) });
 
     expect(res.result.case).toBe("body");
-    expect(res.result.value).toBe("return x;");
+    expect(res.result.value).toBe("return (x);");
   });
 
   it("returns an error result with a non-empty message for a cyclic graph", async () => {

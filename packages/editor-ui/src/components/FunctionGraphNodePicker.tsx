@@ -37,8 +37,8 @@ function generateUniqueResultVariable(functionName: string, nodes: Array<{ type?
   return `${base}${suffix}`;
 }
 
-// Managed exclusively via the Details panel's Inputs/Outputs sections in
-// `FunctionGraphModal.tsx` (at most one of each per graph) — never offered here.
+// `logic.graphEntry` is managed exclusively via the Details panel's Inputs section in
+// `FunctionGraphModal.tsx` (at most one per graph) — never offered here.
 // `logic.functionCall` is excluded too: it's only ever added pre-filled from a specific
 // resolved Require'd function (the "Function Calls" section below), never blank.
 // `variable.get`/`variable.set` are excluded for the same reason as `logic.functionCall`:
@@ -46,9 +46,11 @@ function generateUniqueResultVariable(functionName: string, nodes: Array<{ type?
 // panel's Variables section, never via this generic catalog. They still need to be present
 // in `FUNCTION_GRAPH_NODE_DEFINITIONS` itself (see function-graph-nodes.ts in core) so
 // `GenericNode` can resolve their ports when rendering an already-placed instance.
+// `logic.graphReturn` ("Return") is NOT in this set — unlike Entry, it's an ordinary,
+// freely-multipliable addable node (like Branch/Switch/Console Log), wired directly on
+// canvas via its own "In"/"Value" pins rather than managed through the Details panel.
 const PANEL_MANAGED_TYPES = new Set([
   "logic.graphEntry",
-  "logic.graphReturn",
   "logic.functionCall",
   "variable.get",
   "variable.set",

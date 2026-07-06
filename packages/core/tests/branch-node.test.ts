@@ -75,6 +75,26 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
     expect(runGraph(nodes, edges, [false], ["flag"])).toBe("F");
   });
 
+  it("a logic.graphReturn node wired directly into a Branch arm early-returns in place (no Custom Code workaround needed)", () => {
+    const nodes = [
+      graphEntry("entry1"),
+      branchNode("b1"),
+      { id: "retT", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'T'" } } },
+      { id: "retF", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'F'" } } },
+    ];
+    const edges: FlowEdge[] = [
+      { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
+      { id: "e2", source: "entry1", target: "b1", sourceHandle: "flag", targetHandle: "condition" },
+      { id: "e3", source: "b1", target: "retT", sourceHandle: "true", targetHandle: "in" },
+      { id: "e4", source: "b1", target: "retF", sourceHandle: "false", targetHandle: "in" },
+    ];
+    const { code: body } = emitFunctionGraphBody({ nodes, edges } as FunctionGraph);
+    expect(body).toContain("if (");
+    expect(body).toContain("else {");
+    expect(runGraph(nodes, edges, [true], ["flag"])).toBe("T");
+    expect(runGraph(nodes, edges, [false], ["flag"])).toBe("F");
+  });
+
   it("true-only wired: no else clause; false condition falls through to no return", () => {
     const nodes = [graphEntry("entry1"), branchNode("b1"), customCode("t1", "return 'T';")];
     const edges: FlowEdge[] = [

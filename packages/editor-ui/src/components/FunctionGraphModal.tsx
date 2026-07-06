@@ -130,8 +130,6 @@ function FunctionGraphModalContent({
   const addParam = useGraphStore((s) => s.addParam);
   const removeParam = useGraphStore((s) => s.removeParam);
   const renameParam = useGraphStore((s) => s.renameParam);
-  const addReturn = useGraphStore((s) => s.addReturn);
-  const removeReturn = useGraphStore((s) => s.removeReturn);
   const variables = useGraphStore((s) => s.variables);
   const addVariable = useGraphStore((s) => s.addVariable);
   const renameVariable = useGraphStore((s) => s.renameVariable);
@@ -146,7 +144,6 @@ function FunctionGraphModalContent({
   // time. This is what the Details panel below displays and edits.
   const entryNode = nodes.find((n) => n.type === "logic.graphEntry");
   const paramNames: string[] = Array.isArray(entryNode?.data?.params) ? (entryNode!.data!.params as string[]) : [];
-  const hasReturnNode = nodes.some((n) => n.type === "logic.graphReturn");
 
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [variableDrop, setVariableDrop] = useState<VariableDropState | null>(null);
@@ -254,9 +251,6 @@ function FunctionGraphModalContent({
               onAddParam={addParam}
               onRemoveParam={removeParam}
               onRenameParam={renameParam}
-              hasReturnNode={hasReturnNode}
-              onAddReturn={addReturn}
-              onRemoveReturn={removeReturn}
               variables={variables}
               onAddVariable={addVariable}
               onRenameVariable={renameVariable}
@@ -573,11 +567,12 @@ function SubCanvasNodeConfig({
 
 /**
  * The graph-level counterpart to `SubCanvasNodeConfig` — always visible (not gated on node
- * selection), since Function Name/Inputs/Outputs describe the whole graph, not one node.
- * Inputs/Outputs edits go through `functionGraphStore.ts`'s `addParam`/`removeParam`/
- * `renameParam`/`addReturn`/`removeReturn`, which keep the single `logic.graphEntry` node's
- * pins and any wired edges in sync live — no need to close and reopen the modal to see the
- * new pin appear, unlike the old per-parameter-node model this replaced.
+ * selection), since Function Name/Inputs describe the whole graph, not one node.
+ * Inputs edits go through `functionGraphStore.ts`'s `addParam`/`removeParam`/`renameParam`,
+ * which keep the single `logic.graphEntry` node's pins and any wired edges in sync live —
+ * no need to close and reopen the modal to see the new pin appear, unlike the old
+ * per-parameter-node model this replaced. (Return, like Branch/Switch, is now an ordinary
+ * canvas node added via the picker, not managed through this panel.)
  */
 function FunctionDetailsPanel({
   functionName,
@@ -586,9 +581,6 @@ function FunctionDetailsPanel({
   onAddParam,
   onRemoveParam,
   onRenameParam,
-  hasReturnNode,
-  onAddReturn,
-  onRemoveReturn,
   variables,
   onAddVariable,
   onRenameVariable,
@@ -603,9 +595,6 @@ function FunctionDetailsPanel({
   onAddParam: (name: string) => void;
   onRemoveParam: (name: string) => void;
   onRenameParam: (oldName: string, newName: string) => void;
-  hasReturnNode: boolean;
-  onAddReturn: () => void;
-  onRemoveReturn: () => void;
   variables: VariableDeclaration[];
   onAddVariable: () => void;
   onRenameVariable: (id: string, name: string) => void;
@@ -674,37 +663,6 @@ function FunctionDetailsPanel({
             </div>
           ))}
         </div>
-      </div>
-
-      <div>
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs font-medium text-neutral-400">Outputs</span>
-          {!hasReturnNode && (
-            <button
-              onClick={onAddReturn}
-              title="Add output"
-              className="flex h-5 w-5 items-center justify-center rounded border border-neutral-600 text-xs text-neutral-300 hover:border-sky-500 hover:text-sky-400"
-            >
-              +
-            </button>
-          )}
-        </div>
-        {hasReturnNode ? (
-          <div className="flex items-center gap-1">
-            <span className="flex-1 rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1 text-xs text-neutral-100">
-              Return Value
-            </span>
-            <button
-              onClick={onRemoveReturn}
-              title="Remove output"
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-neutral-600 text-xs text-red-400 hover:border-red-500 hover:bg-red-500/10"
-            >
-              ×
-            </button>
-          </div>
-        ) : (
-          <p className="text-[11px] text-neutral-500">No return value.</p>
-        )}
       </div>
 
       <VariablesPanel

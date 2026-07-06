@@ -54,8 +54,6 @@ export interface FunctionGraphState {
   addParam: (name: string) => void;
   removeParam: (name: string) => void;
   renameParam: (oldName: string, newName: string) => void;
-  addReturn: () => void;
-  removeReturn: () => void;
   addVariable: () => void;
   renameVariable: (id: string, name: string) => void;
   setVariableKeyword: (id: string, keyword: VariableDeclaration["keyword"]) => void;
@@ -244,28 +242,6 @@ export function createFunctionGraphStore(
               e.source === entry.id && e.sourceHandle === oldName ? { ...e, sourceHandle: newName } : e,
             )
           : get().edges,
-      });
-    },
-    addReturn: () => {
-      if (get().nodes.some((n) => n.type === "logic.graphReturn")) return;
-      set({
-        nodes: [
-          ...get().nodes,
-          {
-            id: generateNodeId("logic.graphReturn"),
-            type: "logic.graphReturn",
-            position: { x: 600, y: 40 },
-            data: {},
-          },
-        ],
-      });
-    },
-    removeReturn: () => {
-      const returnNode = get().nodes.find((n) => n.type === "logic.graphReturn");
-      if (!returnNode) return;
-      set({
-        nodes: get().nodes.filter((n) => n.id !== returnNode.id),
-        edges: get().edges.filter((e) => e.source !== returnNode.id && e.target !== returnNode.id),
       });
     },
     // Phase 10 Variables, function-scoped counterpart to flowStore.ts's identically-named

@@ -118,9 +118,6 @@ export interface FunctionGraphBodyResult {
  */
 export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyResult {
   const returnNodes = graph.nodes.filter((n) => n.type === "logic.graphReturn");
-  if (returnNodes.length > 1) {
-    throw new FunctionGraphError("A function's blueprint graph can have at most one Return node", returnNodes[1].id);
-  }
 
   // A whole-graph cycle pre-flight, independent of the reachability-based walk below: since
   // exec-chain.ts's walker only visits nodes actually reachable from the entry's exec spine
@@ -128,11 +125,11 @@ export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyRe
   // unreferenced (dead code) would never be visited and so would never be caught by the
   // walker's own cycle check. This whole-graph check (order is discarded — only used to
   // detect a cycle) preserves the "no cycles anywhere in this graph" guarantee regardless of
-  // reachability.
-  const emittableNodes = graph.nodes.filter((n) => n.type !== "logic.graphReturn");
+  // reachability. Return nodes are included here same as everything else — with `outputs: []`
+  // they can never actually participate in a cycle.
   try {
     topologicalSort(
-      emittableNodes.map((n) => n.id),
+      graph.nodes.map((n) => n.id),
       graph.edges,
     );
   } catch (err) {
@@ -171,27 +168,28 @@ export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyRe
   const imports: string[] = [...trunk.imports];
   if (trunk.code) statements.push(trunk.code);
 
-  const returnNode = returnNodes[0];
-  if (returnNode) {
-    const incoming = ctx.getIncoming(returnNode.id, "value")[0];
-    if (!incoming) {
-      throw new FunctionGraphError('Return node\'s "Value" input is not connected', returnNode.id);
-    }
-    const source = ctx.getNode(incoming.source);
-    if (!source) {
-      throw new FunctionGraphError(`Return node references unknown node "${incoming.source}"`, returnNode.id);
-    }
+  // Return nodes with no incoming "In" edge are the backward-compat fallback: the shape every
+  // Return node had before it gained an exec pin at all. Each is appended as a trailing
+  // `return <value>;` after the whole compiled trunk, exactly like before this feature
+  // existed — a Return WITH an "In" edge was already emitted in place by `emitExecChain`'s
+  // walk above and must not be touched again here. Reuses the Return node's own `emit()`
+  // (via `ctx.emitNode`) rather than re-deriving the return statement by hand, so the
+  // in-place and fallback paths can never disagree about how a Return compiles.
+  const unwiredReturns = returnNodes.filter((n) => ctx.getIncoming(n.id, "in").length === 0);
+  for (const returnNode of unwiredReturns) {
     try {
       // Reuses the trunk's `emitted` set so a value already hoisted for a trunk-level
       // consumer isn't redeclared here.
       const hoisted = hoistValueDepsCore(returnNode.id, ctx, trunk.emitted);
       statements.push(...hoisted.statements);
       imports.push(...hoisted.imports);
+      const emitted = ctx.emitNode(returnNode.id);
+      if (emitted.body) statements.push(emitted.body);
+      if (emitted.imports) imports.push(...emitted.imports);
     } catch (err) {
       if (err instanceof FunctionGraphError) throw err;
       throw new FunctionGraphError(err instanceof Error ? err.message : String(err), returnNode.id);
     }
-    statements.push(`return ${resultIdentifierFor(source, incoming.sourceHandle, ctx)};`);
   }
 
   return { code: statements.join("\n"), imports };
