@@ -5,11 +5,11 @@ slug: /examples
 
 # Examples
 
-Five worked flows live in the [`examples/`
+Six worked flows live in the [`examples/`
 folder](https://github.com/MFahad777/visual-node/tree/main/examples) on the `main`
-branch of the repository, each with a source `flow.json`, the compiled `server.js`
-output, and a `.blueprint` binary you can open directly in the editor. Every example has
-been built and run for real — the curl commands on each page are not hypothetical.
+branch of the repository, each with a source blueprint file, the compiled `.js`
+output, and a binary `.blueprint` you can open directly in the editor. Every example has
+been built and run for real — the curl commands and output on each page are not hypothetical.
 
 | Example | Demonstrates |
 | --- | --- |
@@ -17,6 +17,7 @@ been built and run for real — the curl commands on each page are not hypotheti
 | [REST CRUD with Variables](/examples/rest-crud-with-variables) | Variables (`variable.get`/`variable.set`) + the Custom Code escape hatch |
 | [Custom Middleware Logging](/examples/custom-middleware-logging) | The middleware escape hatch (`middleware.customCode`) |
 | [Function Graph with Branch](/examples/function-graph-branch) | A visual Function Graph with `controlFlow.branch` |
+| [Function Graph with Recursion](/examples/function-graph-recursion) | A recursive function in a visual Function Graph (factorial example) |
 | [npm Package Require](/examples/npm-package-require) | Requiring an npm package + the Async Handler checkbox |
 
 ## Opening an example in the editor

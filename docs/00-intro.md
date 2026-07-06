@@ -36,16 +36,19 @@ Reference's Logic section](/node-reference/logic) for `logic.export`/`logic.requ
 
 - **The full Express request lifecycle, visually**: app initialization, middleware
   (built-in JSON body parsing or your own custom middleware), routing, and handlers.
+  Or run plain logic files without Express — switch modes in **Settings**.
 - **An escape hatch everywhere you need one**: `handler.customCode` and
   `middleware.customCode` let you drop in raw JavaScript wherever the visual nodes don't
   cover your case — see the [Node Reference](/node-reference) for both.
 - **Programming primitives**: named variables, functions (either hand-typed or authored
-  as a nested visual graph — see [Function Graphs & Blueprint
+  as a nested visual graph with recursion support — see [Function Graphs & Blueprint
   Mode](/core-concepts/function-graphs-and-blueprint-mode)), arithmetic/comparison/boolean
-  operators, and control flow (`Branch`, `Switch`).
+  operators, and control flow (`Branch`, `Switch`, `Sequence`).
 - **npm package support**: `require()` an installed package, or your own local module.
 - **A plugin system**: describe an entirely new node type as a single JSON file — no
   TypeScript, no rebuild, no restart. See [Plugins](/plugins).
+- **Project execution modes**: configure whether your project runs as an Express server
+  (auto-detected or manually configured) or as a plain Node.js script.
 
 ## Where to go next
 

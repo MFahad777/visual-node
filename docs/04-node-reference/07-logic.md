@@ -75,20 +75,26 @@ const axios = require("axios");
 
 ## Function Call — `logic.functionCall`
 
-Calls an exported function from a Required module. Always created **pre-filled** from
-the node search (pick a specific exported function) rather than configured from a blank
-default.
+Calls an exported function from a Required module, or calls a sibling function declared
+in the same file (including recursive calls). Always created **pre-filled** from
+the node search (pick a specific exported function or same-file function) rather than
+configured from a blank default.
 
 - **Inputs**: `in` — "Request", plus one dynamic value pin per declared parameter
 - **Outputs**: `out` — "Next"; `result` — "Result" (optional — see below)
-- **Config fields**: `requirePath`, `variableName`, `functionName`, `params` (drives the
-  dynamic parameter pins), `resultVariable` (default `result`, must be a valid unique
-  identifier — other nodes reference this call's return value by this name).
+- **Config fields**: 
+  - For external functions: `requirePath`, `variableName`, `functionName`, `params`
+  - For same-file functions: `functionName`, `params` (requirePath/variableName unused)
+  - Both: `resultVariable` (default `result`, must be a valid unique identifier — other
+    nodes reference this call's return value by this name)
 - The "Result" output is **optional**: if nothing reads it, the call compiles to a bare
   `fn(...)` statement with no unused `const`.
 - **Inlining**: if Result is wired straight into an adjacent `variable.set` node's Value
   pin (and nothing else consumes it), the call is inlined directly into the assignment
   instead of going through an intermediate variable.
+- **Recursion**: Inside a Function Graph, you can add a Function Call that references the
+  same function whose graph you're editing — the picker labels it "(recursive)". The call
+  compiles to the bare function name (no module prefix), enabling true recursive logic.
 
 ```js
 // Result unwired — fire-and-forget
@@ -99,6 +105,11 @@ printResult = printerFunctions.printer("hello");
 
 // Result wired elsewhere — a real intermediate declaration
 const printerResult = printerFunctions.printer("hello");
+
+// Recursive call in a Function Graph (inside a factorial function)
+const remainder = factorial(n - 1);
+const answer = n * remainder;
+return answer;
 ```
 
 Usable both on the main canvas and inside a Function Graph.

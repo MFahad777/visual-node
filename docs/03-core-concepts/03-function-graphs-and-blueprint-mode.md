@@ -64,14 +64,22 @@ workaround below — reach for a Return-per-arm when each arm's outcome really i
 return this," and for the variable workaround when an arm needs to hand a value to
 sibling logic that keeps running afterward.
 
+## Recursion
+
+Functions can call themselves recursively. Inside your function's blueprint graph, when
+you add a Function Call node, the picker shows a "Functions in This File" section listing
+all sibling functions — including the current function itself, labeled "(recursive)".
+Wire a recursive call exactly like any other function call; it compiles to a bare function
+name (e.g., `factorial(n - 1)`), enabling real recursive logic.
+
 ## Everything else works exactly like the main canvas
 
-Inside a blueprint-mode function's graph you can use `logic.functionCall`,
-`variable.get`/`variable.set` (with their own graph-scoped variable list — never
-cross-checked against the main canvas's variables), `debug.consoleLog`,
-`handler.customCode` (as a generic escape-hatch statement, not just for Express
-handlers), all 17 operator nodes, and `controlFlow.branch`/`controlFlow.switch` for
-real branching. See [Node Categories](/core-concepts/node-categories) for the full
+Inside a blueprint-mode function's graph you can use `logic.functionCall` (including
+recursive calls to the same function), `variable.get`/`variable.set` (with their own
+graph-scoped variable list — never cross-checked against the main canvas's variables),
+`debug.consoleLog`, `handler.customCode` (as a generic escape-hatch statement, not just
+for Express handlers), all 17 operator nodes, and `controlFlow.branch`/`controlFlow.switch`
+for real branching. See [Node Categories](/core-concepts/node-categories) for the full
 main-canvas/Function-Graph availability breakdown.
 
 ## A worked example
