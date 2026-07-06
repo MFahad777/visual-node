@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -168,12 +168,31 @@ function FunctionGraphModalContent({
     };
   }, []);
 
-  const handleSave = () => {
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+    };
+  }, []);
+
+  const persistGraphToOuterNode = () => {
     const finalState = useGraphStore.getState();
     const finalEntry = finalState.nodes.find((n) => n.type === "logic.graphEntry");
     const finalParams: string[] = Array.isArray(finalEntry?.data?.params) ? (finalEntry!.data!.params as string[]) : [];
     updateNodeConfig(functionNode.id, "params", finalParams.join(", "));
     updateNodeConfig(functionNode.id, "graph", finalState.exportGraph());
+  };
+
+  const handleSave = () => {
+    persistGraphToOuterNode();
+    if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+    setSaveStatus("Saved successfully");
+    saveStatusTimeoutRef.current = setTimeout(() => setSaveStatus(null), 2000);
+  };
+
+  const handleSaveAndClose = () => {
+    persistGraphToOuterNode();
     closeFunctionGraph();
   };
 
@@ -276,7 +295,8 @@ function FunctionGraphModalContent({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-black/60 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-black/60 px-4 py-3">
+          {saveStatus && <span className="mr-auto text-xs font-medium text-green-400">✓ {saveStatus}</span>}
           <button
             onClick={closeFunctionGraph}
             className="rounded border border-neutral-600 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
@@ -285,6 +305,12 @@ function FunctionGraphModalContent({
           </button>
           <button
             onClick={handleSave}
+            className="rounded border border-blue-600 px-3 py-1 text-xs font-medium text-blue-400 hover:bg-blue-600/10"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleSaveAndClose}
             className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
           >
             Save &amp; Close
