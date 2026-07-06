@@ -108,7 +108,7 @@ export function registerNodeRegistryFlowRoutes(router: ConnectRouter, config: Ap
           ]
         : listNodeDefinitions().filter((def) => !FUNCTION_GRAPH_ONLY_TYPES.has(def.type));
 
-    return { definitions: definitions.map(toProtoNodeDefinition) };
+    return { definitions: definitions.map(toProtoNodeDefinition), projectDir: config.projectDir };
   });
 
   router.rpc(EditorService.method.getFlow, async () => {

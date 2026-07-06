@@ -45,6 +45,94 @@ demonstrates.
 
 ## CHANGELOG
 
+### Phase 15: Project Settings (Server vs Script Mode) + Mode-Aware Run Button
+
+**New Features:**
+
+- **Project mode selection**: New Settings tab lets users declare whether their project is a Node.js **Server** (Express-based) or **Script** (any executable `.blueprint` file).
+- **Mode-aware Run button**: Button label and behavior change based on project mode:
+  - **Server mode**: Button reads "Run Server"; compiles & runs the configured entry file (or auto-detects via `express.listen` node scan if none configured)
+  - **Script mode**: Button reads "Run `<filename>.js`" (dynamic); compiles & runs whichever `.blueprint` file is currently open in the editor
+- **Script execution**: Run plain logic files (no `express.init`, no server) directly — e.g., `helpers/utilities/math.blueprint` → `Run helpers/utilities/math.js` → spawns real Node process, streams logs
+- **Settings persistence**: Project settings saved to `visual-node-project-settings.json` at project root (visible in file explorer, not hidden)
+- **Backward compatibility**: Existing projects with no settings file default to Server mode with auto-detect entry file — Run button works unchanged, 100% identical to pre-Phase-15 behavior
+
+**How It Works:**
+
+- **Settings modal** (new): Accessible via "Settings" button in Toolbar
+  - Server mode: optional dropdown to select entry `.blueprint` file (blank = auto-detect via `express.listen` scan)
+  - Script mode: no entry file needed (current file in editor is run)
+  - Save/Cancel buttons; inline validation errors
+  
+- **Run button logic**:
+  - Server mode + no entry file → calls `findEntryFile()` to scan for `express.listen` node (legacy behavior)
+  - Server mode + entry file configured → validates that file has `express.listen` node, runs it
+  - Script mode → requires current file open; runs that file regardless of content (no express requirement)
+
+**Implementation Details:**
+
+- **Proto** (`proto/flowserver/v1/editor.proto`):
+  - New `ProjectSettings` message: `mode` ("server" | "script"), `entryFile` (project-relative path, empty = unset)
+  - New `GetProjectSettings` / `UpdateProjectSettings` RPCs
+  - `StartRunRequest` extended with `targetFile` field (used in Script mode only)
+  - Regenerated via `pnpm proto:gen`
+
+- **Backend** (`packages/editor-server`):
+  - New `src/project-settings.ts`: `readProjectSettings()` / `writeProjectSettings()` with JSON I/O and safe defaults
+  - New `src/connect/settings.service.ts`: RPC handlers for Get/Update; validates mode, checks entry file path safety and `.blueprint` extension
+  - Updated `src/connect/run.service.ts`: branching logic in `startRun()` — Script mode uses `targetFile` from request; Server mode uses `entryFile` from settings or falls back to `findEntryFile()`
+  - Updated `src/app.ts`: registered settings routes
+
+- **Frontend** (`packages/editor-ui`):
+  - New `src/components/SettingsModal.tsx`: modal with mode toggle, entry file dropdown (Server only), validation
+  - Updated `src/store/flowStore.ts`: added `projectSettings` state; `loadProjectSettings()` called in bootstrap; `startServer()` passes `currentFilePath` as `targetFile` when in Script mode
+  - Updated `src/api/client.ts`: added `getProjectSettings()`, `updateProjectSettings()`; extended `startServer()` to accept optional `targetFile`
+  - Updated `src/components/Toolbar.tsx`: added Settings button; dynamic Run label via `scriptOutputName()` helper (`.blueprint` → `.js` conversion); Run disabled when Script mode + no file open
+  - Updated `src/App.tsx`: renders `<SettingsModal />`
+
+**Tested & Verified:**
+
+- `pnpm build`: all packages compile with zero errors (proto-gen regenerated, backend + frontend built)
+- `pnpm --filter=@visual-node/core run test`: 332/332 tests pass (zero regressions)
+- Dev servers start successfully (`pnpm dev`): editor-server (port 4000), editor-ui (port 5173)
+- Settings file round-trip: `readProjectSettings()` → modify → `writeProjectSettings()` → `readProjectSettings()` produces identical result
+- Backward compat verified: no settings file → defaults to Server mode, auto-detect behavior unchanged
+
+**Out of Scope (Intentionally):**
+
+- CLI support for settings: future phase
+- Batch execution (run all scripts, run test suite): future feature
+- Eager validation that entry file has `express.listen` in Settings modal: caught on Run click instead (acceptable; error message is clear)
+
+**Example Workflow:**
+
+```
+Scenario 1: Server mode (default)
+─────────────────────────────────
+1. Open project with no settings file
+2. Toolbar: Run button reads "Run Server"
+3. Click Run → compiles all files → findEntryFile() scans for express.listen → spawns server.js
+4. Behavior identical to pre-Phase-15
+
+Scenario 2: Script mode (new)
+─────────────────────────────────
+1. Click Settings button → SettingsModal opens
+2. Select "Script" mode, click Save
+3. Open helpers/utilities/math.blueprint
+4. Toolbar: Run button reads "Run helpers/utilities/math.js" (dynamic)
+5. Click Run → compiles all files → runs helpers/utilities/math.js directly (no express required)
+6. Logs stream normally, process exits cleanly
+
+Scenario 3: Server mode with configured entry file
+──────────────────────────────────────────────────
+1. Click Settings → SettingsModal opens
+2. Select "Server" mode, pick "server.blueprint" from dropdown, click Save
+3. Click Run → compiles → validates server.blueprint has express.listen → runs it
+4. Errors if configured file is missing or lacks express.listen node
+```
+
+---
+
 ### Phase 14: Same-File Function Calls and Recursion in Function Graphs
 
 **New Features:**

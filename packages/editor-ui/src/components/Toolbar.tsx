@@ -15,6 +15,12 @@ function downloadPluginTemplate() {
   URL.revokeObjectURL(url);
 }
 
+function scriptOutputName(blueprintPath: string | null): string {
+  if (!blueprintPath) return "script.js";
+  const name = blueprintPath.split("/").pop() || "script";
+  return name.replace(/\.blueprint$/, ".js");
+}
+
 export function Toolbar() {
   const isDirty = useFlowStore((s) => s.isDirty);
   const isSaving = useFlowStore((s) => s.isSaving);
@@ -22,6 +28,8 @@ export function Toolbar() {
   const validationErrors = useFlowStore((s) => s.validationErrors);
   const compiledResults = useFlowStore((s) => s.compiledResults);
   const currentFilePath = useFlowStore((s) => s.currentFilePath);
+  const projectSettings = useFlowStore((s) => s.projectSettings);
+  const projectDir = useFlowStore((s) => s.projectDir);
   const lastError = useFlowStore((s) => s.lastError);
   const saveFlow = useFlowStore((s) => s.saveFlow);
   const compileProject = useFlowStore((s) => s.compileProject);
@@ -34,9 +42,16 @@ export function Toolbar() {
   const isStoppingServer = useFlowStore((s) => s.isStoppingServer);
   const startServer = useFlowStore((s) => s.startServer);
   const stopServer = useFlowStore((s) => s.stopServer);
+  const openSettings = useFlowStore((s) => s.openSettings);
   const isCompileStale = useFlowStore(selectIsCompileStale);
   const installPlugin = useFlowStore((s) => s.installPlugin);
   const pluginFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  function displayProjectDir(dir: string | null): string {
+    if (!dir) return "No project";
+    const parts = dir.split(/[/\\]/);
+    return parts[parts.length - 1] || dir;
+  }
 
   async function handlePluginFileSelected(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -55,16 +70,24 @@ export function Toolbar() {
       : isDirty
         ? "Save your changes before compiling — Compile always reads the project from disk"
         : "Compile the whole project to Express code";
-  const runDisabled = hasErrors || isStartingServer || isCompileStale;
+
+  const isScriptMode = projectSettings?.mode === "script";
+  const runDisabled = hasErrors || isStartingServer || isCompileStale || (isScriptMode && !currentFilePath);
+  const runButtonLabel = isScriptMode ? `Run ${scriptOutputName(currentFilePath)}` : "Run Server";
   const runTitle = hasErrors
     ? `Fix ${validationErrors.length} issue(s) before running: ${validationErrors[0].message}`
     : isCompileStale
-      ? "Click Compile first — Run Server always runs the last compiled project from disk"
-      : "Compile the whole project to disk and run its entry file";
+      ? "Click Compile first — Run always reads the project from disk"
+      : isScriptMode && !currentFilePath
+        ? "Open a file first"
+        : "Compile and run the project";
 
   return (
     <div className="flex h-12 items-center gap-2 border-b border-black/60 bg-[#242424] px-3">
-      <span className="mr-2 text-sm font-bold tracking-wide text-neutral-100">FlowServer</span>
+      <span className="mr-1 text-sm font-bold tracking-wide text-neutral-100">FlowServer</span>
+      <span title={projectDir ?? undefined} className="mr-2 text-xs text-neutral-500">
+        {displayProjectDir(projectDir)}
+      </span>
       <span className="mr-2 text-xs text-neutral-500">{currentFilePath ?? "No file open"}</span>
 
       <button
@@ -80,6 +103,13 @@ export function Toolbar() {
         className="rounded border border-neutral-600 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
       >
         Browse Nodes
+      </button>
+
+      <button
+        onClick={openSettings}
+        className="rounded border border-neutral-600 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
+      >
+        Settings
       </button>
 
       <input
@@ -137,7 +167,7 @@ export function Toolbar() {
           title={runTitle}
           className="rounded border border-green-600 px-3 py-1 text-xs font-medium text-green-400 hover:bg-green-600/10 disabled:opacity-50"
         >
-          {isStartingServer ? "Starting…" : "Run Server"}
+          {isStartingServer ? "Starting…" : runButtonLabel}
         </button>
       )}
 

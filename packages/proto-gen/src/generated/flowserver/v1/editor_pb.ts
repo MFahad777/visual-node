@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file flowserver/v1/editor.proto.
  */
 export const file_flowserver_v1_editor: GenFile = /*@__PURE__*/
-  fileDesc("ChpmbG93c2VydmVyL3YxL2VkaXRvci5wcm90bxINZmxvd3NlcnZlci52MSJlCg9WYWxpZGF0aW9uRXJyb3ISDwoHbm9kZV9pZBgBIAEoCRIZChFibHVlcHJpbnRfbm9kZV9pZBgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhUKDXJlbGF0aXZlX3BhdGgYBCABKAkiOQoOUG9ydERlZmluaXRpb24SCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSDAoEa2luZBgDIAEoCSKFAQoLQ29uZmlnRmllbGQSCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSDwoHb3B0aW9ucxgEIAMoCRItCg1kZWZhdWx0X3ZhbHVlGAUgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEgwKBGhpbnQYBiABKAki5gEKDk5vZGVEZWZpbml0aW9uEgwKBHR5cGUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSDQoFbGFiZWwYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSLQoGaW5wdXRzGAUgAygLMh0uZmxvd3NlcnZlci52MS5Qb3J0RGVmaW5pdGlvbhIuCgdvdXRwdXRzGAYgAygLMh0uZmxvd3NlcnZlci52MS5Qb3J0RGVmaW5pdGlvbhIxCg1jb25maWdfc2NoZW1hGAcgAygLMhouZmxvd3NlcnZlci52MS5Db25maWdGaWVsZCInChZHZXROb2RlUmVnaXN0cnlSZXF1ZXN0Eg0KBXNjb3BlGAEgASgJIk0KF0dldE5vZGVSZWdpc3RyeVJlc3BvbnNlEjIKC2RlZmluaXRpb25zGAEgAygLMh0uZmxvd3NlcnZlci52MS5Ob2RlRGVmaW5pdGlvbiIQCg5HZXRGbG93UmVxdWVzdCI5Cg9HZXRGbG93UmVzcG9uc2USDQoFZm91bmQYASABKAgSFwoPZmxhdGJ1ZmZlcl9mbG93GAIgASgMIioKD1NhdmVGbG93UmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiHgoQU2F2ZUZsb3dSZXNwb25zZRIKCgJvaxgBIAEoCCIuChNWYWxpZGF0ZUZsb3dSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJVChRWYWxpZGF0ZUZsb3dSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIuCgZlcnJvcnMYAiADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciIuChNHZW5lcmF0ZUNvZGVSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJjChRHZW5lcmF0ZUNvZGVSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIMCgRjb2RlGAIgASgJEi4KBmVycm9ycxgDIAMoCzIeLmZsb3dzZXJ2ZXIudjEuVmFsaWRhdGlvbkVycm9yIjQKGVdyaXRlR2VuZXJhdGVkQ29kZVJlcXVlc3QSFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMInoKGldyaXRlR2VuZXJhdGVkQ29kZVJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB3dyaXR0ZW4YAiABKAgSDAoEcGF0aBgDIAEoCRIuCgZlcnJvcnMYBCADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciIRCg9TdGFydFJ1blJlcXVlc3QiHQoKUnVuU3RhcnRlZBIPCgdydW5uaW5nGAEgASgIIkYKFFJ1blZhbGlkYXRpb25GYWlsdXJlEi4KBmVycm9ycxgBIAMoCzIeLmZsb3dzZXJ2ZXIudjEuVmFsaWRhdGlvbkVycm9yIp4BChBTdGFydFJ1blJlc3BvbnNlEiwKB3N0YXJ0ZWQYASABKAsyGS5mbG93c2VydmVyLnYxLlJ1blN0YXJ0ZWRIABJBChJ2YWxpZGF0aW9uX2ZhaWx1cmUYAiABKAsyIy5mbG93c2VydmVyLnYxLlJ1blZhbGlkYXRpb25GYWlsdXJlSAASDwoFZXJyb3IYAyABKAlIAEIICgZyZXN1bHQiEAoOU3RvcFJ1blJlcXVlc3QiIgoPU3RvcFJ1blJlc3BvbnNlEg8KB3J1bm5pbmcYASABKAgiFQoTR2V0UnVuU3RhdHVzUmVxdWVzdCInChRHZXRSdW5TdGF0dXNSZXNwb25zZRIPCgdydW5uaW5nGAEgASgIIhAKDlJ1bkxvZ3NSZXF1ZXN0IicKCUV4aXRFdmVudBIRCgRjb2RlGAEgASgFSACIAQFCBwoFX2NvZGUiUwoPUnVuTG9nc1Jlc3BvbnNlEg0KA2xvZxgBIAEoCUgAEigKBGV4aXQYAiABKAsyGC5mbG93c2VydmVyLnYxLkV4aXRFdmVudEgAQgcKBWV2ZW50ItABCgxGaWxlVHJlZU5vZGUSLgoEa2luZBgBIAEoDjIgLmZsb3dzZXJ2ZXIudjEuRmlsZVRyZWVOb2RlLktpbmQSDAoEbmFtZRgCIAEoCRIVCg1yZWxhdGl2ZV9wYXRoGAMgASgJEi0KCGNoaWxkcmVuGAQgAygLMhsuZmxvd3NlcnZlci52MS5GaWxlVHJlZU5vZGUiPAoES2luZBIUChBLSU5EX1VOU1BFQ0lGSUVEEAASDQoJS0lORF9GSUxFEAESDwoLS0lORF9GT0xERVIQAiISChBMaXN0RmlsZXNSZXF1ZXN0Ij4KEUxpc3RGaWxlc1Jlc3BvbnNlEikKBHRyZWUYASADKAsyGy5mbG93c2VydmVyLnYxLkZpbGVUcmVlTm9kZSIjChNDcmVhdGVGb2xkZXJSZXF1ZXN0EgwKBHBhdGgYASABKAkiMAoUQ3JlYXRlRm9sZGVyUmVzcG9uc2USCgoCb2sYASABKAgSDAoEcGF0aBgCIAEoCSImChZDcmVhdGVCbHVlcHJpbnRSZXF1ZXN0EgwKBHBhdGgYASABKAkiTAoXQ3JlYXRlQmx1ZXByaW50UmVzcG9uc2USCgoCb2sYASABKAgSDAoEcGF0aBgCIAEoCRIXCg9mbGF0YnVmZmVyX2Zsb3cYAyABKAwiIwoTR2V0Qmx1ZXByaW50UmVxdWVzdBIMCgRwYXRoGAEgASgJIi8KFEdldEJsdWVwcmludFJlc3BvbnNlEhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCI9ChRTYXZlQmx1ZXByaW50UmVxdWVzdBIMCgRwYXRoGAEgASgJEhcKD2ZsYXRidWZmZXJfZmxvdxgCIAEoDCIjChVTYXZlQmx1ZXByaW50UmVzcG9uc2USCgoCb2sYASABKAgiLQoRUmVuYW1lUGF0aFJlcXVlc3QSDAoEZnJvbRgBIAEoCRIKCgJ0bxgCIAEoCSIgChJSZW5hbWVQYXRoUmVzcG9uc2USCgoCb2sYASABKAgiIQoRRGVsZXRlUGF0aFJlcXVlc3QSDAoEcGF0aBgBIAEoCSIgChJEZWxldGVQYXRoUmVzcG9uc2USCgoCb2sYASABKAgiOgoTQ29tcGlsZWRQcm9qZWN0RmlsZRIVCg1yZWxhdGl2ZV9wYXRoGAEgASgJEgwKBGNvZGUYAiABKAkiFwoVQ29tcGlsZVByb2plY3RSZXF1ZXN0IowBChZDb21waWxlUHJvamVjdFJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEjMKB3Jlc3VsdHMYAiADKAsyIi5mbG93c2VydmVyLnYxLkNvbXBpbGVkUHJvamVjdEZpbGUSLgoGZXJyb3JzGAMgAygLMh4uZmxvd3NlcnZlci52MS5WYWxpZGF0aW9uRXJyb3IiQAoSV3JpdHRlblByb2plY3RGaWxlEhUKDXJlbGF0aXZlX3BhdGgYASABKAkSEwoLb3V0cHV0X3BhdGgYAiABKAkiHQobV3JpdGVDb21waWxlZFByb2plY3RSZXF1ZXN0IqABChxXcml0ZUNvbXBpbGVkUHJvamVjdFJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB3dyaXR0ZW4YAiABKAgSMAoFZmlsZXMYAyADKAsyIS5mbG93c2VydmVyLnYxLldyaXR0ZW5Qcm9qZWN0RmlsZRIuCgZlcnJvcnMYBCADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciJGChhGdW5jdGlvbkdyYXBoRXJyb3JEZXRhaWwSDwoHbWVzc2FnZRgBIAEoCRIZChFibHVlcHJpbnRfbm9kZV9pZBgCIAEoCSI2ChtQcmV2aWV3RnVuY3Rpb25HcmFwaFJlcXVlc3QSFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMInIKHFByZXZpZXdGdW5jdGlvbkdyYXBoUmVzcG9uc2USDgoEYm9keRgBIAEoCUgAEjgKBWVycm9yGAIgASgLMicuZmxvd3NlcnZlci52MS5GdW5jdGlvbkdyYXBoRXJyb3JEZXRhaWxIAEIICgZyZXN1bHQiKwoUSW5zdGFsbFBsdWdpblJlcXVlc3QSEwoLcGx1Z2luX2pzb24YASABKAwiWAoVSW5zdGFsbFBsdWdpblJlc3BvbnNlEgoKAm9rGAEgASgIEgwKBHR5cGUYAiABKAkSFQoNcmVsYXRpdmVfcGF0aBgDIAEoCRIOCgZlcnJvcnMYBCADKAky5A4KDUVkaXRvclNlcnZpY2USYAoPR2V0Tm9kZVJlZ2lzdHJ5EiUuZmxvd3NlcnZlci52MS5HZXROb2RlUmVnaXN0cnlSZXF1ZXN0GiYuZmxvd3NlcnZlci52MS5HZXROb2RlUmVnaXN0cnlSZXNwb25zZRJICgdHZXRGbG93Eh0uZmxvd3NlcnZlci52MS5HZXRGbG93UmVxdWVzdBoeLmZsb3dzZXJ2ZXIudjEuR2V0Rmxvd1Jlc3BvbnNlEksKCFNhdmVGbG93Eh4uZmxvd3NlcnZlci52MS5TYXZlRmxvd1JlcXVlc3QaHy5mbG93c2VydmVyLnYxLlNhdmVGbG93UmVzcG9uc2USVwoMVmFsaWRhdGVGbG93EiIuZmxvd3NlcnZlci52MS5WYWxpZGF0ZUZsb3dSZXF1ZXN0GiMuZmxvd3NlcnZlci52MS5WYWxpZGF0ZUZsb3dSZXNwb25zZRJXCgxHZW5lcmF0ZUNvZGUSIi5mbG93c2VydmVyLnYxLkdlbmVyYXRlQ29kZVJlcXVlc3QaIy5mbG93c2VydmVyLnYxLkdlbmVyYXRlQ29kZVJlc3BvbnNlEmkKEldyaXRlR2VuZXJhdGVkQ29kZRIoLmZsb3dzZXJ2ZXIudjEuV3JpdGVHZW5lcmF0ZWRDb2RlUmVxdWVzdBopLmZsb3dzZXJ2ZXIudjEuV3JpdGVHZW5lcmF0ZWRDb2RlUmVzcG9uc2USSwoIU3RhcnRSdW4SHi5mbG93c2VydmVyLnYxLlN0YXJ0UnVuUmVxdWVzdBofLmZsb3dzZXJ2ZXIudjEuU3RhcnRSdW5SZXNwb25zZRJICgdTdG9wUnVuEh0uZmxvd3NlcnZlci52MS5TdG9wUnVuUmVxdWVzdBoeLmZsb3dzZXJ2ZXIudjEuU3RvcFJ1blJlc3BvbnNlElcKDEdldFJ1blN0YXR1cxIiLmZsb3dzZXJ2ZXIudjEuR2V0UnVuU3RhdHVzUmVxdWVzdBojLmZsb3dzZXJ2ZXIudjEuR2V0UnVuU3RhdHVzUmVzcG9uc2USSgoHUnVuTG9ncxIdLmZsb3dzZXJ2ZXIudjEuUnVuTG9nc1JlcXVlc3QaHi5mbG93c2VydmVyLnYxLlJ1bkxvZ3NSZXNwb25zZTABEk4KCUxpc3RGaWxlcxIfLmZsb3dzZXJ2ZXIudjEuTGlzdEZpbGVzUmVxdWVzdBogLmZsb3dzZXJ2ZXIudjEuTGlzdEZpbGVzUmVzcG9uc2USVwoMQ3JlYXRlRm9sZGVyEiIuZmxvd3NlcnZlci52MS5DcmVhdGVGb2xkZXJSZXF1ZXN0GiMuZmxvd3NlcnZlci52MS5DcmVhdGVGb2xkZXJSZXNwb25zZRJgCg9DcmVhdGVCbHVlcHJpbnQSJS5mbG93c2VydmVyLnYxLkNyZWF0ZUJsdWVwcmludFJlcXVlc3QaJi5mbG93c2VydmVyLnYxLkNyZWF0ZUJsdWVwcmludFJlc3BvbnNlElcKDEdldEJsdWVwcmludBIiLmZsb3dzZXJ2ZXIudjEuR2V0Qmx1ZXByaW50UmVxdWVzdBojLmZsb3dzZXJ2ZXIudjEuR2V0Qmx1ZXByaW50UmVzcG9uc2USWgoNU2F2ZUJsdWVwcmludBIjLmZsb3dzZXJ2ZXIudjEuU2F2ZUJsdWVwcmludFJlcXVlc3QaJC5mbG93c2VydmVyLnYxLlNhdmVCbHVlcHJpbnRSZXNwb25zZRJRCgpSZW5hbWVQYXRoEiAuZmxvd3NlcnZlci52MS5SZW5hbWVQYXRoUmVxdWVzdBohLmZsb3dzZXJ2ZXIudjEuUmVuYW1lUGF0aFJlc3BvbnNlElEKCkRlbGV0ZVBhdGgSIC5mbG93c2VydmVyLnYxLkRlbGV0ZVBhdGhSZXF1ZXN0GiEuZmxvd3NlcnZlci52MS5EZWxldGVQYXRoUmVzcG9uc2USXQoOQ29tcGlsZVByb2plY3QSJC5mbG93c2VydmVyLnYxLkNvbXBpbGVQcm9qZWN0UmVxdWVzdBolLmZsb3dzZXJ2ZXIudjEuQ29tcGlsZVByb2plY3RSZXNwb25zZRJvChRXcml0ZUNvbXBpbGVkUHJvamVjdBIqLmZsb3dzZXJ2ZXIudjEuV3JpdGVDb21waWxlZFByb2plY3RSZXF1ZXN0GisuZmxvd3NlcnZlci52MS5Xcml0ZUNvbXBpbGVkUHJvamVjdFJlc3BvbnNlEm8KFFByZXZpZXdGdW5jdGlvbkdyYXBoEiouZmxvd3NlcnZlci52MS5QcmV2aWV3RnVuY3Rpb25HcmFwaFJlcXVlc3QaKy5mbG93c2VydmVyLnYxLlByZXZpZXdGdW5jdGlvbkdyYXBoUmVzcG9uc2USWgoNSW5zdGFsbFBsdWdpbhIjLmZsb3dzZXJ2ZXIudjEuSW5zdGFsbFBsdWdpblJlcXVlc3QaJC5mbG93c2VydmVyLnYxLkluc3RhbGxQbHVnaW5SZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_struct]);
+  fileDesc("ChpmbG93c2VydmVyL3YxL2VkaXRvci5wcm90bxINZmxvd3NlcnZlci52MSJlCg9WYWxpZGF0aW9uRXJyb3ISDwoHbm9kZV9pZBgBIAEoCRIZChFibHVlcHJpbnRfbm9kZV9pZBgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhUKDXJlbGF0aXZlX3BhdGgYBCABKAkiOQoOUG9ydERlZmluaXRpb24SCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSDAoEa2luZBgDIAEoCSKFAQoLQ29uZmlnRmllbGQSCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBHR5cGUYAyABKAkSDwoHb3B0aW9ucxgEIAMoCRItCg1kZWZhdWx0X3ZhbHVlGAUgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEgwKBGhpbnQYBiABKAki5gEKDk5vZGVEZWZpbml0aW9uEgwKBHR5cGUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSDQoFbGFiZWwYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSLQoGaW5wdXRzGAUgAygLMh0uZmxvd3NlcnZlci52MS5Qb3J0RGVmaW5pdGlvbhIuCgdvdXRwdXRzGAYgAygLMh0uZmxvd3NlcnZlci52MS5Qb3J0RGVmaW5pdGlvbhIxCg1jb25maWdfc2NoZW1hGAcgAygLMhouZmxvd3NlcnZlci52MS5Db25maWdGaWVsZCInChZHZXROb2RlUmVnaXN0cnlSZXF1ZXN0Eg0KBXNjb3BlGAEgASgJImIKF0dldE5vZGVSZWdpc3RyeVJlc3BvbnNlEjIKC2RlZmluaXRpb25zGAEgAygLMh0uZmxvd3NlcnZlci52MS5Ob2RlRGVmaW5pdGlvbhITCgtwcm9qZWN0X2RpchgCIAEoCSIQCg5HZXRGbG93UmVxdWVzdCI5Cg9HZXRGbG93UmVzcG9uc2USDQoFZm91bmQYASABKAgSFwoPZmxhdGJ1ZmZlcl9mbG93GAIgASgMIioKD1NhdmVGbG93UmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiHgoQU2F2ZUZsb3dSZXNwb25zZRIKCgJvaxgBIAEoCCIuChNWYWxpZGF0ZUZsb3dSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJVChRWYWxpZGF0ZUZsb3dSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIuCgZlcnJvcnMYAiADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciIuChNHZW5lcmF0ZUNvZGVSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJjChRHZW5lcmF0ZUNvZGVSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIMCgRjb2RlGAIgASgJEi4KBmVycm9ycxgDIAMoCzIeLmZsb3dzZXJ2ZXIudjEuVmFsaWRhdGlvbkVycm9yIjQKGVdyaXRlR2VuZXJhdGVkQ29kZVJlcXVlc3QSFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMInoKGldyaXRlR2VuZXJhdGVkQ29kZVJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB3dyaXR0ZW4YAiABKAgSDAoEcGF0aBgDIAEoCRIuCgZlcnJvcnMYBCADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciIzCg9Qcm9qZWN0U2V0dGluZ3MSDAoEbW9kZRgBIAEoCRISCgplbnRyeV9maWxlGAIgASgJIhsKGUdldFByb2plY3RTZXR0aW5nc1JlcXVlc3QiTgoaR2V0UHJvamVjdFNldHRpbmdzUmVzcG9uc2USMAoIc2V0dGluZ3MYASABKAsyHi5mbG93c2VydmVyLnYxLlByb2plY3RTZXR0aW5ncyJQChxVcGRhdGVQcm9qZWN0U2V0dGluZ3NSZXF1ZXN0EjAKCHNldHRpbmdzGAEgASgLMh4uZmxvd3NlcnZlci52MS5Qcm9qZWN0U2V0dGluZ3MiOwodVXBkYXRlUHJvamVjdFNldHRpbmdzUmVzcG9uc2USCgoCb2sYASABKAgSDgoGZXJyb3JzGAIgAygJIiYKD1N0YXJ0UnVuUmVxdWVzdBITCgt0YXJnZXRfZmlsZRgBIAEoCSIdCgpSdW5TdGFydGVkEg8KB3J1bm5pbmcYASABKAgiRgoUUnVuVmFsaWRhdGlvbkZhaWx1cmUSLgoGZXJyb3JzGAEgAygLMh4uZmxvd3NlcnZlci52MS5WYWxpZGF0aW9uRXJyb3IingEKEFN0YXJ0UnVuUmVzcG9uc2USLAoHc3RhcnRlZBgBIAEoCzIZLmZsb3dzZXJ2ZXIudjEuUnVuU3RhcnRlZEgAEkEKEnZhbGlkYXRpb25fZmFpbHVyZRgCIAEoCzIjLmZsb3dzZXJ2ZXIudjEuUnVuVmFsaWRhdGlvbkZhaWx1cmVIABIPCgVlcnJvchgDIAEoCUgAQggKBnJlc3VsdCIQCg5TdG9wUnVuUmVxdWVzdCIiCg9TdG9wUnVuUmVzcG9uc2USDwoHcnVubmluZxgBIAEoCCIVChNHZXRSdW5TdGF0dXNSZXF1ZXN0IicKFEdldFJ1blN0YXR1c1Jlc3BvbnNlEg8KB3J1bm5pbmcYASABKAgiEAoOUnVuTG9nc1JlcXVlc3QiJwoJRXhpdEV2ZW50EhEKBGNvZGUYASABKAVIAIgBAUIHCgVfY29kZSJTCg9SdW5Mb2dzUmVzcG9uc2USDQoDbG9nGAEgASgJSAASKAoEZXhpdBgCIAEoCzIYLmZsb3dzZXJ2ZXIudjEuRXhpdEV2ZW50SABCBwoFZXZlbnQi0AEKDEZpbGVUcmVlTm9kZRIuCgRraW5kGAEgASgOMiAuZmxvd3NlcnZlci52MS5GaWxlVHJlZU5vZGUuS2luZBIMCgRuYW1lGAIgASgJEhUKDXJlbGF0aXZlX3BhdGgYAyABKAkSLQoIY2hpbGRyZW4YBCADKAsyGy5mbG93c2VydmVyLnYxLkZpbGVUcmVlTm9kZSI8CgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABINCglLSU5EX0ZJTEUQARIPCgtLSU5EX0ZPTERFUhACIhIKEExpc3RGaWxlc1JlcXVlc3QiPgoRTGlzdEZpbGVzUmVzcG9uc2USKQoEdHJlZRgBIAMoCzIbLmZsb3dzZXJ2ZXIudjEuRmlsZVRyZWVOb2RlIiMKE0NyZWF0ZUZvbGRlclJlcXVlc3QSDAoEcGF0aBgBIAEoCSIwChRDcmVhdGVGb2xkZXJSZXNwb25zZRIKCgJvaxgBIAEoCBIMCgRwYXRoGAIgASgJIiYKFkNyZWF0ZUJsdWVwcmludFJlcXVlc3QSDAoEcGF0aBgBIAEoCSJMChdDcmVhdGVCbHVlcHJpbnRSZXNwb25zZRIKCgJvaxgBIAEoCBIMCgRwYXRoGAIgASgJEhcKD2ZsYXRidWZmZXJfZmxvdxgDIAEoDCIjChNHZXRCbHVlcHJpbnRSZXF1ZXN0EgwKBHBhdGgYASABKAkiLwoUR2V0Qmx1ZXByaW50UmVzcG9uc2USFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMIj0KFFNhdmVCbHVlcHJpbnRSZXF1ZXN0EgwKBHBhdGgYASABKAkSFwoPZmxhdGJ1ZmZlcl9mbG93GAIgASgMIiMKFVNhdmVCbHVlcHJpbnRSZXNwb25zZRIKCgJvaxgBIAEoCCItChFSZW5hbWVQYXRoUmVxdWVzdBIMCgRmcm9tGAEgASgJEgoKAnRvGAIgASgJIiAKElJlbmFtZVBhdGhSZXNwb25zZRIKCgJvaxgBIAEoCCIhChFEZWxldGVQYXRoUmVxdWVzdBIMCgRwYXRoGAEgASgJIiAKEkRlbGV0ZVBhdGhSZXNwb25zZRIKCgJvaxgBIAEoCCI6ChNDb21waWxlZFByb2plY3RGaWxlEhUKDXJlbGF0aXZlX3BhdGgYASABKAkSDAoEY29kZRgCIAEoCSIXChVDb21waWxlUHJvamVjdFJlcXVlc3QijAEKFkNvbXBpbGVQcm9qZWN0UmVzcG9uc2USDQoFdmFsaWQYASABKAgSMwoHcmVzdWx0cxgCIAMoCzIiLmZsb3dzZXJ2ZXIudjEuQ29tcGlsZWRQcm9qZWN0RmlsZRIuCgZlcnJvcnMYAyADKAsyHi5mbG93c2VydmVyLnYxLlZhbGlkYXRpb25FcnJvciJAChJXcml0dGVuUHJvamVjdEZpbGUSFQoNcmVsYXRpdmVfcGF0aBgBIAEoCRITCgtvdXRwdXRfcGF0aBgCIAEoCSIdChtXcml0ZUNvbXBpbGVkUHJvamVjdFJlcXVlc3QioAEKHFdyaXRlQ29tcGlsZWRQcm9qZWN0UmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHd3JpdHRlbhgCIAEoCBIwCgVmaWxlcxgDIAMoCzIhLmZsb3dzZXJ2ZXIudjEuV3JpdHRlblByb2plY3RGaWxlEi4KBmVycm9ycxgEIAMoCzIeLmZsb3dzZXJ2ZXIudjEuVmFsaWRhdGlvbkVycm9yIkYKGEZ1bmN0aW9uR3JhcGhFcnJvckRldGFpbBIPCgdtZXNzYWdlGAEgASgJEhkKEWJsdWVwcmludF9ub2RlX2lkGAIgASgJIjYKG1ByZXZpZXdGdW5jdGlvbkdyYXBoUmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwicgocUHJldmlld0Z1bmN0aW9uR3JhcGhSZXNwb25zZRIOCgRib2R5GAEgASgJSAASOAoFZXJyb3IYAiABKAsyJy5mbG93c2VydmVyLnYxLkZ1bmN0aW9uR3JhcGhFcnJvckRldGFpbEgAQggKBnJlc3VsdCIrChRJbnN0YWxsUGx1Z2luUmVxdWVzdBITCgtwbHVnaW5fanNvbhgBIAEoDCJYChVJbnN0YWxsUGx1Z2luUmVzcG9uc2USCgoCb2sYASABKAgSDAoEdHlwZRgCIAEoCRIVCg1yZWxhdGl2ZV9wYXRoGAMgASgJEg4KBmVycm9ycxgEIAMoCTLDEAoNRWRpdG9yU2VydmljZRJgCg9HZXROb2RlUmVnaXN0cnkSJS5mbG93c2VydmVyLnYxLkdldE5vZGVSZWdpc3RyeVJlcXVlc3QaJi5mbG93c2VydmVyLnYxLkdldE5vZGVSZWdpc3RyeVJlc3BvbnNlEkgKB0dldEZsb3cSHS5mbG93c2VydmVyLnYxLkdldEZsb3dSZXF1ZXN0Gh4uZmxvd3NlcnZlci52MS5HZXRGbG93UmVzcG9uc2USSwoIU2F2ZUZsb3cSHi5mbG93c2VydmVyLnYxLlNhdmVGbG93UmVxdWVzdBofLmZsb3dzZXJ2ZXIudjEuU2F2ZUZsb3dSZXNwb25zZRJXCgxWYWxpZGF0ZUZsb3cSIi5mbG93c2VydmVyLnYxLlZhbGlkYXRlRmxvd1JlcXVlc3QaIy5mbG93c2VydmVyLnYxLlZhbGlkYXRlRmxvd1Jlc3BvbnNlElcKDEdlbmVyYXRlQ29kZRIiLmZsb3dzZXJ2ZXIudjEuR2VuZXJhdGVDb2RlUmVxdWVzdBojLmZsb3dzZXJ2ZXIudjEuR2VuZXJhdGVDb2RlUmVzcG9uc2USaQoSV3JpdGVHZW5lcmF0ZWRDb2RlEiguZmxvd3NlcnZlci52MS5Xcml0ZUdlbmVyYXRlZENvZGVSZXF1ZXN0GikuZmxvd3NlcnZlci52MS5Xcml0ZUdlbmVyYXRlZENvZGVSZXNwb25zZRJpChJHZXRQcm9qZWN0U2V0dGluZ3MSKC5mbG93c2VydmVyLnYxLkdldFByb2plY3RTZXR0aW5nc1JlcXVlc3QaKS5mbG93c2VydmVyLnYxLkdldFByb2plY3RTZXR0aW5nc1Jlc3BvbnNlEnIKFVVwZGF0ZVByb2plY3RTZXR0aW5ncxIrLmZsb3dzZXJ2ZXIudjEuVXBkYXRlUHJvamVjdFNldHRpbmdzUmVxdWVzdBosLmZsb3dzZXJ2ZXIudjEuVXBkYXRlUHJvamVjdFNldHRpbmdzUmVzcG9uc2USSwoIU3RhcnRSdW4SHi5mbG93c2VydmVyLnYxLlN0YXJ0UnVuUmVxdWVzdBofLmZsb3dzZXJ2ZXIudjEuU3RhcnRSdW5SZXNwb25zZRJICgdTdG9wUnVuEh0uZmxvd3NlcnZlci52MS5TdG9wUnVuUmVxdWVzdBoeLmZsb3dzZXJ2ZXIudjEuU3RvcFJ1blJlc3BvbnNlElcKDEdldFJ1blN0YXR1cxIiLmZsb3dzZXJ2ZXIudjEuR2V0UnVuU3RhdHVzUmVxdWVzdBojLmZsb3dzZXJ2ZXIudjEuR2V0UnVuU3RhdHVzUmVzcG9uc2USSgoHUnVuTG9ncxIdLmZsb3dzZXJ2ZXIudjEuUnVuTG9nc1JlcXVlc3QaHi5mbG93c2VydmVyLnYxLlJ1bkxvZ3NSZXNwb25zZTABEk4KCUxpc3RGaWxlcxIfLmZsb3dzZXJ2ZXIudjEuTGlzdEZpbGVzUmVxdWVzdBogLmZsb3dzZXJ2ZXIudjEuTGlzdEZpbGVzUmVzcG9uc2USVwoMQ3JlYXRlRm9sZGVyEiIuZmxvd3NlcnZlci52MS5DcmVhdGVGb2xkZXJSZXF1ZXN0GiMuZmxvd3NlcnZlci52MS5DcmVhdGVGb2xkZXJSZXNwb25zZRJgCg9DcmVhdGVCbHVlcHJpbnQSJS5mbG93c2VydmVyLnYxLkNyZWF0ZUJsdWVwcmludFJlcXVlc3QaJi5mbG93c2VydmVyLnYxLkNyZWF0ZUJsdWVwcmludFJlc3BvbnNlElcKDEdldEJsdWVwcmludBIiLmZsb3dzZXJ2ZXIudjEuR2V0Qmx1ZXByaW50UmVxdWVzdBojLmZsb3dzZXJ2ZXIudjEuR2V0Qmx1ZXByaW50UmVzcG9uc2USWgoNU2F2ZUJsdWVwcmludBIjLmZsb3dzZXJ2ZXIudjEuU2F2ZUJsdWVwcmludFJlcXVlc3QaJC5mbG93c2VydmVyLnYxLlNhdmVCbHVlcHJpbnRSZXNwb25zZRJRCgpSZW5hbWVQYXRoEiAuZmxvd3NlcnZlci52MS5SZW5hbWVQYXRoUmVxdWVzdBohLmZsb3dzZXJ2ZXIudjEuUmVuYW1lUGF0aFJlc3BvbnNlElEKCkRlbGV0ZVBhdGgSIC5mbG93c2VydmVyLnYxLkRlbGV0ZVBhdGhSZXF1ZXN0GiEuZmxvd3NlcnZlci52MS5EZWxldGVQYXRoUmVzcG9uc2USXQoOQ29tcGlsZVByb2plY3QSJC5mbG93c2VydmVyLnYxLkNvbXBpbGVQcm9qZWN0UmVxdWVzdBolLmZsb3dzZXJ2ZXIudjEuQ29tcGlsZVByb2plY3RSZXNwb25zZRJvChRXcml0ZUNvbXBpbGVkUHJvamVjdBIqLmZsb3dzZXJ2ZXIudjEuV3JpdGVDb21waWxlZFByb2plY3RSZXF1ZXN0GisuZmxvd3NlcnZlci52MS5Xcml0ZUNvbXBpbGVkUHJvamVjdFJlc3BvbnNlEm8KFFByZXZpZXdGdW5jdGlvbkdyYXBoEiouZmxvd3NlcnZlci52MS5QcmV2aWV3RnVuY3Rpb25HcmFwaFJlcXVlc3QaKy5mbG93c2VydmVyLnYxLlByZXZpZXdGdW5jdGlvbkdyYXBoUmVzcG9uc2USWgoNSW5zdGFsbFBsdWdpbhIjLmZsb3dzZXJ2ZXIudjEuSW5zdGFsbFBsdWdpblJlcXVlc3QaJC5mbG93c2VydmVyLnYxLkluc3RhbGxQbHVnaW5SZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_struct]);
 
 /**
  * Mirrors packages/core/src/schema/validate.ts's ValidationError and
@@ -217,6 +217,13 @@ export type GetNodeRegistryResponse = Message<"flowserver.v1.GetNodeRegistryResp
    * @generated from field: repeated flowserver.v1.NodeDefinition definitions = 1;
    */
   definitions: NodeDefinition[];
+
+  /**
+   * Absolute path to the project directory (Phase 15)
+   *
+   * @generated from field: string project_dir = 2;
+   */
+  projectDir: string;
 };
 
 /**
@@ -439,9 +446,113 @@ export const WriteGeneratedCodeResponseSchema: GenMessage<WriteGeneratedCodeResp
   messageDesc(file_flowserver_v1_editor, 15);
 
 /**
+ * @generated from message flowserver.v1.ProjectSettings
+ */
+export type ProjectSettings = Message<"flowserver.v1.ProjectSettings"> & {
+  /**
+   * "server" or "script" — controls whether Run button scans for express.listen
+   * (Server) or runs the currently-open file (Script).
+   *
+   * @generated from field: string mode = 1;
+   */
+  mode: string;
+
+  /**
+   * Project-relative .blueprint path for Server mode entry point (e.g. "server.blueprint").
+   * Empty = use auto-detect (findEntryFile scan). Ignored in Script mode.
+   *
+   * @generated from field: string entry_file = 2;
+   */
+  entryFile: string;
+};
+
+/**
+ * Describes the message flowserver.v1.ProjectSettings.
+ * Use `create(ProjectSettingsSchema)` to create a new message.
+ */
+export const ProjectSettingsSchema: GenMessage<ProjectSettings> = /*@__PURE__*/
+  messageDesc(file_flowserver_v1_editor, 16);
+
+/**
+ * @generated from message flowserver.v1.GetProjectSettingsRequest
+ */
+export type GetProjectSettingsRequest = Message<"flowserver.v1.GetProjectSettingsRequest"> & {
+};
+
+/**
+ * Describes the message flowserver.v1.GetProjectSettingsRequest.
+ * Use `create(GetProjectSettingsRequestSchema)` to create a new message.
+ */
+export const GetProjectSettingsRequestSchema: GenMessage<GetProjectSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_flowserver_v1_editor, 17);
+
+/**
+ * @generated from message flowserver.v1.GetProjectSettingsResponse
+ */
+export type GetProjectSettingsResponse = Message<"flowserver.v1.GetProjectSettingsResponse"> & {
+  /**
+   * @generated from field: flowserver.v1.ProjectSettings settings = 1;
+   */
+  settings?: ProjectSettings | undefined;
+};
+
+/**
+ * Describes the message flowserver.v1.GetProjectSettingsResponse.
+ * Use `create(GetProjectSettingsResponseSchema)` to create a new message.
+ */
+export const GetProjectSettingsResponseSchema: GenMessage<GetProjectSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_flowserver_v1_editor, 18);
+
+/**
+ * @generated from message flowserver.v1.UpdateProjectSettingsRequest
+ */
+export type UpdateProjectSettingsRequest = Message<"flowserver.v1.UpdateProjectSettingsRequest"> & {
+  /**
+   * @generated from field: flowserver.v1.ProjectSettings settings = 1;
+   */
+  settings?: ProjectSettings | undefined;
+};
+
+/**
+ * Describes the message flowserver.v1.UpdateProjectSettingsRequest.
+ * Use `create(UpdateProjectSettingsRequestSchema)` to create a new message.
+ */
+export const UpdateProjectSettingsRequestSchema: GenMessage<UpdateProjectSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_flowserver_v1_editor, 19);
+
+/**
+ * @generated from message flowserver.v1.UpdateProjectSettingsResponse
+ */
+export type UpdateProjectSettingsResponse = Message<"flowserver.v1.UpdateProjectSettingsResponse"> & {
+  /**
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+
+  /**
+   * @generated from field: repeated string errors = 2;
+   */
+  errors: string[];
+};
+
+/**
+ * Describes the message flowserver.v1.UpdateProjectSettingsResponse.
+ * Use `create(UpdateProjectSettingsResponseSchema)` to create a new message.
+ */
+export const UpdateProjectSettingsResponseSchema: GenMessage<UpdateProjectSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_flowserver_v1_editor, 20);
+
+/**
  * @generated from message flowserver.v1.StartRunRequest
  */
 export type StartRunRequest = Message<"flowserver.v1.StartRunRequest"> & {
+  /**
+   * Project-relative .blueprint path (converted to .js at runtime) for Script mode.
+   * Empty/unused in Server mode. Phase 15 addition.
+   *
+   * @generated from field: string target_file = 1;
+   */
+  targetFile: string;
 };
 
 /**
@@ -449,7 +560,7 @@ export type StartRunRequest = Message<"flowserver.v1.StartRunRequest"> & {
  * Use `create(StartRunRequestSchema)` to create a new message.
  */
 export const StartRunRequestSchema: GenMessage<StartRunRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 16);
+  messageDesc(file_flowserver_v1_editor, 21);
 
 /**
  * @generated from message flowserver.v1.RunStarted
@@ -466,7 +577,7 @@ export type RunStarted = Message<"flowserver.v1.RunStarted"> & {
  * Use `create(RunStartedSchema)` to create a new message.
  */
 export const RunStartedSchema: GenMessage<RunStarted> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 17);
+  messageDesc(file_flowserver_v1_editor, 22);
 
 /**
  * @generated from message flowserver.v1.RunValidationFailure
@@ -483,7 +594,7 @@ export type RunValidationFailure = Message<"flowserver.v1.RunValidationFailure">
  * Use `create(RunValidationFailureSchema)` to create a new message.
  */
 export const RunValidationFailureSchema: GenMessage<RunValidationFailure> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 18);
+  messageDesc(file_flowserver_v1_editor, 23);
 
 /**
  * run.routes.ts's POST /start has three distinct failure shapes today (422 invalid
@@ -524,7 +635,7 @@ export type StartRunResponse = Message<"flowserver.v1.StartRunResponse"> & {
  * Use `create(StartRunResponseSchema)` to create a new message.
  */
 export const StartRunResponseSchema: GenMessage<StartRunResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 19);
+  messageDesc(file_flowserver_v1_editor, 24);
 
 /**
  * @generated from message flowserver.v1.StopRunRequest
@@ -537,7 +648,7 @@ export type StopRunRequest = Message<"flowserver.v1.StopRunRequest"> & {
  * Use `create(StopRunRequestSchema)` to create a new message.
  */
 export const StopRunRequestSchema: GenMessage<StopRunRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 20);
+  messageDesc(file_flowserver_v1_editor, 25);
 
 /**
  * @generated from message flowserver.v1.StopRunResponse
@@ -554,7 +665,7 @@ export type StopRunResponse = Message<"flowserver.v1.StopRunResponse"> & {
  * Use `create(StopRunResponseSchema)` to create a new message.
  */
 export const StopRunResponseSchema: GenMessage<StopRunResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 21);
+  messageDesc(file_flowserver_v1_editor, 26);
 
 /**
  * @generated from message flowserver.v1.GetRunStatusRequest
@@ -567,7 +678,7 @@ export type GetRunStatusRequest = Message<"flowserver.v1.GetRunStatusRequest"> &
  * Use `create(GetRunStatusRequestSchema)` to create a new message.
  */
 export const GetRunStatusRequestSchema: GenMessage<GetRunStatusRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 22);
+  messageDesc(file_flowserver_v1_editor, 27);
 
 /**
  * @generated from message flowserver.v1.GetRunStatusResponse
@@ -584,7 +695,7 @@ export type GetRunStatusResponse = Message<"flowserver.v1.GetRunStatusResponse">
  * Use `create(GetRunStatusResponseSchema)` to create a new message.
  */
 export const GetRunStatusResponseSchema: GenMessage<GetRunStatusResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 23);
+  messageDesc(file_flowserver_v1_editor, 28);
 
 /**
  * @generated from message flowserver.v1.RunLogsRequest
@@ -597,7 +708,7 @@ export type RunLogsRequest = Message<"flowserver.v1.RunLogsRequest"> & {
  * Use `create(RunLogsRequestSchema)` to create a new message.
  */
 export const RunLogsRequestSchema: GenMessage<RunLogsRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 24);
+  messageDesc(file_flowserver_v1_editor, 29);
 
 /**
  * @generated from message flowserver.v1.ExitEvent
@@ -617,7 +728,7 @@ export type ExitEvent = Message<"flowserver.v1.ExitEvent"> & {
  * Use `create(ExitEventSchema)` to create a new message.
  */
 export const ExitEventSchema: GenMessage<ExitEvent> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 25);
+  messageDesc(file_flowserver_v1_editor, 30);
 
 /**
  * Mirrors run.routes.ts's SSE frames: either a buffered/live stdout+stderr line
@@ -650,7 +761,7 @@ export type RunLogsResponse = Message<"flowserver.v1.RunLogsResponse"> & {
  * Use `create(RunLogsResponseSchema)` to create a new message.
  */
 export const RunLogsResponseSchema: GenMessage<RunLogsResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 26);
+  messageDesc(file_flowserver_v1_editor, 31);
 
 /**
  * Mirrors file-tree.ts's FileTreeNode discriminated union (`type: "file" | "folder"`).
@@ -685,7 +796,7 @@ export type FileTreeNode = Message<"flowserver.v1.FileTreeNode"> & {
  * Use `create(FileTreeNodeSchema)` to create a new message.
  */
 export const FileTreeNodeSchema: GenMessage<FileTreeNode> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 27);
+  messageDesc(file_flowserver_v1_editor, 32);
 
 /**
  * @generated from enum flowserver.v1.FileTreeNode.Kind
@@ -711,7 +822,7 @@ export enum FileTreeNode_Kind {
  * Describes the enum flowserver.v1.FileTreeNode.Kind.
  */
 export const FileTreeNode_KindSchema: GenEnum<FileTreeNode_Kind> = /*@__PURE__*/
-  enumDesc(file_flowserver_v1_editor, 27, 0);
+  enumDesc(file_flowserver_v1_editor, 32, 0);
 
 /**
  * @generated from message flowserver.v1.ListFilesRequest
@@ -724,7 +835,7 @@ export type ListFilesRequest = Message<"flowserver.v1.ListFilesRequest"> & {
  * Use `create(ListFilesRequestSchema)` to create a new message.
  */
 export const ListFilesRequestSchema: GenMessage<ListFilesRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 28);
+  messageDesc(file_flowserver_v1_editor, 33);
 
 /**
  * @generated from message flowserver.v1.ListFilesResponse
@@ -741,7 +852,7 @@ export type ListFilesResponse = Message<"flowserver.v1.ListFilesResponse"> & {
  * Use `create(ListFilesResponseSchema)` to create a new message.
  */
 export const ListFilesResponseSchema: GenMessage<ListFilesResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 29);
+  messageDesc(file_flowserver_v1_editor, 34);
 
 /**
  * @generated from message flowserver.v1.CreateFolderRequest
@@ -758,7 +869,7 @@ export type CreateFolderRequest = Message<"flowserver.v1.CreateFolderRequest"> &
  * Use `create(CreateFolderRequestSchema)` to create a new message.
  */
 export const CreateFolderRequestSchema: GenMessage<CreateFolderRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 30);
+  messageDesc(file_flowserver_v1_editor, 35);
 
 /**
  * @generated from message flowserver.v1.CreateFolderResponse
@@ -780,7 +891,7 @@ export type CreateFolderResponse = Message<"flowserver.v1.CreateFolderResponse">
  * Use `create(CreateFolderResponseSchema)` to create a new message.
  */
 export const CreateFolderResponseSchema: GenMessage<CreateFolderResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 31);
+  messageDesc(file_flowserver_v1_editor, 36);
 
 /**
  * @generated from message flowserver.v1.CreateBlueprintRequest
@@ -799,7 +910,7 @@ export type CreateBlueprintRequest = Message<"flowserver.v1.CreateBlueprintReque
  * Use `create(CreateBlueprintRequestSchema)` to create a new message.
  */
 export const CreateBlueprintRequestSchema: GenMessage<CreateBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 32);
+  messageDesc(file_flowserver_v1_editor, 37);
 
 /**
  * @generated from message flowserver.v1.CreateBlueprintResponse
@@ -829,7 +940,7 @@ export type CreateBlueprintResponse = Message<"flowserver.v1.CreateBlueprintResp
  * Use `create(CreateBlueprintResponseSchema)` to create a new message.
  */
 export const CreateBlueprintResponseSchema: GenMessage<CreateBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 33);
+  messageDesc(file_flowserver_v1_editor, 38);
 
 /**
  * @generated from message flowserver.v1.GetBlueprintRequest
@@ -848,7 +959,7 @@ export type GetBlueprintRequest = Message<"flowserver.v1.GetBlueprintRequest"> &
  * Use `create(GetBlueprintRequestSchema)` to create a new message.
  */
 export const GetBlueprintRequestSchema: GenMessage<GetBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 34);
+  messageDesc(file_flowserver_v1_editor, 39);
 
 /**
  * @generated from message flowserver.v1.GetBlueprintResponse
@@ -865,7 +976,7 @@ export type GetBlueprintResponse = Message<"flowserver.v1.GetBlueprintResponse">
  * Use `create(GetBlueprintResponseSchema)` to create a new message.
  */
 export const GetBlueprintResponseSchema: GenMessage<GetBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 35);
+  messageDesc(file_flowserver_v1_editor, 40);
 
 /**
  * @generated from message flowserver.v1.SaveBlueprintRequest
@@ -887,7 +998,7 @@ export type SaveBlueprintRequest = Message<"flowserver.v1.SaveBlueprintRequest">
  * Use `create(SaveBlueprintRequestSchema)` to create a new message.
  */
 export const SaveBlueprintRequestSchema: GenMessage<SaveBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 36);
+  messageDesc(file_flowserver_v1_editor, 41);
 
 /**
  * @generated from message flowserver.v1.SaveBlueprintResponse
@@ -904,7 +1015,7 @@ export type SaveBlueprintResponse = Message<"flowserver.v1.SaveBlueprintResponse
  * Use `create(SaveBlueprintResponseSchema)` to create a new message.
  */
 export const SaveBlueprintResponseSchema: GenMessage<SaveBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 37);
+  messageDesc(file_flowserver_v1_editor, 42);
 
 /**
  * @generated from message flowserver.v1.RenamePathRequest
@@ -926,7 +1037,7 @@ export type RenamePathRequest = Message<"flowserver.v1.RenamePathRequest"> & {
  * Use `create(RenamePathRequestSchema)` to create a new message.
  */
 export const RenamePathRequestSchema: GenMessage<RenamePathRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 38);
+  messageDesc(file_flowserver_v1_editor, 43);
 
 /**
  * @generated from message flowserver.v1.RenamePathResponse
@@ -943,7 +1054,7 @@ export type RenamePathResponse = Message<"flowserver.v1.RenamePathResponse"> & {
  * Use `create(RenamePathResponseSchema)` to create a new message.
  */
 export const RenamePathResponseSchema: GenMessage<RenamePathResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 39);
+  messageDesc(file_flowserver_v1_editor, 44);
 
 /**
  * @generated from message flowserver.v1.DeletePathRequest
@@ -960,7 +1071,7 @@ export type DeletePathRequest = Message<"flowserver.v1.DeletePathRequest"> & {
  * Use `create(DeletePathRequestSchema)` to create a new message.
  */
 export const DeletePathRequestSchema: GenMessage<DeletePathRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 40);
+  messageDesc(file_flowserver_v1_editor, 45);
 
 /**
  * @generated from message flowserver.v1.DeletePathResponse
@@ -977,7 +1088,7 @@ export type DeletePathResponse = Message<"flowserver.v1.DeletePathResponse"> & {
  * Use `create(DeletePathResponseSchema)` to create a new message.
  */
 export const DeletePathResponseSchema: GenMessage<DeletePathResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 41);
+  messageDesc(file_flowserver_v1_editor, 46);
 
 /**
  * Mirrors packages/core/src/project/compile-project.ts's CompiledProjectFile.
@@ -1001,7 +1112,7 @@ export type CompiledProjectFile = Message<"flowserver.v1.CompiledProjectFile"> &
  * Use `create(CompiledProjectFileSchema)` to create a new message.
  */
 export const CompiledProjectFileSchema: GenMessage<CompiledProjectFile> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 42);
+  messageDesc(file_flowserver_v1_editor, 47);
 
 /**
  * @generated from message flowserver.v1.CompileProjectRequest
@@ -1014,7 +1125,7 @@ export type CompileProjectRequest = Message<"flowserver.v1.CompileProjectRequest
  * Use `create(CompileProjectRequestSchema)` to create a new message.
  */
 export const CompileProjectRequestSchema: GenMessage<CompileProjectRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 43);
+  messageDesc(file_flowserver_v1_editor, 48);
 
 /**
  * @generated from message flowserver.v1.CompileProjectResponse
@@ -1041,7 +1152,7 @@ export type CompileProjectResponse = Message<"flowserver.v1.CompileProjectRespon
  * Use `create(CompileProjectResponseSchema)` to create a new message.
  */
 export const CompileProjectResponseSchema: GenMessage<CompileProjectResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 44);
+  messageDesc(file_flowserver_v1_editor, 49);
 
 /**
  * Mirrors compile.routes.ts's POST /write response `files: [{ relativePath,
@@ -1067,7 +1178,7 @@ export type WrittenProjectFile = Message<"flowserver.v1.WrittenProjectFile"> & {
  * Use `create(WrittenProjectFileSchema)` to create a new message.
  */
 export const WrittenProjectFileSchema: GenMessage<WrittenProjectFile> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 45);
+  messageDesc(file_flowserver_v1_editor, 50);
 
 /**
  * @generated from message flowserver.v1.WriteCompiledProjectRequest
@@ -1080,7 +1191,7 @@ export type WriteCompiledProjectRequest = Message<"flowserver.v1.WriteCompiledPr
  * Use `create(WriteCompiledProjectRequestSchema)` to create a new message.
  */
 export const WriteCompiledProjectRequestSchema: GenMessage<WriteCompiledProjectRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 46);
+  messageDesc(file_flowserver_v1_editor, 51);
 
 /**
  * @generated from message flowserver.v1.WriteCompiledProjectResponse
@@ -1112,7 +1223,7 @@ export type WriteCompiledProjectResponse = Message<"flowserver.v1.WriteCompiledP
  * Use `create(WriteCompiledProjectResponseSchema)` to create a new message.
  */
 export const WriteCompiledProjectResponseSchema: GenMessage<WriteCompiledProjectResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 47);
+  messageDesc(file_flowserver_v1_editor, 52);
 
 /**
  * function-graph.routes.ts's FunctionGraphError shape: `{ message, blueprintNodeId }`.
@@ -1136,7 +1247,7 @@ export type FunctionGraphErrorDetail = Message<"flowserver.v1.FunctionGraphError
  * Use `create(FunctionGraphErrorDetailSchema)` to create a new message.
  */
 export const FunctionGraphErrorDetailSchema: GenMessage<FunctionGraphErrorDetail> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 48);
+  messageDesc(file_flowserver_v1_editor, 53);
 
 /**
  * @generated from message flowserver.v1.PreviewFunctionGraphRequest
@@ -1159,7 +1270,7 @@ export type PreviewFunctionGraphRequest = Message<"flowserver.v1.PreviewFunction
  * Use `create(PreviewFunctionGraphRequestSchema)` to create a new message.
  */
 export const PreviewFunctionGraphRequestSchema: GenMessage<PreviewFunctionGraphRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 49);
+  messageDesc(file_flowserver_v1_editor, 54);
 
 /**
  * Mirrors function-graph.routes.ts's always-200 `{ ok: true; body } | { ok: false;
@@ -1191,7 +1302,7 @@ export type PreviewFunctionGraphResponse = Message<"flowserver.v1.PreviewFunctio
  * Use `create(PreviewFunctionGraphResponseSchema)` to create a new message.
  */
 export const PreviewFunctionGraphResponseSchema: GenMessage<PreviewFunctionGraphResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 50);
+  messageDesc(file_flowserver_v1_editor, 55);
 
 /**
  * @generated from message flowserver.v1.InstallPluginRequest
@@ -1210,7 +1321,7 @@ export type InstallPluginRequest = Message<"flowserver.v1.InstallPluginRequest">
  * Use `create(InstallPluginRequestSchema)` to create a new message.
  */
 export const InstallPluginRequestSchema: GenMessage<InstallPluginRequest> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 51);
+  messageDesc(file_flowserver_v1_editor, 56);
 
 /**
  * Always returns 200/ok:false rather than a ConnectError on an expected failure (malformed
@@ -1251,14 +1362,14 @@ export type InstallPluginResponse = Message<"flowserver.v1.InstallPluginResponse
  * Use `create(InstallPluginResponseSchema)` to create a new message.
  */
 export const InstallPluginResponseSchema: GenMessage<InstallPluginResponse> = /*@__PURE__*/
-  messageDesc(file_flowserver_v1_editor, 52);
+  messageDesc(file_flowserver_v1_editor, 57);
 
 /**
  * EditorService mirrors editor-server's 21 REST endpoints
  * (packages/editor-server/src/routes/*.routes.ts) as gRPC-compatible RPCs, served over
  * Buf Connect. See docs/phase8-backend-grpc-flatbuffers-plan.md for the full migration
  * rationale.
- *
+ * 
  * Wherever a request/response currently carries a FlowServer `Flow` object
  * (nodes/edges/meta, packages/core/src/schema/node.types.ts), the field below is
  * `bytes flatbuffer_flow` — an opaque FlatBuffers-encoded `Flow` (see
@@ -1327,6 +1438,24 @@ export const EditorService: GenService<{
     methodKind: "unary";
     input: typeof WriteGeneratedCodeRequestSchema;
     output: typeof WriteGeneratedCodeResponseSchema;
+  },
+  /**
+   * POST /api/settings (Phase 15 — project settings)
+   *
+   * @generated from rpc flowserver.v1.EditorService.GetProjectSettings
+   */
+  getProjectSettings: {
+    methodKind: "unary";
+    input: typeof GetProjectSettingsRequestSchema;
+    output: typeof GetProjectSettingsResponseSchema;
+  },
+  /**
+   * @generated from rpc flowserver.v1.EditorService.UpdateProjectSettings
+   */
+  updateProjectSettings: {
+    methodKind: "unary";
+    input: typeof UpdateProjectSettingsRequestSchema;
+    output: typeof UpdateProjectSettingsResponseSchema;
   },
   /**
    * POST /api/run/start

@@ -14,6 +14,7 @@ import {
   findEntryFile,
   nodeModulesInstalled,
 } from "../codegen-helpers.js";
+import { readProjectSettings } from "../project-settings.js";
 import { serverRunner } from "../runner.js";
 
 /**
@@ -63,18 +64,51 @@ export function registerRunRoutes(router: ConnectRouter, config: AppConfig): Con
    * (structured errors), 400 (no/multiple entry file) and 409 (deps not installed) ->
    * the generic `error` string variant, success -> `started`.
    */
-  async function startRun() {
+  async function startRun(req: { targetFile?: string }) {
+    const settings = await readProjectSettings(config.projectDir);
     const { sourceFiles, result } = await compileProjectFromDisk(config.projectDir);
     if (!result.valid) {
       return { result: { case: "validationFailure" as const, value: { errors: result.errors.map(toProtoValidationError) } } };
     }
 
-    const entry = findEntryFile(sourceFiles);
-    if ("error" in entry) {
-      return { result: { case: "error" as const, value: entry.error } };
+    let entryOutputPath: string;
+
+    if (settings.mode === "script") {
+      const targetFile = req.targetFile || "";
+      if (!targetFile) {
+        return { result: { case: "error" as const, value: "No file selected — open a file in the editor first." } };
+      }
+
+      const outputPath = targetFile.replace(/\.blueprint$/, ".js");
+      const targetOutput = result.files.find((f) => f.relativePath === outputPath);
+      if (!targetOutput) {
+        return { result: { case: "error" as const, value: `File not found in compiled output: "${outputPath}"` } };
+      }
+      entryOutputPath = targetOutput.relativePath;
+    } else {
+      let entry;
+      if (settings.entryFile) {
+        const entrySource = sourceFiles.find((f) => f.relativePath === settings.entryFile);
+        if (!entrySource || !entrySource.flow.nodes.some((n) => n.type === "express.listen")) {
+          return {
+            result: {
+              case: "error" as const,
+              value: `Configured entry file "${settings.entryFile}" is missing or has no "express.listen" node.`,
+            },
+          };
+        }
+        entry = entrySource;
+      } else {
+        const findResult = findEntryFile(sourceFiles);
+        if ("error" in findResult) {
+          return { result: { case: "error" as const, value: findResult.error } };
+        }
+        entry = findResult;
+      }
+
+      const entryIndex = sourceFiles.indexOf(entry);
+      entryOutputPath = result.files[entryIndex].relativePath;
     }
-    const entryIndex = sourceFiles.indexOf(entry);
-    const entryOutputPath = result.files[entryIndex].relativePath;
 
     for (const file of result.files) {
       await writeGeneratedFile(path.join(config.projectDir, file.relativePath), file.code);

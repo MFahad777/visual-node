@@ -8,6 +8,7 @@ import { registerRunRoutes } from "./connect/run.service.js";
 import { registerFilesRoutes } from "./connect/files.service.js";
 import { registerCompileFunctionGraphRoutes } from "./connect/compile-function-graph.service.js";
 import { registerPluginsRoutes } from "./connect/plugins.service.js";
+import { registerSettingsRoutes } from "./connect/settings.service.js";
 import { serveStatic } from "./static.js";
 
 export function buildApp(config: AppConfig): Express {
@@ -37,6 +38,7 @@ export function buildApp(config: AppConfig): Express {
       routes: (router) => {
         registerNodeRegistryFlowRoutes(router, config);
         registerValidateGenerateRoutes(router, config);
+        registerSettingsRoutes(router, config);
         registerRunRoutes(router, config);
         registerFilesRoutes(router, config);
         registerCompileFunctionGraphRoutes(router, config);

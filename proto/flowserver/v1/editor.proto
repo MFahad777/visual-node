@@ -31,6 +31,10 @@ service EditorService {
   // POST /api/generate/write (confirm + persist)
   rpc WriteGeneratedCode(WriteGeneratedCodeRequest) returns (WriteGeneratedCodeResponse);
 
+  // POST /api/settings (Phase 15 — project settings)
+  rpc GetProjectSettings(GetProjectSettingsRequest) returns (GetProjectSettingsResponse);
+  rpc UpdateProjectSettings(UpdateProjectSettingsRequest) returns (UpdateProjectSettingsResponse);
+
   // POST /api/run/start
   rpc StartRun(StartRunRequest) returns (StartRunResponse);
   // POST /api/run/stop
@@ -136,6 +140,7 @@ message GetNodeRegistryRequest {
 
 message GetNodeRegistryResponse {
   repeated NodeDefinition definitions = 1;
+  string project_dir = 2;  // Absolute path to the project directory (Phase 15)
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +211,35 @@ message WriteGeneratedCodeResponse {
 // StartRun / StopRun / GetRunStatus / RunLogs
 // ---------------------------------------------------------------------------
 
-message StartRunRequest {}
+message ProjectSettings {
+  // "server" or "script" — controls whether Run button scans for express.listen
+  // (Server) or runs the currently-open file (Script).
+  string mode = 1;
+  // Project-relative .blueprint path for Server mode entry point (e.g. "server.blueprint").
+  // Empty = use auto-detect (findEntryFile scan). Ignored in Script mode.
+  string entry_file = 2;
+}
+
+message GetProjectSettingsRequest {}
+
+message GetProjectSettingsResponse {
+  ProjectSettings settings = 1;
+}
+
+message UpdateProjectSettingsRequest {
+  ProjectSettings settings = 1;
+}
+
+message UpdateProjectSettingsResponse {
+  bool ok = 1;
+  repeated string errors = 2;
+}
+
+message StartRunRequest {
+  // Project-relative .blueprint path (converted to .js at runtime) for Script mode.
+  // Empty/unused in Server mode. Phase 15 addition.
+  string target_file = 1;
+}
 
 message RunStarted {
   bool running = 1;

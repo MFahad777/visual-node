@@ -43,6 +43,11 @@ export interface WrittenFile {
   outputPath: string;
 }
 
+export interface ProjectSettings {
+  mode: "server" | "script";
+  entryFile?: string;
+}
+
 // ---- response-reshaping helpers (proto message -> legacy plain-object shape) ----
 
 /** ValidationError (proto) -> core's ValidationError (used by ValidateFlow/GenerateCode/WriteGeneratedCode, which never carry a `relativePath`). */
@@ -121,9 +126,17 @@ function fromProtoFileTreeNode(n: ProtoFileTreeNode): FileTreeNode {
   return { type: "file", name: n.name, relativePath: n.relativePath };
 }
 
-export async function fetchNodeRegistry(scope?: string): Promise<NodeDefinition[]> {
+export interface NodeRegistryResult {
+  definitions: NodeDefinition[];
+  projectDir: string;
+}
+
+export async function fetchNodeRegistry(scope?: string): Promise<NodeRegistryResult> {
   const res = await client.getNodeRegistry({ scope: scope ?? "" });
-  return res.definitions.map(fromProtoNodeDefinition) as unknown as NodeDefinition[];
+  return {
+    definitions: res.definitions.map(fromProtoNodeDefinition) as unknown as NodeDefinition[],
+    projectDir: res.projectDir,
+  };
 }
 
 export async function fetchFlow(): Promise<Flow | null> {
@@ -173,8 +186,26 @@ export type StartServerResult =
  * not a lone in-memory flow. Takes no `flow` argument for that reason: it always reflects
  * what's saved to disk, matching how Compile already behaves.
  */
-export async function startServer(): Promise<StartServerResult> {
-  const res = await client.startRun({});
+export async function getProjectSettings(): Promise<ProjectSettings> {
+  const res = await client.getProjectSettings({});
+  return {
+    mode: res.settings?.mode as "server" | "script",
+    entryFile: res.settings?.entryFile || undefined,
+  };
+}
+
+export async function updateProjectSettings(settings: ProjectSettings): Promise<{ ok: boolean; errors: string[] }> {
+  const res = await client.updateProjectSettings({
+    settings: {
+      mode: settings.mode,
+      entryFile: settings.entryFile || "",
+    },
+  });
+  return { ok: res.ok, errors: res.errors };
+}
+
+export async function startServer(targetFile?: string): Promise<StartServerResult> {
+  const res = await client.startRun({ targetFile: targetFile || "" });
   switch (res.result.case) {
     case "started":
       return { running: true };

@@ -160,8 +160,8 @@ function FunctionGraphModalContent({
   );
   useEffect(() => {
     let cancelled = false;
-    api.fetchNodeRegistry("function-graph").then((defs) => {
-      if (!cancelled) setFunctionGraphDefinitions(Object.fromEntries(defs.map((d) => [d.type, d])));
+    api.fetchNodeRegistry("function-graph").then((result) => {
+      if (!cancelled) setFunctionGraphDefinitions(Object.fromEntries(result.definitions.map((d) => [d.type, d])));
     });
     return () => {
       cancelled = true;

@@ -99,8 +99,8 @@ export function FunctionGraphNodePicker({
 
   useEffect(() => {
     let cancelled = false;
-    api.fetchNodeRegistry("function-graph").then((defs) => {
-      if (!cancelled) setDefinitions(defs);
+    api.fetchNodeRegistry("function-graph").then((result) => {
+      if (!cancelled) setDefinitions(result.definitions);
     });
     return () => {
       cancelled = true;

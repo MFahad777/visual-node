@@ -12,7 +12,7 @@ import {
 } from "@xyflow/react";
 import type { Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
 import * as api from "../api/client.js";
-import type { CompiledFile, ProjectFileError, WrittenFile } from "../api/client.js";
+import type { CompiledFile, ProjectFileError, WrittenFile, ProjectSettings } from "../api/client.js";
 import { flowToGraph, graphToFlow } from "./adapters.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import {
@@ -133,6 +133,10 @@ export interface FlowStoreState {
   isStoppingServer: boolean;
   serverLogs: string[];
 
+  projectSettings: ProjectSettings | null;
+  isSettingsOpen: boolean;
+  projectDir: string | null;
+
   bootstrap: () => Promise<void>;
   openFile: (path: string) => Promise<void>;
 
@@ -182,6 +186,11 @@ export interface FlowStoreState {
   startServer: () => Promise<boolean>;
   stopServer: () => Promise<void>;
 
+  loadProjectSettings: () => Promise<void>;
+  saveProjectSettings: (settings: ProjectSettings) => Promise<string[]>;
+  openSettings: () => void;
+  closeSettings: () => void;
+
   installPlugin: (bytes: Uint8Array) => Promise<boolean>;
 }
 
@@ -189,9 +198,9 @@ export interface FlowStoreState {
  * registry and reindex it by type. Factored out so a freshly installed plugin node can be
  * made visible immediately without duplicating this fetch-and-set logic. */
 async function refreshNodeRegistry(set: (partial: Partial<FlowStoreState>) => void): Promise<void> {
-  const definitions = await api.fetchNodeRegistry();
-  const nodeDefinitions = Object.fromEntries(definitions.map((d) => [d.type, d]));
-  set({ nodeDefinitions });
+  const result = await api.fetchNodeRegistry();
+  const nodeDefinitions = Object.fromEntries(result.definitions.map((d) => [d.type, d]));
+  set({ nodeDefinitions, projectDir: result.projectDir });
 }
 
 const MAX_CLIENT_LOG_LINES = 500;
@@ -243,10 +252,15 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   isStoppingServer: false,
   serverLogs: [],
 
+  projectSettings: null,
+  isSettingsOpen: false,
+  projectDir: null,
+
   bootstrap: async () => {
     set({ isLoading: true, lastError: null });
     try {
       await refreshNodeRegistry(set);
+      await get().loadProjectSettings();
       set({ isLoading: false });
     } catch (err) {
       set({ isLoading: false, lastError: (err as Error).message });
@@ -635,14 +649,21 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   closeFunctionGraph: () => set({ openFunctionGraphNodeId: null }),
 
   startServer: async () => {
+    const { projectSettings, currentFilePath } = get();
     if (selectIsCompileStale(get())) {
       set({ lastError: "Project files changed since last compile — click Compile again before running." });
       return false;
     }
 
+    if (projectSettings?.mode === "script" && !currentFilePath) {
+      set({ lastError: "No file selected — open a file in the editor first." });
+      return false;
+    }
+
     set({ isStartingServer: true, lastError: null, serverLogs: [] });
     try {
-      const result = await api.startServer();
+      const targetFile = projectSettings?.mode === "script" ? currentFilePath || undefined : undefined;
+      const result = await api.startServer(targetFile);
 
       if ("running" in result) {
         closeLogStream?.();
@@ -682,6 +703,33 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
       set({ isStoppingServer: false, lastError: (err as Error).message });
     }
   },
+
+  loadProjectSettings: async () => {
+    try {
+      const settings = await api.getProjectSettings();
+      set({ projectSettings: settings });
+    } catch (err) {
+      set({ lastError: (err as Error).message });
+    }
+  },
+
+  saveProjectSettings: async (settings) => {
+    try {
+      const result = await api.updateProjectSettings(settings);
+      if (result.ok) {
+        set({ projectSettings: settings, isSettingsOpen: false });
+        return [];
+      }
+      return result.errors;
+    } catch (err) {
+      const message = (err as Error).message;
+      set({ lastError: message });
+      return [message];
+    }
+  },
+
+  openSettings: () => set({ isSettingsOpen: true }),
+  closeSettings: () => set({ isSettingsOpen: false }),
 
   installPlugin: async (bytes) => {
     set({ lastError: null });

@@ -7,6 +7,7 @@ import { CodePreviewModal } from "./components/CodePreviewModal.js";
 import { CodeExpandModal } from "./components/CodeExpandModal.js";
 import { FunctionGraphModal } from "./components/FunctionGraphModal.js";
 import { NodeBrowserModal } from "./components/NodeBrowserModal.js";
+import { SettingsModal } from "./components/SettingsModal.js";
 import { ServerLogPanel } from "./components/ServerLogPanel.js";
 import { ErrorLogPanel } from "./components/ErrorLogPanel.js";
 import { FlowCanvas } from "./canvas/FlowCanvas.js";
@@ -48,6 +49,7 @@ export function App() {
       <CodeExpandModal />
       <FunctionGraphModal />
       <NodeBrowserModal />
+      <SettingsModal />
     </div>
   );
 }
