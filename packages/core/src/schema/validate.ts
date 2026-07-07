@@ -1,5 +1,5 @@
 import type { Flow, FlowEdge, FlowNode, VariableDeclaration } from "./node.types.js";
-import { getNodeDefinition, requireNodeDefinition, type NodeDefinition } from "./node-registry.js";
+import { getNodeDefinition, requireNodeDefinition, type LoopShape, type NodeDefinition } from "./node-registry.js";
 import { CycleError, topologicalSort } from "../codegen/topo-sort.js";
 import { execEntryPort, getForkArmPinIds } from "../codegen/exec-chain.js";
 import { validateVariableDeclaration } from "../codegen/variable-declarations.js";
@@ -612,8 +612,11 @@ function validateExecOutputArity(
     const def = requireNodeDefinition(node.type);
     if (STRUCTURAL_CATEGORIES.has(def.category)) continue;
     const forkPins = getForkArmPinIds(node);
-    const singleOutHandle = forkPins ? undefined : execOutputHandle(def);
-    const execPinIds = forkPins ?? (singleOutHandle !== undefined ? [singleOutHandle] : []);
+    // A loop node has TWO exec-output pins (bodyPin, completedPin) — `execOutputHandle`
+    // would only ever find the first-declared one, leaving the other unchecked.
+    const loopPins = def.loopShape ? [def.loopShape.bodyPin, def.loopShape.completedPin] : undefined;
+    const singleOutHandle = forkPins || loopPins ? undefined : execOutputHandle(def);
+    const execPinIds = forkPins ?? loopPins ?? (singleOutHandle !== undefined ? [singleOutHandle] : []);
 
     for (const pinId of execPinIds) {
       const matching = edges.filter(
@@ -722,6 +725,28 @@ function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[], seedIds?: str
       continue;
     }
 
+    // Loop-container array nodes (map/filter/reduce/etc.) differ from Branch/Switch/Sequence:
+    // `bodyPin`'s target is a nested arm (repeats per element, like a fork arm), but
+    // `completedPin`'s target continues in the SAME scope as the loop node itself — after the
+    // assembled `.map()`/`.reduce()` statement, execution just continues in the enclosing
+    // block, it doesn't open a fresh one the way a Branch/Switch arm does. Reusing
+    // `getForkArmPinIds`'s "nested-only" semantics for `completedPin` would wrongly let
+    // `checkBeginReachableConstOverwrite` treat it as "safely inside its own block."
+    const loopShape: LoopShape | undefined = defs.get(next.id)!.loopShape;
+    if (loopShape) {
+      for (const e of edges) {
+        if (e.source === next.id && e.sourceHandle === loopShape.bodyPin) {
+          queue.push({ id: e.target, path: [...next.path, `${next.id}.${loopShape.bodyPin}`] });
+        }
+      }
+      for (const e of edges) {
+        if (e.source === next.id && e.sourceHandle === loopShape.completedPin) {
+          queue.push({ id: e.target, path: next.path });
+        }
+      }
+      continue;
+    }
+
     const def = defs.get(next.id)!;
     const outHandle = execOutputHandle(def);
     if (outHandle === undefined) continue;
@@ -751,6 +776,23 @@ function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[], seedIds?: str
  * reachable, while a value that only exists inside one arm still can't leak into a sibling arm
  * or the trunk.
  */
+/**
+ * A loop node's own context pins (element/index/arrayRef/accumulator) are only valid INSIDE
+ * its own loop body — unlike Branch/Switch, which own no arm-scoped value pins themselves, a
+ * loop node's `armPathOf`/`resolveArmPath` entry is its pre-loop (trunk) path, not the nested
+ * body arm. Given an edge's source node id/handle and that source's own resolved `basePath`,
+ * returns the effective path a READER of this specific pin should be checked against — the
+ * nested body-arm path for a context-pin handle, or `null` for every other handle (meaning:
+ * use `basePath` unchanged). Shared by `resolveArmPath` (so a pure value node fed from a
+ * context pin inherits the nested path too) and `checkCrossArmValueReferences` (so a DIRECT
+ * reader of the pin is checked against it) — both need the identical rule or they'd disagree.
+ */
+function loopContextArmPath(sourceId: string, sourceHandle: string | undefined, sourceDef: NodeDefinition, basePath: string[]): string[] | null {
+  const loop = sourceDef.loopShape;
+  if (!loop || !loop.contextPinIds.includes(sourceHandle ?? "")) return null;
+  return [...basePath, `${sourceId}.${loop.bodyPin}`];
+}
+
 function resolveArmPath(
   nodeId: string,
   nodesById: Map<string, FlowNode>,
@@ -774,7 +816,11 @@ function resolveArmPath(
 
   let best: string[] = [];
   for (const dep of valueDeps) {
-    const depPath = resolveArmPath(dep.source, nodesById, edges, armPathOf, memo, inProgress);
+    const depSourceNode = nodesById.get(dep.source);
+    const depBase = resolveArmPath(dep.source, nodesById, edges, armPathOf, memo, inProgress);
+    const depPath = depSourceNode
+      ? (loopContextArmPath(dep.source, dep.sourceHandle, requireNodeDefinition(depSourceNode.type), depBase) ?? depBase)
+      : depBase;
     if (isPrefixOf(best, depPath)) {
       best = depPath;
     }
@@ -828,7 +874,10 @@ function checkCrossArmValueReferences(
       const targetDef = requireNodeDefinition(targetNode.type);
       if (isExecInputHandle(targetDef, edge.targetHandle)) continue; // structural edge, not a value read
 
-      const sourcePath = resolve(edge.source);
+      // See `loopContextArmPath`'s doc comment: a loop node's context pins (element/index/
+      // arrayRef/accumulator) resolve to its nested body-arm path, not its own (trunk) path.
+      const sourceBase = resolve(edge.source);
+      const sourcePath = loopContextArmPath(edge.source, edge.sourceHandle, requireNodeDefinition(sourceNode.type), sourceBase) ?? sourceBase;
       const targetPath = resolve(edge.target);
       if (isPrefixOf(sourcePath, targetPath)) continue;
 

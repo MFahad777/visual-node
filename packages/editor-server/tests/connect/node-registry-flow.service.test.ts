@@ -39,11 +39,15 @@ const sampleFlow: Flow = {
 };
 
 describe("GetNodeRegistry (Connect)", () => {
-  it("returns the same 34 built-ins as GET /api/node-registry, without emit, with defaults preserved", async () => {
+  it("returns the same 50 built-ins as GET /api/node-registry, without emit, with defaults preserved", async () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({});
 
-    expect(res.definitions).toHaveLength(34);
+    // 51, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
+    // this phase — wired inside a loop node's "Loop Body" arm to produce that iteration's
+    // return value (see FUNCTION_GRAPH_ONLY_TYPES's doc comment in
+    // nodes/function-graph-nodes.ts). Only `logic.graphEntry` remains function-graph-only.
+    expect(res.definitions).toHaveLength(51);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
@@ -51,13 +55,18 @@ describe("GetNodeRegistry (Connect)", () => {
         "express.listen",
         "handler.customCode",
         "logic.function",
+        "logic.graphReturn",
         "controlFlow.branch",
         "controlFlow.switch",
         "variable.get",
         "variable.set",
         "logic.begin",
+        "array.map",
+        "array.push",
       ]),
     );
+
+    expect(types).not.toContain("logic.graphEntry");
 
     // No `emit`/`resultIdentifier` function fields survive onto the wire type at all
     // (they're not part of the proto message), and a numeric ConfigField default
@@ -74,10 +83,17 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({ scope: "function-graph" });
 
-    expect(res.definitions).toHaveLength(26);
+    expect(res.definitions).toHaveLength(42);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
-      expect.arrayContaining(["logic.graphEntry", "logic.graphReturn", "controlFlow.branch", "variable.get", "variable.set"]),
+      expect.arrayContaining([
+        "logic.graphEntry",
+        "logic.graphReturn",
+        "controlFlow.branch",
+        "variable.get",
+        "variable.set",
+        "array.map",
+      ]),
     );
     expect(types).not.toContain("express.init");
   });

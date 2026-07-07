@@ -36,6 +36,21 @@ import { controlFlowSequenceNode } from "./control-flow/sequence.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
 import { beginNode } from "./logic/begin.node.js";
+import { arrayMapNode } from "./array/map.node.js";
+import { arrayFilterNode } from "./array/filter.node.js";
+import { arrayForEachNode } from "./array/for-each.node.js";
+import { arrayFlatMapNode } from "./array/flat-map.node.js";
+import { arrayFindNode } from "./array/find.node.js";
+import { arrayFindIndexNode } from "./array/find-index.node.js";
+import { arrayEveryNode } from "./array/every.node.js";
+import { arraySomeNode } from "./array/some.node.js";
+import { arrayReduceNode } from "./array/reduce.node.js";
+import { arrayPushNode } from "./array/push.node.js";
+import { arrayPopNode } from "./array/pop.node.js";
+import { arrayUnshiftNode } from "./array/unshift.node.js";
+import { arrayShiftNode } from "./array/shift.node.js";
+import { arrayIncludesNode } from "./array/includes.node.js";
+import { arrayIndexOfNode } from "./array/index-of.node.js";
 
 const BUILTIN_NODES = [
   expressInitNode,
@@ -86,6 +101,24 @@ const BUILTIN_NODES = [
   // below since a Function's nested blueprint graph already has its own entry concept
   // (logic.graphEntry) — see docs/phase11-begin-node-plan.md.
   beginNode,
+  // Phase 17: array operation nodes — usable on both the main canvas and inside Function
+  // Graphs (see FUNCTION_GRAPH_NODE_DEFINITIONS below), same "full parity" treatment as
+  // operators/control-flow.
+  arrayMapNode,
+  arrayFilterNode,
+  arrayForEachNode,
+  arrayFlatMapNode,
+  arrayFindNode,
+  arrayFindIndexNode,
+  arrayEveryNode,
+  arraySomeNode,
+  arrayReduceNode,
+  arrayPushNode,
+  arrayPopNode,
+  arrayUnshiftNode,
+  arrayShiftNode,
+  arrayIncludesNode,
+  arrayIndexOfNode,
 ];
 
 /** Registers all built-in MVP node definitions. Safe to call more than once (e.g. after clearRegistry()). */
@@ -131,4 +164,19 @@ export {
   variableGetNode,
   variableSetNode,
   beginNode,
+  arrayMapNode,
+  arrayFilterNode,
+  arrayForEachNode,
+  arrayFlatMapNode,
+  arrayFindNode,
+  arrayFindIndexNode,
+  arrayEveryNode,
+  arraySomeNode,
+  arrayReduceNode,
+  arrayPushNode,
+  arrayPopNode,
+  arrayUnshiftNode,
+  arrayShiftNode,
+  arrayIncludesNode,
+  arrayIndexOfNode,
 };

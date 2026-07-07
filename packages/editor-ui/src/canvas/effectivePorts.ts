@@ -62,12 +62,22 @@ const BOOLEAN_LITERAL_TYPES = new Set([
 // `variable.set`).
 // `operators.equal`/`operators.notEqual` (Phase 13) join this group too — `===`/`!==` are
 // meaningful across every JS type, unlike the arithmetic/ordering ops which stay numeric-only.
+// `array.push`/`array.unshift`'s "Value" and `array.includes`/`array.indexOf`'s "Search
+// Element" (Phase 17) also join this group — any JS type, free-form raw JS text — but unlike
+// `variable.set`/`logic.graphReturn` (which have exactly one non-exec input pin, so the
+// generic `staticLiteralPinIds` fallback naturally targets only it), these 4 types have a
+// second non-exec pin ("array") that must NOT get inline literal editing (it should always be
+// wired to a real array), so `staticLiteralPinIds` below special-cases them explicitly.
 const TEXT_LITERAL_TYPES = new Set([
   "controlFlow.switch",
   "variable.set",
   "logic.graphReturn",
   "operators.equal",
   "operators.notEqual",
+  "array.push",
+  "array.unshift",
+  "array.includes",
+  "array.indexOf",
 ]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {
@@ -78,10 +88,22 @@ export function literalKindFor(type: string | undefined): "number" | "boolean" |
   return null;
 }
 
-/** The value input pin ids on a freshly-created (no dynamic pins yet) instance of `type`. */
-function staticLiteralPinIds(type: string, definition: NodeDefinition): string[] {
+/**
+ * The value input pin ids on a freshly-created (no dynamic pins yet) instance of `type` that
+ * get inline literal editing. Exported (not just used by `defaultLiteralsFor` below) so
+ * `GenericNode.tsx` can gate its per-port literal box on this same list — needed since Phase
+ * 17's `array.push`/`array.unshift`/`array.includes`/`array.indexOf` are the first
+ * `TEXT_LITERAL_TYPES` entries with a SECOND non-exec input pin ("array") that must never get
+ * inline literal editing (it should always be wired to a real array). Every pre-existing
+ * `TEXT_LITERAL_TYPES`/`NUMBER_LITERAL_TYPES`/`BOOLEAN_LITERAL_TYPES` type either has exactly
+ * one non-exec input pin, or (operators) wants literal editing on all of them — both already
+ * match this function's generic fallback, so gating on it changes no existing type's behavior.
+ */
+export function staticLiteralPinIds(type: string, definition: NodeDefinition): string[] {
   if (type === "controlFlow.switch") return ["selection"];
   if (type === "controlFlow.branch") return ["condition"];
+  if (type === "array.push" || type === "array.unshift") return ["value"];
+  if (type === "array.includes" || type === "array.indexOf") return ["searchElement"];
   return definition.inputs.filter((p) => p.kind !== "exec").map((p) => p.id);
 }
 

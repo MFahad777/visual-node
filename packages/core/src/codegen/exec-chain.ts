@@ -1,6 +1,17 @@
 import type { FlowEdge, FlowNode } from "../schema/node.types.js";
-import { requireNodeDefinition, type EmitContext, type NodeDefinition, type PortDefinition } from "../schema/node-registry.js";
+import { requireNodeDefinition, type EmitContext, type LoopShape, type NodeDefinition, type PortDefinition } from "../schema/node-registry.js";
 import { resolveValuePin } from "./value-pins.js";
+
+/**
+ * Deliberately duplicated from `emit-function-graph.ts`'s identical helper rather than
+ * imported — that module imports `emitExecChain`/`hoistValueDepsCore` FROM this file, so a
+ * reverse import here would be circular. Same rationale `validate.ts`'s
+ * `isExecPredecessorEdge` duplication already documents.
+ */
+function sanitizeIdentifier(id: string): string {
+  const cleaned = id.replace(/[^A-Za-z0-9_$]/g, "_");
+  return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
+}
 
 interface ForkArm {
   pinId: string;
@@ -109,6 +120,32 @@ function assembleSequence(arms: ForkArm[]): string {
     .filter((a) => a.wired)
     .map((a) => `{\n${indent(a.code)}\n}`)
     .join("\n");
+}
+
+/**
+ * Assembles the real `.map()`/`.filter()`/`.reduce()`/etc. call for a loop node whose
+ * `bodyPin` is actually wired — `bodyCode` is the already-compiled nested scope (see the
+ * `loop` branch in `emitBlock` below). Callback parameters use per-node-unique identifiers
+ * (`_item_<id>`/`_index_<id>`/`_array_<id>`, plus `_acc_<id>` for reduce) rather than bare
+ * `item`/`index`/`array` so a loop wired inside another loop's body never shadows its
+ * parent's context variables — `resultIdentifierFor` resolves a downstream read of this
+ * node's `element`/`index`/`arrayRef`/`accumulator` pin to these exact same names (see
+ * `array-loop.factory.ts`/`reduce.node.ts`'s handle-aware `resultIdentifier`). The node's own
+ * JS method name is derived from `node.type` (`"array.map"` -&gt; `"map"`) rather than stored
+ * separately, since every loop-container type is literally `"array.&lt;method&gt;"`.
+ */
+function assembleWiredLoopCall(node: FlowNode, ctx: EmitContext, loop: LoopShape, def: NodeDefinition, bodyCode: string): string {
+  const id = sanitizeIdentifier(node.id);
+  const method = node.type.slice("array.".length);
+  const arrayExpr = resolveValuePin(node, ctx, "array", { defaultLiteral: "[]" });
+  const isReduce = loop.contextPinIds.includes("accumulator");
+  const producesResult = def.outputs.some((p) => p.id === "result");
+
+  const params = isReduce ? [`_acc_${id}`, `_item_${id}`, `_index_${id}`, `_array_${id}`] : [`_item_${id}`, `_index_${id}`, `_array_${id}`];
+  const initialValueSuffix = isReduce ? `, ${String((node.data as Record<string, unknown> | undefined)?.initialValue ?? "0")}` : "";
+  const call = `${arrayExpr}.${method}((${params.join(", ")}) => {\n${bodyCode}\n}${initialValueSuffix})`;
+
+  return producesResult ? `const _arr_${id} = ${call};` : `${call};`;
 }
 
 /**
@@ -276,6 +313,32 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
             : assembleSequence(arms); // controlFlow.sequence
       statements.push(assembled);
       return { code: statements.join("\n"), emitted, requiresAsync, imports }; // fork nodes are always block-terminal
+    }
+
+    const def = requireNodeDefinition(node.type);
+    const loop = def.loopShape;
+    if (loop) {
+      const bodyEdge = ctx.getOutgoing(currentId, loop.bodyPin)[0];
+      if (bodyEdge) {
+        // Wired loop body: compile it as a nested scope (same "fresh emitted copy" isolation
+        // as a fork arm) and assemble the real `.map()`/`.filter()`/etc. call around it,
+        // ignoring the node's own unwired-fallback `emit()` (raw callback-text mode) entirely.
+        const sub = emitBlock(bodyEdge.target, ctx, emitted);
+        if (sub.requiresAsync) requiresAsync = true;
+        imports.push(...sub.imports);
+        statements.push(assembleWiredLoopCall(node, ctx, loop, def, sub.code));
+      } else {
+        // Unwired: fall back to the node's own callback-text `emit()`, unchanged from before
+        // loop-body wiring existed — every pre-existing flow keeps compiling byte-identically.
+        const emittedCode = ctx.emitNode(currentId);
+        if (emittedCode.body) statements.push(emittedCode.body);
+        if (emittedCode.imports) imports.push(...emittedCode.imports);
+      }
+      // Unlike a fork's arms, `completedPin` continues in THIS SAME scope (not block-terminal)
+      // — the assembled statement above sits in the enclosing block just like any other
+      // statement, so the trunk walk simply resumes from here.
+      currentId = ctx.getOutgoing(currentId, loop.completedPin)[0]?.target;
+      continue;
     }
 
     const emittedCode = ctx.emitNode(currentId);

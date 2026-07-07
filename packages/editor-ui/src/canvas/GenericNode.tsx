@@ -6,8 +6,21 @@ import { useFunctionGraphEdgeContext } from "./functionGraphEdgeContext.js";
 import { CATEGORY_THEME } from "./categoryTheme.js";
 import { CategoryIcon } from "./CategoryIcon.js";
 import { getVariableTypeColor } from "./variableTypeTheme.js";
-import { computeEffectiveInputs, computeEffectiveOutputs, literalKindFor, VARIADIC_BOOLEAN_TYPES } from "./effectivePorts.js";
+import {
+  computeEffectiveInputs,
+  computeEffectiveOutputs,
+  literalKindFor,
+  staticLiteralPinIds,
+  VARIADIC_BOOLEAN_TYPES,
+} from "./effectivePorts.js";
 import { isExecPort } from "./execPorts.js";
+
+
+function literalPreview(data: Record<string, unknown>, pinId: string): string {
+  const literals = data.literals as Record<string, unknown> | undefined;
+  const literal = literals?.[pinId];
+  return typeof literal === "string" ? literal : "";
+}
 
 function summarize(type: string, data: Record<string, unknown>, variables: VariableDeclaration[]): string | null {
   switch (type) {
@@ -58,6 +71,44 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
       return data.strict === false ? "==" : "===";
     case "operators.notEqual":
       return data.strict === false ? "!=" : "!==";
+    case "array.map":
+      return "map(...)";
+    case "array.filter":
+      return "filter(...)";
+    case "array.forEach":
+      return "forEach(...)";
+    case "array.flatMap":
+      return "flatMap(...)";
+    case "array.find":
+      return "find(...)";
+    case "array.findIndex":
+      return "findIndex(...)";
+    case "array.every":
+      return "every(...)";
+    case "array.some":
+      return "some(...)";
+    case "array.reduce":
+      return `reduce(..., ${data.initialValue ?? "0"})`;
+    case "array.push": {
+      const literal = literalPreview(data, "value");
+      return literal.length > 0 ? `.push(${literal})` : ".push(...)";
+    }
+    case "array.pop":
+      return ".pop()";
+    case "array.unshift": {
+      const literal = literalPreview(data, "value");
+      return literal.length > 0 ? `.unshift(${literal})` : ".unshift(...)";
+    }
+    case "array.shift":
+      return ".shift()";
+    case "array.includes": {
+      const literal = literalPreview(data, "searchElement");
+      return literal.length > 0 ? `.includes(${literal})` : ".includes(...)";
+    }
+    case "array.indexOf": {
+      const literal = literalPreview(data, "searchElement");
+      return literal.length > 0 ? `.indexOf(${literal})` : ".indexOf(...)";
+    }
     default:
       return null;
   }
@@ -146,7 +197,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
       if (boundVariable.dataType === "boolean") return "boolean";
       return "text";
     }
-    return literalKind;
+    if (!literalKind || !type) return null;
+    return staticLiteralPinIds(type, definition).includes(portId) ? literalKind : null;
   };
 
   const showSubtitle = !!summary && !isLongForm(type ?? "");

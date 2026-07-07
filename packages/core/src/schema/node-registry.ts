@@ -8,7 +8,8 @@ export type NodeCategory =
   | "logic"
   | "debugging"
   | "operators"
-  | "controlFlow";
+  | "controlFlow"
+  | "array";
 
 export interface PortDefinition {
   id: string;
@@ -56,6 +57,25 @@ export interface EmitContext {
   emitNode: (nodeId: string) => EmittedCode;
 }
 
+/**
+ * Declares a node as a "loop container" (a single execution-body arm that repeats per
+ * element, plus a normal trunk-continuation pin) — structurally different from a Branch/
+ * Switch/Sequence fork, whose arms are all block-terminal. `bodyPin`'s target is compiled
+ * as a nested scope (like a fork arm); `completedPin`'s target continues in the SAME scope
+ * as the loop node itself, since after the assembled `.map()`/`.reduce()`/etc. statement,
+ * execution just continues in the enclosing block. `contextPinIds` lists the node's own
+ * value-output pins that are only meaningful inside `bodyPin`'s nested scope (e.g.
+ * `element`/`index`/`arrayRef`/`accumulator`) — used by `validate.ts` to reject reading them
+ * from outside the loop body. Data-driven (like `execEntryPort` keys off port `kind`) rather
+ * than a hardcoded type-string list in `exec-chain.ts`, so any future loop-shaped node type
+ * gets the same treatment for free.
+ */
+export interface LoopShape {
+  bodyPin: string;
+  completedPin: string;
+  contextPinIds: string[];
+}
+
 export interface NodeDefinition {
   type: string;
   category: NodeCategory;
@@ -68,10 +88,13 @@ export interface NodeDefinition {
   /**
    * The identifier another node references to read this node's value output. Omitted by
    * nodes that produce no reusable value (e.g. handler/control-flow nodes). `handle` is
-   * only meaningful for nodes with multiple named value outputs (today: only
-   * `logic.graphEntry`, one value per function parameter) — every other case ignores it.
+   * only meaningful for nodes with multiple named value outputs (today: `logic.graphEntry`,
+   * one value per function parameter; and loop-container array nodes, one identifier per
+   * context pin plus the overall "result") — every other case ignores it.
    */
   resultIdentifier?: (node: FlowNode, handle?: string, ctx?: EmitContext) => string;
+  /** See `LoopShape`. Only set by loop-container array node types (map/filter/forEach/etc.). */
+  loopShape?: LoopShape;
   /**
    * Fixed, node-TYPE-level npm dependencies always needed when any instance of this type is
    * placed on canvas (distinct from per-instance dependency declarations elsewhere). Optional;

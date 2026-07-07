@@ -80,11 +80,12 @@ export function removeSwitchCase(
  * Appends a new execution-output pin (`then-<seq>`) to a Sequence node. `nextPinSeq` is a
  * monotonic counter, never reused — same convention as `addSwitchCase`'s `nextCaseSeq`.
  * Unlike Switch's cases, a Sequence pin carries no per-pin config value — it's purely an
- * ordering slot.
+ * ordering slot. Starts from 1 to avoid colliding with the static "then-0" pin defined
+ * in sequence.node.ts.
  */
 export function addSequencePin(node: Node): Node {
   const pins = getSequencePins(node.data as Record<string, unknown>);
-  const seq = Number(node.data?.nextPinSeq ?? 0);
+  const seq = Number(node.data?.nextPinSeq ?? 1);
   const newPin: SequencePin = { id: String(seq) };
   return { ...node, data: { ...node.data, pins: [...pins, newPin], nextPinSeq: seq + 1 } };
 }

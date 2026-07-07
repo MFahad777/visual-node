@@ -18,6 +18,7 @@ export const CATEGORY_ORDER: NodeCategory[] = [
   "operators",
   "controlFlow",
   "logic",
+  "array",
   "debugging",
 ];
 
@@ -82,5 +83,12 @@ export const CATEGORY_THEME: Record<NodeCategory, CategoryTheme> = {
     accentHex: "#f43f5e",
     // Inspect/magnifying glass.
     iconPaths: ["M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z", "M21 21l-4.35-4.35"],
+  },
+  array: {
+    label: "Array",
+    headerClass: "bg-gradient-to-b from-gray-300 to-gray-500",
+    accentHex: "#9ca3af",
+    // Square brackets, evoking an array literal.
+    iconPaths: ["M8 4H5v16h3", "M16 4h3v16h-3"],
   },
 };

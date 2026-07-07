@@ -26,6 +26,21 @@ import { controlFlowSwitchNode } from "./control-flow/switch.node.js";
 import { controlFlowSequenceNode } from "./control-flow/sequence.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
+import { arrayMapNode } from "./array/map.node.js";
+import { arrayFilterNode } from "./array/filter.node.js";
+import { arrayForEachNode } from "./array/for-each.node.js";
+import { arrayFlatMapNode } from "./array/flat-map.node.js";
+import { arrayFindNode } from "./array/find.node.js";
+import { arrayFindIndexNode } from "./array/find-index.node.js";
+import { arrayEveryNode } from "./array/every.node.js";
+import { arraySomeNode } from "./array/some.node.js";
+import { arrayReduceNode } from "./array/reduce.node.js";
+import { arrayPushNode } from "./array/push.node.js";
+import { arrayPopNode } from "./array/pop.node.js";
+import { arrayUnshiftNode } from "./array/unshift.node.js";
+import { arrayShiftNode } from "./array/shift.node.js";
+import { arrayIncludesNode } from "./array/includes.node.js";
+import { arrayIndexOfNode } from "./array/index-of.node.js";
 
 /**
  * Node types offered inside a Function node's blueprint body sub-canvas — deliberately kept
@@ -79,15 +94,38 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   controlFlowBranchNode,
   controlFlowSwitchNode,
   controlFlowSequenceNode,
+  // Phase 17: array operation nodes — ordinary statement-producing nodes with no req/res
+  // dependency, same "full main-canvas/Function-Graph parity" reasoning as operators/
+  // control-flow above.
+  arrayMapNode,
+  arrayFilterNode,
+  arrayForEachNode,
+  arrayFlatMapNode,
+  arrayFindNode,
+  arrayFindIndexNode,
+  arrayEveryNode,
+  arraySomeNode,
+  arrayReduceNode,
+  arrayPushNode,
+  arrayPopNode,
+  arrayUnshiftNode,
+  arrayShiftNode,
+  arrayIncludesNode,
+  arrayIndexOfNode,
 ];
 
 /**
  * Types that only ever make sense inside a function's blueprint sub-canvas. Unlike
  * `logic.functionCall` (usable both at the top level and inside a blueprint graph), these
  * must never appear in the top-level "add node" surfaces — `editor-server`'s
- * `/api/node-registry` route filters them out of its default (unscoped) response using this set.
+ * `/api/node-registry` route filters them out of its default (unscoped) response using this
+ * set.
+ *
+ * `logicGraphReturnNode` is deliberately NOT in this set (unlike before array loop-body
+ * wiring existed): it's now a legitimate main-canvas node, wired inside a loop node's
+ * "Loop Body" arm to produce that iteration's `.map()`/`.filter()`/etc. return value —
+ * `exec-chain.ts`'s loop dispatch recurses into a wired body with the exact same `emitBlock`
+ * Branch/Switch arms use, so Return already works there with zero extra codegen. Only Entry
+ * stays function-graph-only: a Route has no "parameters" concept for it to expose.
  */
-export const FUNCTION_GRAPH_ONLY_TYPES: ReadonlySet<string> = new Set([
-  logicGraphEntryNode.type,
-  logicGraphReturnNode.type,
-]);
+export const FUNCTION_GRAPH_ONLY_TYPES: ReadonlySet<string> = new Set([logicGraphEntryNode.type]);
