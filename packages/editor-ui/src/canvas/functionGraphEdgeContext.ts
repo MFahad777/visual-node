@@ -27,6 +27,8 @@ export interface FunctionGraphEdgeContextValue {
   updateSwitchCaseValue?: (nodeId: string, caseId: string, value: string | number | boolean) => void;
   addSequencePin?: (nodeId: string) => void;
   removeSequencePin?: (nodeId: string, pinId: string) => void;
+  addPathExtractorParam?: (nodeId: string) => void;
+  removePathExtractorParam?: (nodeId: string) => void;
 }
 
 /**

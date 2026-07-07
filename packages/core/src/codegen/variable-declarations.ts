@@ -45,16 +45,10 @@ export function validateVariableDeclaration(variable: VariableDeclaration): stri
       }
       return null;
 
-    case "object": {
-      const parsed = tryParseJson(raw);
-      if (parsed === PARSE_FAILED) {
-        return `Variable "${variable.name}" has a default value that isn't valid JSON: "${raw}"`;
-      }
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-        return `Variable "${variable.name}" has a default value that isn't a JSON object`;
-      }
+    case "object":
+      // Accept any raw JavaScript object syntax (allows functions, computed properties, etc.)
+      // No validation — trust the user to provide valid JS
       return null;
-    }
 
     case "array": {
       const parsed = tryParseJson(raw);
@@ -160,15 +154,15 @@ export function formatLiteralForType(dataType: VariableDataType, raw: string): s
     case "string":
       return JSON.stringify(raw);
     case "map":
-      return `new Map(${raw})`;
+      return raw ? `new Map(${raw})` : "new Map()";
     case "set":
-      return `new Set(${raw})`;
+      return raw ? `new Set(${raw})` : "new Set()";
     case "weakset":
-      return `new WeakSet(${raw})`;
+      return raw ? `new WeakSet(${raw})` : "new WeakSet()";
     case "bigint":
       return `${raw}n`;
     case "symbol":
-      return `Symbol(${JSON.stringify(raw)})`;
+      return raw ? `Symbol(${JSON.stringify(raw)})` : "Symbol()";
     case "buffer":
       return `Buffer.from(${JSON.stringify(raw)})`;
     case "url":
@@ -190,7 +184,13 @@ export function formatLiteralForType(dataType: VariableDataType, raw: string): s
  */
 function buildInitializerLiteral(variable: VariableDeclaration): string | undefined {
   const raw = variable.defaultValue?.trim();
-  if (!raw) return undefined;
+  if (!raw) {
+    // For collection/constructor types, emit the constructor even with no default value
+    if (variable.dataType === "map" || variable.dataType === "set" || variable.dataType === "weakset" || variable.dataType === "symbol") {
+      return formatLiteralForType(variable.dataType, "");
+    }
+    return undefined;
+  }
   return formatLiteralForType(variable.dataType, raw);
 }
 

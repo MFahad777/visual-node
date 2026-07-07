@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { VariableDataType, VariableDeclaration } from "@visual-node/core";
 import { VARIABLE_DATA_TYPES, VARIABLE_TYPE_THEME, getVariableTypeColor } from "../canvas/variableTypeTheme.js";
+import { ComplexDefaultValueEditor } from "./ComplexDefaultValueEditor.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -34,6 +35,11 @@ export function VariablesPanel({
   onRemove,
 }: VariablesPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredVariables = variables.filter((v) =>
+    v.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="mt-4 border-t border-black/60 pt-3">
@@ -56,11 +62,23 @@ export function VariablesPanel({
           + Add
         </button>
       </div>
+      {!collapsed && (
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search variables..."
+          className="mb-2 w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100 placeholder:text-neutral-500"
+        />
+      )}
 
       {!collapsed && (
         <div className="flex flex-col gap-2">
           {variables.length === 0 && <p className="text-[11px] text-neutral-500">No variables declared.</p>}
-          {variables.map((variable) => (
+          {filteredVariables.length === 0 && variables.length > 0 && (
+            <p className="text-[11px] text-neutral-500">No variables match "{search}".</p>
+          )}
+          {filteredVariables.map((variable) => (
             <VariableRow
               key={variable.id}
               variable={variable}
@@ -95,6 +113,7 @@ function VariableRow({
   onSetDefault: (id: string, value: string) => void;
   onRemove: (id: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   // Local draft so the input reflects every keystroke even while invalid — only a valid,
   // unique name is ever committed via `onRename`, same "only commit if valid" precedent as
   // FunctionGraphModal.tsx's FunctionDetailsPanel Inputs-row rename, extended here with the
@@ -147,6 +166,13 @@ function VariableRow({
   return (
     <div className="flex flex-col gap-1 rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5">
       <div className="flex items-center gap-1">
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex h-5 w-4 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-300"
+          title={collapsed ? "Expand" : "Collapse"}
+        >
+          <span className="text-xs">{collapsed ? "▸" : "▾"}</span>
+        </button>
         {/* A dedicated grip handle, not the whole row: the row's own keyword/name/dataType/
             default controls are native <select>/<input> elements that swallow the initial
             mousedown themselves (opening/focusing instead of letting it bubble into a native
@@ -194,33 +220,37 @@ function VariableRow({
         </button>
       </div>
       {nameError && <span className="text-[10px] text-red-400">{nameError}</span>}
-      <div className="flex items-center gap-1.5">
-        {/* A plain <option> can't render a color swatch in most browsers, so the currently
-            selected type's color is shown as a standalone dot next to the select instead —
-            same idea as the reference Unreal Engine's colored type pills, just not inline
-            inside the dropdown itself. */}
-        <span
-          className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/40"
-          style={{ background: getVariableTypeColor(variable.dataType) }}
-          title={VARIABLE_TYPE_THEME[variable.dataType]?.label}
-        />
-        <select
-          value={variable.dataType}
-          onChange={(e) => handleDataTypeChange(e.target.value as VariableDataType)}
-          className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-1 py-1 text-[11px] text-neutral-100"
-        >
-          {VARIABLE_DATA_TYPES.map((dt) => (
-            <option key={dt} value={dt}>
-              {VARIABLE_TYPE_THEME[dt].label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <DefaultValueField
-        dataType={variable.dataType}
-        value={variable.defaultValue ?? ""}
-        onChange={(value) => onSetDefault(variable.id, value)}
-      />
+      {!collapsed && (
+        <>
+          <div className="flex items-center gap-1.5">
+            {/* A plain <option> can't render a color swatch in most browsers, so the currently
+                selected type's color is shown as a standalone dot next to the select instead —
+                same idea as the reference Unreal Engine's colored type pills, just not inline
+                inside the dropdown itself. */}
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/40"
+              style={{ background: getVariableTypeColor(variable.dataType) }}
+              title={VARIABLE_TYPE_THEME[variable.dataType]?.label}
+            />
+            <select
+              value={variable.dataType}
+              onChange={(e) => handleDataTypeChange(e.target.value as VariableDataType)}
+              className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-1 py-1 text-[11px] text-neutral-100"
+            >
+              {VARIABLE_DATA_TYPES.map((dt) => (
+                <option key={dt} value={dt}>
+                  {VARIABLE_TYPE_THEME[dt].label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <DefaultValueField
+            dataType={variable.dataType}
+            value={variable.defaultValue ?? ""}
+            onChange={(value) => onSetDefault(variable.id, value)}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -228,8 +258,9 @@ function VariableRow({
 /**
  * Renders the right input widget for a variable's default-value literal based on its
  * `dataType` — a plain text/number input for scalar types, a small monospace `<textarea>`
- * for the composite/collection types (object/array/map/set/weakset, where a JSON-ish
- * literal is the natural authoring format), a true/false/"no default" `<select>` for
+ * for the composite/collection types (object/array/map/set/weakset, where a raw JavaScript
+ * literal is the natural authoring format — for objects, functions and methods are fully
+ * supported, not just JSON-serializable data), a true/false/"no default" `<select>` for
  * booleans, and a fixed disabled control for `null`/`undefined` (there's nothing to type —
  * the type IS the value). No strict validation here beyond the input `type`/placeholder
  * hints: the actual literal is validated compile-time on the `packages/core` side, same
@@ -283,23 +314,7 @@ function DefaultValueField({
   }
 
   if (dataType === "object" || dataType === "array" || dataType === "map" || dataType === "set" || dataType === "weakset") {
-    const placeholder =
-      dataType === "object"
-        ? '{"key": "value"}'
-        : dataType === "map"
-          ? '[["key", "value"]]'
-          : dataType === "weakset"
-            ? '[{"a": 1}]'
-            : "[1, 2, 3]";
-    return (
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={2}
-        className={`${baseInputClass} resize-y`}
-      />
-    );
+    return <ComplexDefaultValueEditor dataType={dataType} value={value} onChange={onChange} />;
   }
 
   const placeholder =

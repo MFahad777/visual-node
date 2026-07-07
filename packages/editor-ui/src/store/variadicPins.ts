@@ -1,5 +1,11 @@
 import type { Node, Edge } from "@xyflow/react";
-import { getSwitchCases, getSequencePins, type SwitchCase, type SequencePin } from "../canvas/effectivePorts.js";
+import {
+  getSwitchCases,
+  getSequencePins,
+  getPathExtractorParamCount,
+  type SwitchCase,
+  type SequencePin,
+} from "../canvas/effectivePorts.js";
 
 /**
  * Pure node/edge-mutation helpers for the two Phase 7 "dynamic pin count" node families:
@@ -105,6 +111,33 @@ export function removeSequencePin(
         : n,
     ),
     edges: edges.filter((e) => !(e.source === nodeId && e.sourceHandle === handle)),
+  };
+}
+
+/**
+ * Increments a Path Extractor node's `paramCount`, appending one more `param-<N>` value-input
+ * pin. Unlike `addVariadicInputPin`'s stable-id array, this is a plain counter — removal
+ * (`removePathExtractorParam`) always targets the highest-index pin, per product decision, so
+ * there's no need for a monotonic never-reused id sequence here.
+ */
+export function addPathExtractorParam(node: Node): Node {
+  const count = getPathExtractorParamCount(node.data as Record<string, unknown>);
+  return { ...node, data: { ...node.data, paramCount: count + 1 } };
+}
+
+/** Removes the highest-index `param-<N>` pin from a Path Extractor node, dropping any wire targeting it. */
+export function removePathExtractorParam(
+  nodeId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const node = nodes.find((n) => n.id === nodeId);
+  const count = getPathExtractorParamCount(node?.data as Record<string, unknown>);
+  if (count === 0) return { nodes, edges };
+  const removedPinId = `param-${count - 1}`;
+  return {
+    nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, paramCount: count - 1 } } : n)),
+    edges: edges.filter((e) => !(e.target === nodeId && e.targetHandle === removedPinId)),
   };
 }
 

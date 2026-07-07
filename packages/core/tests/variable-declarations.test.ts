@@ -65,16 +65,20 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       expect(buildVariableDeclarationStatement(v)).toBe('let o = {"a":1};');
     });
 
-    it("rejects a JSON array (not an object)", () => {
-      const v = variable({ name: "o", dataType: "object", defaultValue: "[1,2]" });
-      expect(validateVariableDeclaration(v)).toMatch(/JSON object/);
-      expect(() => buildVariableDeclarationStatement(v)).toThrow();
+    it("accepts unquoted JS object literal syntax", () => {
+      const v = variable({ name: "o", dataType: "object", defaultValue: "{a:1, b:2}" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("let o = {a:1, b:2};");
     });
 
-    it("rejects invalid JSON text", () => {
-      const v = variable({ name: "o", dataType: "object", defaultValue: "not json" });
-      expect(validateVariableDeclaration(v)).toMatch(/valid JSON/);
-      expect(() => buildVariableDeclarationStatement(v)).toThrow();
+    it("accepts raw JavaScript objects with functions", () => {
+      const v = variable({
+        name: "o",
+        dataType: "object",
+        defaultValue: "{getTotal: function(x) { return x * 2; }}",
+      });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toContain("let o = {getTotal:");
     });
   });
 
@@ -99,6 +103,12 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       expect(buildVariableDeclarationStatement(v)).toBe('let m = new Map([["a",1]]);');
     });
 
+    it("emits new Map() with no args when default value is empty", () => {
+      const v = variable({ name: "m", dataType: "map", defaultValue: "" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("let m = new Map();");
+    });
+
     it("rejects a non-array JSON value", () => {
       const v = variable({ name: "m", dataType: "map", defaultValue: '{"a":1}' });
       expect(validateVariableDeclaration(v)).toMatch(/JSON array of \[key, value\] pairs/);
@@ -113,6 +123,12 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       expect(buildVariableDeclarationStatement(v)).toBe("let s = new Set([1,2,3]);");
     });
 
+    it("emits new Set() with no args when default value is empty", () => {
+      const v = variable({ name: "s", dataType: "set", defaultValue: "" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("let s = new Set();");
+    });
+
     it("rejects a non-array JSON value", () => {
       const v = variable({ name: "s", dataType: "set", defaultValue: '{"a":1}' });
       expect(validateVariableDeclaration(v)).toMatch(/JSON array/);
@@ -125,6 +141,12 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       const v = variable({ name: "ws", dataType: "weakset", defaultValue: '[{"a":1}]' });
       expect(validateVariableDeclaration(v)).toBeNull();
       expect(buildVariableDeclarationStatement(v)).toBe('let ws = new WeakSet([{"a":1}]);');
+    });
+
+    it("emits new WeakSet() with no args when default value is empty", () => {
+      const v = variable({ name: "ws", dataType: "weakset", defaultValue: "" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("let ws = new WeakSet();");
     });
 
     it("rejects an array containing primitives", () => {
@@ -154,6 +176,12 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       const v = variable({ name: "sym", dataType: "symbol", defaultValue: "my-symbol" });
       expect(validateVariableDeclaration(v)).toBeNull();
       expect(buildVariableDeclarationStatement(v)).toBe('let sym = Symbol("my-symbol");');
+    });
+
+    it("emits Symbol() with no args when default value is empty", () => {
+      const v = variable({ name: "sym", dataType: "symbol", defaultValue: "" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe("let sym = Symbol();");
     });
   });
 

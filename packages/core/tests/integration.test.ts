@@ -23,11 +23,16 @@ const VARIABLES_GENERATED_PATH = path.join(__dirname, "fixtures", "generated-var
 // (see the port-registry comments in branch-node.test.ts/switch-node.test.ts/etc.).
 const BEGIN_PORT = 3998;
 const BEGIN_GENERATED_PATH = path.join(__dirname, "fixtures", "generated-begin", "server.js");
+// Distinct from other core spawn-test ports (see the port-registry comments above/in
+// branch-node.test.ts/switch-node.test.ts/etc.) — Phase 18.
+const PATH_EXTRACTOR_PORT = 3999;
+const PATH_EXTRACTOR_GENERATED_PATH = path.join(__dirname, "fixtures", "generated-path-extractor", "server.js");
 
 afterAll(() => {
   rmSync(path.join(__dirname, "fixtures", "generated"), { recursive: true, force: true });
   rmSync(path.join(__dirname, "fixtures", "generated-variables"), { recursive: true, force: true });
   rmSync(path.join(__dirname, "fixtures", "generated-begin"), { recursive: true, force: true });
+  rmSync(path.join(__dirname, "fixtures", "generated-path-extractor"), { recursive: true, force: true });
 });
 
 describe("end-to-end: flow.json -> server.js -> real HTTP request", () => {
@@ -186,6 +191,79 @@ describe("end-to-end: Phase 11 Begin — module-scope setup runs once at load", 
       const res = await fetch(`http://localhost:${BEGIN_PORT}/config`);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ dir: "/srv/app" });
+    } finally {
+      child.kill();
+    }
+  }, 15_000);
+});
+
+describe("end-to-end: Phase 18 Path Extractor — real lodash.get resolution + method .apply through a real HTTP request", () => {
+  it("resolves a path to a method and calls it with dynamic params, preserving `this`, in a real spawned server", async () => {
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "path-extractor-api", target: "express" },
+      nodes: [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/invoice" } },
+        {
+          id: "extract1",
+          type: "logic.pathExtractor",
+          position: { x: 0, y: 0 },
+          data: {
+            // Two parent segments (["billing", "account"]) deliberately, so this test keeps
+            // exercising a real `lodash.get` walk end-to-end — a 1-parent-segment path no longer
+            // needs lodash at all under the compile-time parent/last-segment split optimization.
+            path: "billing.account.calculateTotal",
+            paramCount: 3,
+            literals: {
+              data_object:
+                "{ billing: { account: { calculateTotal: function (subtotal, taxRate, applyDiscount) { " +
+                "const base = subtotal * (1 + taxRate); return applyDiscount ? base * 0.9 : base; } } } }",
+              "param-0": "100",
+              "param-1": "0.1",
+              "param-2": "true",
+            },
+          },
+        },
+        // References the pathExtractor node's own emitted `_pathval_extract1` const by name —
+        // valid because both nodes' emitted code lands as sequential statements in the SAME
+        // route handler function scope (see route.node.ts/exec-chain.ts's shared assembly).
+        {
+          id: "handler",
+          type: "handler.customCode",
+          position: { x: 0, y: 0 },
+          data: { code: "res.status(200).json({ total: _pathval_extract1 });" },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PATH_EXTRACTOR_PORT } },
+      ],
+      edges: [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "extract1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "extract1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    };
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain('require("lodash.get")');
+    const formatted = await formatCode(code);
+    await writeGeneratedFile(PATH_EXTRACTOR_GENERATED_PATH, formatted);
+    writeFileSync(
+      path.join(path.dirname(PATH_EXTRACTOR_GENERATED_PATH), "package.json"),
+      JSON.stringify({ name: "path-extractor-api", private: true }),
+    );
+
+    const child = spawn(process.execPath, [PATH_EXTRACTOR_GENERATED_PATH], { stdio: ["ignore", "pipe", "pipe"] });
+
+    try {
+      await waitForOutput(child, `Server running on port ${PATH_EXTRACTOR_PORT}`, 10_000);
+
+      const res = await fetch(`http://localhost:${PATH_EXTRACTOR_PORT}/invoice`);
+      expect(res.status).toBe(200);
+      // 100 * 1.1 = 110, * 0.9 (discount) = 99 — proves the real spawned process actually
+      // required lodash.get and called the resolved method with the correct `this`.
+      const body = await res.json();
+      expect(body.total).toBeCloseTo(99);
     } finally {
       child.kill();
     }

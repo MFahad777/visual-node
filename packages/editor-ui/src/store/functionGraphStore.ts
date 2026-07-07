@@ -19,6 +19,8 @@ import {
   updateSwitchCaseValue as updateSwitchCaseValueHelper,
   addSequencePin as addSequencePinHelper,
   removeSequencePin as removeSequencePinHelper,
+  addPathExtractorParam as addPathExtractorParamHelper,
+  removePathExtractorParam as removePathExtractorParamHelper,
 } from "./variadicPins.js";
 
 let nextId = 1;
@@ -55,6 +57,8 @@ export interface FunctionGraphState {
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
   addSequencePin: (nodeId: string) => void;
   removeSequencePin: (nodeId: string, pinId: string) => void;
+  addPathExtractorParam: (nodeId: string) => void;
+  removePathExtractorParam: (nodeId: string) => void;
   addParam: (name: string) => void;
   removeParam: (name: string) => void;
   renameParam: (oldName: string, newName: string) => void;
@@ -213,6 +217,13 @@ export function createFunctionGraphStore(
     },
     removeSequencePin: (nodeId, pinId) => {
       const { nodes, edges } = removeSequencePinHelper(nodeId, pinId, get().nodes, get().edges);
+      set({ nodes, edges });
+    },
+    addPathExtractorParam: (nodeId) => {
+      set({ nodes: get().nodes.map((n) => (n.id === nodeId ? addPathExtractorParamHelper(n) : n)) });
+    },
+    removePathExtractorParam: (nodeId) => {
+      const { nodes, edges } = removePathExtractorParamHelper(nodeId, get().nodes, get().edges);
       set({ nodes, edges });
     },
     updateSwitchCaseValue: (nodeId, caseId, value) => {

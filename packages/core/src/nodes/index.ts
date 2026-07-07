@@ -51,6 +51,7 @@ import { arrayUnshiftNode } from "./array/unshift.node.js";
 import { arrayShiftNode } from "./array/shift.node.js";
 import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
+import { pathExtractorNode } from "./logic/path-extractor.node.js";
 
 const BUILTIN_NODES = [
   expressInitNode,
@@ -119,6 +120,10 @@ const BUILTIN_NODES = [
   arrayShiftNode,
   arrayIncludesNode,
   arrayIndexOfNode,
+  // Phase 18: Path Extractor — resolves a lodash-syntax property path against an object,
+  // usable on both the main canvas and inside Function Graphs (see
+  // FUNCTION_GRAPH_NODE_DEFINITIONS below), same "full parity" treatment as operators/arrays.
+  pathExtractorNode,
 ];
 
 /** Registers all built-in MVP node definitions. Safe to call more than once (e.g. after clearRegistry()). */
@@ -179,4 +184,5 @@ export {
   arrayShiftNode,
   arrayIncludesNode,
   arrayIndexOfNode,
+  pathExtractorNode,
 };

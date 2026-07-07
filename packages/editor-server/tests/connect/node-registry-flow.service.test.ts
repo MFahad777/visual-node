@@ -43,11 +43,12 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({});
 
-    // 51, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
-    // this phase — wired inside a loop node's "Loop Body" arm to produce that iteration's
+    // 52, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
+    // in Phase 17 — wired inside a loop node's "Loop Body" arm to produce that iteration's
     // return value (see FUNCTION_GRAPH_ONLY_TYPES's doc comment in
     // nodes/function-graph-nodes.ts). Only `logic.graphEntry` remains function-graph-only.
-    expect(res.definitions).toHaveLength(51);
+    // Phase 18 added one more builtin, `logic.pathExtractor`.
+    expect(res.definitions).toHaveLength(52);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
@@ -83,7 +84,7 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({ scope: "function-graph" });
 
-    expect(res.definitions).toHaveLength(42);
+    expect(res.definitions).toHaveLength(43);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([

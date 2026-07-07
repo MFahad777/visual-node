@@ -29,6 +29,7 @@
     "vitest": "^2.0.5",
     "@types/node": "^20.14.15",
     "express": "^4.19.2",
-    "flatc-wasm": "^26.1.32"
+    "flatc-wasm": "^26.1.32",
+    "lodash.get": "^4.4.2"
   }
 }

@@ -11,6 +11,7 @@ import {
   computeEffectiveOutputs,
   literalKindFor,
   staticLiteralPinIds,
+  getPathExtractorParamCount,
   VARIADIC_BOOLEAN_TYPES,
 } from "./effectivePorts.js";
 import { isExecPort } from "./execPorts.js";
@@ -50,6 +51,10 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
     case "debug.consoleLog": {
       const expression = String(data.expression ?? "");
       return expression.length > 0 ? expression : "(empty)";
+    }
+    case "logic.pathExtractor": {
+      const path = String(data.path ?? "");
+      return path.length > 0 ? path : "(no path)";
     }
     case "logic.graphReturn": {
       const literals = data.literals as Record<string, unknown> | undefined;
@@ -151,11 +156,15 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const globalRemoveInputPin = useFlowStore((s) => s.removeInputPin);
   const globalAddSequencePin = useFlowStore((s) => s.addSequencePin);
   const globalRemoveSequencePin = useFlowStore((s) => s.removeSequencePin);
+  const globalAddPathExtractorParam = useFlowStore((s) => s.addPathExtractorParam);
+  const globalRemovePathExtractorParam = useFlowStore((s) => s.removePathExtractorParam);
   const updateNodeData = scopedEdgeContext?.updateNodeData ?? globalUpdateNodeConfig;
   const addInputPin = scopedEdgeContext?.addInputPin ?? globalAddInputPin;
   const removeInputPin = scopedEdgeContext?.removeInputPin ?? globalRemoveInputPin;
   const addSequencePin = scopedEdgeContext?.addSequencePin ?? globalAddSequencePin;
   const removeSequencePin = scopedEdgeContext?.removeSequencePin ?? globalRemoveSequencePin;
+  const addPathExtractorParam = scopedEdgeContext?.addPathExtractorParam ?? globalAddPathExtractorParam;
+  const removePathExtractorParam = scopedEdgeContext?.removePathExtractorParam ?? globalRemovePathExtractorParam;
 
   if (!definition) {
     return (
@@ -191,12 +200,22 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   // `variable-set.node.ts`'s emit() wraps it into real JS source per dataType at compile time.
   // A dangling `variableId` (variable deleted, node left on canvas) falls back to the generic
   // raw-JS-source text box, same as before this existed.
+  // Path Extractor's dynamic `param-<N>` pins (Phase 18) aren't part of the node type's
+  // static shape, so `staticLiteralPinIds` (keyed only off `type`/`definition`) can't see
+  // them — resolved here instead, the same way `variable.set`'s bound-variable-dependent
+  // kind is resolved above.
+  const pathExtractorParamCount =
+    type === "logic.pathExtractor" ? getPathExtractorParamCount(data as Record<string, unknown> | undefined) : 0;
+  const isPathExtractorParamPin = (portId: string) =>
+    type === "logic.pathExtractor" && /^param-\d+$/.test(portId) && Number(portId.slice(6)) < pathExtractorParamCount;
+
   const resolvedLiteralKindFor = (portId: string): "number" | "boolean" | "text" | null => {
     if (type === "variable.set" && portId === "value" && boundVariable) {
       if (boundVariable.dataType === "number") return "number";
       if (boundVariable.dataType === "boolean") return "boolean";
       return "text";
     }
+    if (isPathExtractorParamPin(portId)) return "text";
     if (!literalKind || !type) return null;
     return staticLiteralPinIds(type, definition).includes(portId) ? literalKind : null;
   };
@@ -261,6 +280,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const sequencePinIds = new Set(
     (Array.isArray(nodeData.pins) ? (nodeData.pins as Array<{ id: string }>) : []).map((p) => `then-${p.id}`),
   );
+  const isPathExtractorNode = type === "logic.pathExtractor";
 
   return (
     <div
@@ -361,6 +381,26 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                 >
                   + Add pin
                 </button>
+              )}
+              {isPathExtractorNode && (
+                <div className="mt-0.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => addPathExtractorParam(id)}
+                    className="nodrag nopan text-left text-[10px] text-sky-400 hover:text-sky-300"
+                  >
+                    + Add Param
+                  </button>
+                  {pathExtractorParamCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removePathExtractorParam(id)}
+                      className="nodrag nopan text-left text-[10px] text-red-400 hover:text-red-300"
+                    >
+                      - Remove Param
+                    </button>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex flex-col items-end gap-1">

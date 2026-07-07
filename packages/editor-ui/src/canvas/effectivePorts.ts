@@ -68,6 +68,12 @@ const BOOLEAN_LITERAL_TYPES = new Set([
 // generic `staticLiteralPinIds` fallback naturally targets only it), these 4 types have a
 // second non-exec pin ("array") that must NOT get inline literal editing (it should always be
 // wired to a real array), so `staticLiteralPinIds` below special-cases them explicitly.
+// `logic.pathExtractor`'s dynamic `param-<N>` pins (Phase 18) join this group too — like
+// Switch's Selection, a param can be any JS type, free-form raw JS text. Its static "Object"
+// pin must NOT get inline literal editing (always wired to a real object), so
+// `staticLiteralPinIds` below returns `[]` for it — the dynamic param pins are instead gated
+// directly in `GenericNode.tsx` (via `getPathExtractorParamCount`), since this function only
+// knows a type's static shape, never a specific instance's `data`.
 const TEXT_LITERAL_TYPES = new Set([
   "controlFlow.switch",
   "variable.set",
@@ -78,6 +84,7 @@ const TEXT_LITERAL_TYPES = new Set([
   "array.unshift",
   "array.includes",
   "array.indexOf",
+  "logic.pathExtractor",
 ]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {
@@ -104,6 +111,7 @@ export function staticLiteralPinIds(type: string, definition: NodeDefinition): s
   if (type === "controlFlow.branch") return ["condition"];
   if (type === "array.push" || type === "array.unshift") return ["value"];
   if (type === "array.includes" || type === "array.indexOf") return ["searchElement"];
+  if (type === "logic.pathExtractor") return [];
   return definition.inputs.filter((p) => p.kind !== "exec").map((p) => p.id);
 }
 
@@ -141,6 +149,16 @@ export function getSequencePins(data: Record<string, unknown> | undefined): Sequ
 }
 
 /**
+ * Number of dynamic `param-<N>` value-input pins on a `logic.pathExtractor` instance.
+ * Unlike Sequence/Switch's per-pin stable-id arrays, this is a plain counter — removal
+ * always targets the highest-index pin (`- Remove Param`), so there's no need to track
+ * individual pin identity across additions/removals.
+ */
+export function getPathExtractorParamCount(data: Record<string, unknown> | undefined): number {
+  return Math.max(0, Number(data?.paramCount ?? 0));
+}
+
+/**
  * Computes a node instance's actual input ports, layering per-instance dynamic pins on top
  * of the node type's static `NodeDefinition.inputs`. Shared by `GenericNode.tsx` (rendering)
  * and `CustomEdge.tsx` (wire-kind/coloring) so the two can never disagree about a dynamically
@@ -165,6 +183,14 @@ export function computeEffectiveInputs(
   if (type && VARIADIC_BOOLEAN_TYPES.has(type)) {
     const extra: string[] = Array.isArray(data?.extraInputs) ? (data!.extraInputs as string[]) : [];
     return [...definition.inputs, ...extra.map((pinId) => ({ id: pinId, label: "" }))];
+  }
+
+  if (type === "logic.pathExtractor") {
+    const count = getPathExtractorParamCount(data);
+    return [
+      ...definition.inputs,
+      ...Array.from({ length: count }, (_, i) => ({ id: `param-${i}`, label: `Param ${i}`, kind: "value" as const })),
+    ];
   }
 
   return definition.inputs;

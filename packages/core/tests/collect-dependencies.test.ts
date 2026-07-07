@@ -142,6 +142,15 @@ describe("collectFlowDependencies", () => {
     expect(dependencies).toEqual({ uuid: "^9.0.0" });
   });
 
+  it("collects a builtin node type's fixed npmDependencies field (Phase 18: logic.pathExtractor -> lodash.get)", () => {
+    const flow = makeFlow([
+      { id: "pe1", type: "logic.pathExtractor", position: { x: 0, y: 0 }, data: { path: "a.b" } },
+    ]);
+    const { dependencies, conflicts } = collectFlowDependencies(flow);
+    expect(dependencies).toEqual({ "lodash.get": "^4.4.2" });
+    expect(conflicts).toEqual([]);
+  });
+
   it("does not double-count a blueprint-mode Function node's own npmDependencies field (only its nested graph is walked)", () => {
     const flow = makeFlow([
       {
