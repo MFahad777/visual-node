@@ -770,7 +770,3 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     }
   },
 }));
-
-if (import.meta.env.DEV) {
-  (window as unknown as { __flowStore: typeof useFlowStore }).__flowStore = useFlowStore;
-}
