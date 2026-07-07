@@ -97,6 +97,103 @@ describe("logic.function / logic.export", () => {
     expect(result.errors.some((e) => e.message.includes("can only be connected to Function nodes"))).toBe(true);
   });
 
+  it("exports a variable via a Get Variable node wired into the Variables pin", () => {
+    const flow = makeFlow(
+      [
+        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [{ id: "e1", source: "var_get", target: "exp1", sourceHandle: "value", targetHandle: "variables" }],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+    const { code } = emitExpress(flow);
+    expect(code).toContain("module.exports = { counter };");
+  });
+
+  it("exports both functions and variables together", () => {
+    const flow = makeFlow(
+      [
+        { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "a", params: "", body: "return 1;" } },
+        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [
+        { id: "e1", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "var_get", target: "exp1", sourceHandle: "value", targetHandle: "variables" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }];
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain("module.exports = { a, counter };");
+  });
+
+  it("rejects exporting a const variable with no default value", () => {
+    const flow = makeFlow(
+      [
+        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [{ id: "e1", source: "var_get", target: "exp1", sourceHandle: "value", targetHandle: "variables" }],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes("no guaranteed top-level declaration"))).toBe(true);
+  });
+
+  it("rejects exporting the same variable more than once, even via two separate Get Variable nodes", () => {
+    const flow = makeFlow(
+      [
+        { id: "var_get_a", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "var_get_b", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [
+        { id: "e1", source: "var_get_a", target: "exp1", sourceHandle: "value", targetHandle: "variables" },
+        { id: "e2", source: "var_get_b", target: "exp1", sourceHandle: "value", targetHandle: "variables" },
+      ],
+    );
+    flow.variables = [{ id: "v1", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }];
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('cannot export variable "counter" more than once'))).toBe(true);
+  });
+
+  it("rejects exporting the same function more than once", () => {
+    const flow = makeFlow(
+      [
+        { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "a", params: "", body: "return 1;" } },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [
+        { id: "e1", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('cannot export function "a" more than once'))).toBe(true);
+  });
+
+  it("rejects a non-Get-Variable node wired into the Export node's Variables pin", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
+      ],
+      [{ id: "e1", source: "init", target: "exp1", sourceHandle: "out", targetHandle: "variables" }],
+    );
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('"Variables" input can only be connected to Get Variable nodes'))).toBe(true);
+  });
+
   it("does not require an express.init node in a pure logic-only file", () => {
     const flow = makeFlow([
       { id: "fn1", type: "logic.function", position: { x: 0, y: 0 }, data: { name: "helper", params: "", body: "return 1;" } },

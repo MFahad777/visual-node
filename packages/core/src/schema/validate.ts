@@ -68,11 +68,50 @@ export function validateFlow(flow: Flow): ValidationResult {
       errors.push({ nodeId: n.id, message: 'Only one "logic.export" node is allowed per flow' });
     }
   }
+  const exportVariablesById = new Map((flow.variables ?? []).map((v) => [v.id, v]));
   for (const exp of exportNodes) {
+    const seenVariableIds = new Set<string>();
+    const seenFunctionSourceIds = new Set<string>();
     for (const edge of flow.edges.filter((e) => e.target === exp.id)) {
       const source = nodesById.get(edge.source);
-      if (source && source.type !== "logic.function") {
+      if (!source) continue;
+      if (edge.targetHandle === "variables") {
+        if (source.type !== "variable.get") {
+          errors.push({
+            nodeId: exp.id,
+            message: `Export node's "Variables" input can only be connected to Get Variable nodes, got "${source.type}"`,
+          });
+          continue;
+        }
+        const variableId = (source.data as Record<string, unknown> | undefined)?.variableId;
+        const variable = typeof variableId === "string" ? exportVariablesById.get(variableId) : undefined;
+        if (typeof variableId === "string") {
+          if (seenVariableIds.has(variableId)) {
+            errors.push({
+              nodeId: exp.id,
+              message: `Export node cannot export variable "${variable?.name ?? variableId}" more than once — remove the duplicate connection.`,
+            });
+          }
+          seenVariableIds.add(variableId);
+        }
+        if (variable && variable.keyword === "const" && !(variable.defaultValue?.trim().length ?? 0)) {
+          errors.push({
+            nodeId: exp.id,
+            message:
+              `Cannot export variable "${variable.name}": it is declared "const" with no default value, so it has ` +
+              `no guaranteed top-level declaration in the generated file. Give it a default value, or change it to "let"/"var".`,
+          });
+        }
+      } else if (source.type !== "logic.function") {
         errors.push({ nodeId: exp.id, message: `Export node can only be connected to Function nodes, got "${source.type}"` });
+      } else {
+        if (seenFunctionSourceIds.has(source.id)) {
+          errors.push({
+            nodeId: exp.id,
+            message: `Export node cannot export function "${String(source.data?.name ?? source.id)}" more than once — remove the duplicate connection.`,
+          });
+        }
+        seenFunctionSourceIds.add(source.id);
       }
     }
   }

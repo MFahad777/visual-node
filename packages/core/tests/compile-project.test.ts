@@ -28,9 +28,14 @@ const dateFormaterFlow: Flow = {
       position: { x: 0, y: 0 },
       data: { name: "formatDate", params: "date", body: "return date.toISOString().slice(0, 10);" },
     },
+    { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
     { id: "exp1", type: "logic.export", position: { x: 0, y: 0 }, data: {} },
   ],
-  edges: [{ id: "e1", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" }],
+  edges: [
+    { id: "e1", source: "fn1", target: "exp1", sourceHandle: "out", targetHandle: "in" },
+    { id: "e2", source: "var_get", target: "exp1", sourceHandle: "value", targetHandle: "variables" },
+  ],
+  variables: [{ id: "v1", name: "appVersion", keyword: "let", dataType: "string", defaultValue: "1.0.0" }],
 };
 
 function serverFlow(port: number): Flow {
@@ -50,7 +55,7 @@ function serverFlow(port: number): Flow {
         id: "handler",
         type: "handler.customCode",
         position: { x: 0, y: 0 },
-        data: { code: "const today = dateHelper.formatDate(new Date());\nres.json({ today });" },
+        data: { code: "const today = dateHelper.formatDate(new Date());\nres.json({ today, version: dateHelper.appVersion });" },
       },
       { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
     ],
@@ -122,7 +127,7 @@ describe("compileProject — multi-file, cross-file require()", () => {
   });
 
   it(
-    "compiles two files, writes them mirroring the source tree, and the compiled server actually runs and requires the compiled helper",
+    "compiles two files, writes them mirroring the source tree, and the compiled server actually runs, requires the compiled helper, and reads its exported variable",
     async () => {
       const result = await compileProject([
         { relativePath: "helpers/dateFormater.blueprint", flow: dateFormaterFlow },
@@ -150,6 +155,7 @@ describe("compileProject — multi-file, cross-file require()", () => {
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(body.version).toBe("1.0.0");
       } finally {
         child.kill();
       }
