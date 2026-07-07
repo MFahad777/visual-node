@@ -4,7 +4,29 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 0.4.0 (Latest)
+## Version 0.4.1 (Latest)
+
+Patch release fixing three bugs that could combine to make Save and live error-checking
+seem to stop working, with no error message to explain why.
+
+### Fixed
+
+- **Save did nothing when no file was open.** Clicking **Save** with no file open gave
+  no feedback at all — no error, no confirmation. It now shows a clear message
+  explaining that no file is open, and the Save button is disabled with an "Open a file
+  first" tooltip in that state, matching Compile and Run.
+- **A Sequence node using only its default first branch failed validation.** A
+  **Sequence** node that never needed more than its built-in first output pin was
+  incorrectly flagged as invalid, even though nothing was actually wrong with it. Fixed
+  — Sequence nodes now validate correctly whether or not you've added extra branches.
+- **Adding an "Includes" or "Index Of" node could silently break Save for the rest of
+  your session.** Placing an Array **Includes** or **Index Of** node on the canvas
+  could cause Save and live validation to silently stop updating, with no visible error
+  and no request ever reaching the server — leaving you unsure why your changes weren't
+  saving. This is now fixed, as a general fix that also protects any future node with a
+  similar optional setting.
+
+## Version 0.4.0
 
 ### New
 
