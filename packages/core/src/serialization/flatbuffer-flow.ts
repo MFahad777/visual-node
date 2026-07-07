@@ -39,10 +39,29 @@ function buildPosition(builder: flatbuffers.Builder, x: number, y: number): flat
   return FbsPosition.endPosition(builder);
 }
 
+/** FlexBuffers has no representation for `undefined` and `flexbuffers.encode()` throws on
+ * one — recursively drops any object property/array element whose value is `undefined`.
+ * A real crash caught only by testing: a config field declared with `default: undefined`
+ * (e.g. array-search.factory.ts's "fromIndex", meaning "optional, not set") gets baked
+ * verbatim into a fresh node's `data` by `addNodeFromPalette`'s `Object.fromEntries`, so
+ * placing that node on the canvas made every subsequent encode (Save, live validation)
+ * throw before the request ever left the browser. */
+function stripUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripUndefined);
+  if (value !== null && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) result[key] = stripUndefined(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 function buildNode(builder: flatbuffers.Builder, node: FlowNode): flatbuffers.Offset {
   // Child offsets (strings, the FlexBuffer data vector, the nested Position table) must
   // all be created before FlowNode.startFlowNode() opens the parent table.
-  const dataBytes = flexbuffers.encode(node.data ?? {});
+  const dataBytes = flexbuffers.encode(stripUndefined(node.data ?? {}));
   const dataOffset = FbsFlowNode.createDataVector(builder, dataBytes);
   // `id`/`type` default to "" rather than being required, matching `data`/`position`'s
   // existing leniency above: callers are allowed to persist a structurally-incomplete Flow

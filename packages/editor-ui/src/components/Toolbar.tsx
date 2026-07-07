@@ -92,7 +92,8 @@ export function Toolbar() {
 
       <button
         onClick={saveFlow}
-        disabled={isSaving}
+        disabled={isSaving || currentFilePath === null}
+        title={currentFilePath === null ? "Open a file first" : undefined}
         className="rounded border border-neutral-600 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
       >
         {isSaving ? "Saving…" : isDirty ? "Save*" : "Save"}

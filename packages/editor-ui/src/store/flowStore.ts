@@ -578,7 +578,10 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   saveFlow: async () => {
     const { currentFilePath } = get();
-    if (!currentFilePath) return;
+    if (!currentFilePath) {
+      set({ lastError: "No file is open — open a file before saving." });
+      return;
+    }
 
     set({ isSaving: true, lastError: null });
     try {
@@ -767,3 +770,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     }
   },
 }));
+
+if (import.meta.env.DEV) {
+  (window as unknown as { __flowStore: typeof useFlowStore }).__flowStore = useFlowStore;
+}

@@ -76,6 +76,21 @@ describe("flatbuffer-flow round-trip", () => {
     });
   }
 
+  it("round-trips a node whose data has an undefined-valued property instead of throwing (e.g. array.includes' optional fromIndex default)", () => {
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "undefined-field-test", target: "express" },
+      nodes: [
+        { id: "n1", type: "array.includes", position: { x: 0, y: 0 }, data: { fromIndex: undefined, searchElement: 5 } },
+      ],
+      edges: [],
+      variables: [],
+    };
+
+    const decoded = decodeFlow(encodeFlow(flow));
+    expect(decoded.nodes[0].data).toEqual({ searchElement: 5 });
+  });
+
   it("round-trips a node with an empty data object", () => {
     const flow: Flow = {
       version: "1",

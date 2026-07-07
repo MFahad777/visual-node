@@ -191,6 +191,16 @@ describe("controlFlow.sequence — validation", () => {
     expect(result.errors.some((e) => e.message.includes("references a pin that no longer exists"))).toBe(true);
   });
 
+  it("accepts a freshly-created Sequence whose data.pins was never initialized (only then-0 wired)", () => {
+    const flow = flowWithSequence([], [customCode("a", "res.json({ ok: true });")], [
+      { id: "e4", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
+    ]);
+    const seqNode = flow.nodes.find((n) => n.id === "seq1")!;
+    seqNode.data = {};
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+  });
+
   it("rejects duplicate pin ids in data.pins", () => {
     const flow = flowWithSequence([], [customCode("a", "res.json({ ok: true });")], [
       { id: "e4", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },

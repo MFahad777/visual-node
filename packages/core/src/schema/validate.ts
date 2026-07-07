@@ -570,7 +570,7 @@ function validateOperatorsAndControlFlow(
 
     if (node.type === "controlFlow.sequence") {
       const rawPins = (node.data as Record<string, unknown> | undefined)?.pins;
-      const pinsArray = Array.isArray(rawPins) ? (rawPins as unknown[]) : undefined;
+      const pinsArray = rawPins === undefined ? [] : Array.isArray(rawPins) ? (rawPins as unknown[]) : undefined;
       const validPins: string[] = [];
       if (!pinsArray) {
         errors.push(makeError(node.id, `Sequence node "${node.id}" has an invalid "pins" list (must be an array)`));
