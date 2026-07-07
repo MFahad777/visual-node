@@ -16,7 +16,8 @@ this is also how the [Node Reference](/node-reference) is organized.
 | **Handler** | emerald | Terminal request handlers — the end of a route's chain. |
 | **Operators** | cyan | Pure, value-producing arithmetic/comparison/boolean nodes — no execution pins. |
 | **Control Flow** | lime | Directing execution: `Branch` (if/else), `Switch`, and `Sequence` (run every wired output, in order). |
-| **Logic** | violet | Functions, variables, requiring modules, and module-load-time setup. |
+| **Logic** | violet | Functions, variables, requiring modules, property-path extraction, and module-load-time setup. |
+| **Array** | light grey | Array iteration (map, filter, reduce, etc. with wireable loop bodies) and simple methods (push, pop, includes, etc.). |
 | **Debugging** | rose | `Console Log`. |
 
 This is the exact order the [Node Reference](/node-reference) presents them in, and the
@@ -33,11 +34,12 @@ available in both places:
   `middleware.customCode`, `express.route`, `handler.sendJson`, `logic.function`,
   `logic.export`, `logic.require`, `logic.begin`.
 - **Function Graph only**: `logic.graphEntry` (the graph's entry point, never added
-  manually — managed via the Function Graph editor's own panel) and `logic.graphReturn`
-  (ends the chain it's wired into with a return value; any number allowed, added from the
-  picker like any other node).
-- **Both, full parity**: `logic.functionCall`, `variable.get`, `variable.set`,
-  `debug.consoleLog`, `handler.customCode`, all 17 `operators.*` nodes, and all three
-  `controlFlow.*` nodes (`branch`, `switch`, `sequence`).
+  manually — managed via the Function Graph editor's own panel). `logic.graphReturn`
+  (Return) is no longer Function-Graph-only — it's also usable directly inside an
+  `array.*` loop body on the main canvas.
+- **Both, full parity**: `logic.functionCall`, `logic.pathExtractor`, `logic.graphReturn`,
+  `variable.get`, `variable.set`, `debug.consoleLog`, `handler.customCode`, all 17
+  `operators.*` nodes, all three `controlFlow.*` nodes (`branch`, `switch`, `sequence`),
+  and all 15 `array.*` nodes.
 
 Each node's page in the [Node Reference](/node-reference) notes which of these applies.

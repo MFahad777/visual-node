@@ -36,18 +36,37 @@ function formatDate(date) {
 
 ## Export — `logic.export`
 
-Marks which Function node(s) in this file are exported.
+Marks which Function node(s) and/or variable(s) in this file are exported.
 
 - **Inputs**: `in` — "Functions" — accepts **multiple** incoming edges, one per exported
-  function
+  function; `variables` (value) — "Variables" — accepts **multiple** incoming edges, one
+  per exported variable, wired from `variable.get` nodes
 - **Outputs**: none
 - **Config fields**: none
-- **Constraints**: every incoming wire's source must be a Function node; **at most one**
-  Export node per file.
+- **Constraints**: every "Functions" wire's source must be a Function node; every
+  "Variables" wire's source must be a `variable.get` node bound to a variable that is
+  **not** a `const` with no default value (see Notes below); the same function or
+  variable may not be wired into Export more than once; **at most one** Export node per
+  file.
 
 ```js
-module.exports = { formatDate, otherHelper };
+module.exports = { formatDate, otherHelper, appVersion };
 ```
+
+### Why a bare `const` with no default can't be exported
+
+`emit-express.ts` only unconditionally emits a top-level (module-scope) declaration for
+`let`/`var` variables and for `const` variables that already have a default value. A
+`const` with no default has no such guarantee — its only declaration point is wherever
+its `variable.set` node's execution chain happens to land, which could be nested inside a
+route handler or a Branch/Switch arm, or never emitted at all if unreachable. Exporting
+such a variable could reference an undeclared identifier or the wrong scoped binding, so
+it's rejected at validation time instead of silently compiling broken output.
+
+Reading an exported variable from another file needs no special mechanism — it works via
+`requireVarName.exportedName` inside any raw-code field (Custom Code, Expression, Path
+Extractor's object pin, etc.), the same way any exported function property not wrapped in
+a `logic.functionCall` is already consumed.
 
 ## Require — `logic.require`
 
@@ -113,6 +132,45 @@ return answer;
 ```
 
 Usable both on the main canvas and inside a Function Graph.
+
+## Path Extractor — `logic.pathExtractor`
+
+Resolves a free-form dot/bracket property path (e.g. `store.getInvoice`,
+`items[0].name`) against a wired object. If the resolved value is a function, it's
+called via `.apply(parent, args)` — preserving the correct `this` binding — with
+arguments gathered from dynamically-added parameter pins. A non-function resolved value
+is returned as-is, ignoring any parameters.
+
+- **Inputs**: `in` (exec) — "In"; `data_object` (value) — "Object" (wire-only, no
+  inline literal); plus dynamic `param-0..N` value pins, each with inline free-form
+  literal editing
+- **Outputs**: `out` (exec) — "Next"; `data_value` (value) — "Result"
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `path` | text | `""` | Free-form dot/bracket property path, e.g. `"billing.currency"` or `"items[0].name"`. |
+
+Grow or shrink the parameter pins with the **"+ Add Param"** / **"- Remove Param"**
+buttons rendered directly on the node face. Unlike other dynamic-pin node types
+(variadic boolean operators, Sequence, Switch), removal always targets the
+**highest-index** pin, never a pin in the middle of the list.
+
+```js
+// path: "store.getInvoice", param-0 wired to an Invoice ID value
+const result = store.getInvoice.apply(store, [invoiceId]);
+
+// path: "items[0].name" — plain property access, no params
+const result = items[0]?.name;
+```
+
+Path splitting into segments happens once at compile time. Resolving everything *except*
+the final segment goes through the `lodash.get` npm package at runtime — but only when
+the parent path actually needs it: an empty parent path aliases straight to the object,
+and a single-segment parent without brackets compiles to a plain optional-chained
+property access, avoiding the `lodash.get` dependency entirely for the common cases.
+Only a multi-segment parent path (dots or brackets) pulls in `lodash.get`, since a
+null-safe walk of arbitrary depth is what it's for.
 
 ## Start — `logic.graphEntry`
 
