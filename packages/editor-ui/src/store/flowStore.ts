@@ -25,8 +25,11 @@ import {
   removeSequencePin as removeSequencePinHelper,
   addPathExtractorParam as addPathExtractorParamHelper,
   removePathExtractorParam as removePathExtractorParamHelper,
+  addCallbackArg as addCallbackArgHelper,
+  removeCallbackArg as removeCallbackArgHelper,
+  setFunctionUsage as setFunctionUsageHelper,
 } from "./variadicPins.js";
-import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
+import { defaultLiteralsFor, type FunctionUsage } from "../canvas/effectivePorts.js";
 
 let nextNodeId = 1;
 function generateNodeId(type: string): string {
@@ -145,8 +148,8 @@ export interface FlowStoreState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  addNodeFromPalette: (type: string, position: XYPosition) => void;
-  addNodeFromBrowser: (type: string) => void;
+  addNodeFromPalette: (type: string, position: XYPosition, extraData?: Record<string, unknown>) => void;
+  addNodeFromBrowser: (type: string, extraData?: Record<string, unknown>) => void;
   addFunctionCallNode: (entry: ResolvedFunction, position?: XYPosition) => void;
   addVariableNode: (variableId: string, kind: "get" | "set", position: XYPosition) => void;
   openNodeBrowser: () => void;
@@ -161,6 +164,9 @@ export interface FlowStoreState {
   removeSequencePin: (nodeId: string, pinId: string) => void;
   addPathExtractorParam: (nodeId: string) => void;
   removePathExtractorParam: (nodeId: string) => void;
+  addCallbackArg: (nodeId: string) => void;
+  removeCallbackArg: (nodeId: string, argId: string) => void;
+  setFunctionUsage: (nodeId: string, usage: FunctionUsage) => void;
   selectNode: (nodeId: string | null) => void;
   deleteSelectedNode: () => void;
   deleteEdge: (edgeId: string) => void;
@@ -339,7 +345,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     get().runValidation();
   },
 
-  addNodeFromPalette: (type, position) => {
+  addNodeFromPalette: (type, position, extraData) => {
     const definition = get().nodeDefinitions[type];
     if (!definition) return;
 
@@ -350,6 +356,9 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     // defaultLiteralsFor doc comment for why this matters for validation).
     const literals = defaultLiteralsFor(type, definition);
     if (literals) data.literals = literals;
+    // `extraData` (e.g. `logic.function`'s `{ usage: "callback" | "standalone" }` from
+    // FunctionUsageMenu) overrides configSchema defaults — applied last so it always wins.
+    if (extraData) Object.assign(data, extraData);
     const node: Node = { id: generateNodeId(type), type, position, data };
 
     set({ nodes: [...get().nodes, node], isDirty: true });
@@ -361,10 +370,10 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   // placement in a grid based on the current node count so repeated adds
   // don't overlap; steps are wider than GenericNode's min-w-[190px] so cards
   // never overlap regardless of a node's port count.
-  addNodeFromBrowser: (type) => {
+  addNodeFromBrowser: (type, extraData) => {
     const index = get().nodes.length;
     const position: XYPosition = { x: 120 + (index % 4) * 260, y: 100 + Math.floor(index / 4) * 180 };
-    get().addNodeFromPalette(type, position);
+    get().addNodeFromPalette(type, position, extraData);
   },
 
   // Function Call nodes aren't in `nodeDefinitions` config-schema-driven defaults —
@@ -483,6 +492,26 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   removePathExtractorParam: (nodeId) => {
     const { nodes, edges } = removePathExtractorParamHelper(nodeId, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
+  addCallbackArg: (nodeId) => {
+    set({
+      nodes: get().nodes.map((n) => (n.id === nodeId ? addCallbackArgHelper(n) : n)),
+      isDirty: true,
+    });
+    get().runValidation();
+  },
+
+  removeCallbackArg: (nodeId, argId) => {
+    const { nodes, edges } = removeCallbackArgHelper(nodeId, argId, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
+  setFunctionUsage: (nodeId, usage) => {
+    const { nodes, edges } = setFunctionUsageHelper(nodeId, usage, get().nodes, get().edges);
     set({ nodes, edges, isDirty: true });
     get().runValidation();
   },

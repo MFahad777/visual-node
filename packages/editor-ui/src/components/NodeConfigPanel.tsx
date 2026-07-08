@@ -5,6 +5,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import type { Edge, Node } from "@xyflow/react";
 import type { ConfigField, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
+import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { RequiredModulesPanel } from "./RequiredModulesPanel.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
 import { VariablesPanel } from "./VariablesPanel.js";
@@ -275,6 +276,72 @@ function FunctionCallConfig({
               value={String(node.data?.[`arg-${i}`] ?? "")}
               onChange={(e) => updateNodeConfig(node.id, `arg-${i}`, e.target.value)}
             />
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * `logic.callback`'s dynamic `arg-<id>` pins (Phase 21) have no core `configSchema` entry —
+ * the arg count varies per instance, not per node type, same reason `FunctionCallConfig`
+ * above hand-rolls its per-param rows instead of using the generic form. Each arg row shows
+ * either a disabled "Wired" field (the connected node's value wins at codegen time — see
+ * `resolveValuePin`, which always prefers the wire over `data.literals`) or an editable text
+ * field bound to `data.literals["arg-<id>"]`, the exact same storage `GenericNode.tsx`'s
+ * on-canvas inline literal box reads/writes, so editing here and on the node face stay in
+ * sync with no extra wiring.
+ */
+function CallbackConfig({
+  node,
+  edges,
+  updateNodeConfig,
+}: {
+  node: Node;
+  edges: Edge[];
+  updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
+}) {
+  const args = getCallbackArgs(node.data as Record<string, unknown> | undefined);
+  const literals = (node.data?.literals as Record<string, unknown> | undefined) ?? {};
+
+  const setLiteral = (pinId: string, value: string) => {
+    updateNodeConfig(node.id, "literals", { ...literals, [pinId]: value });
+  };
+
+  if (args.length === 0) {
+    return <p className="text-xs text-neutral-500">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {args.map((arg, i) => {
+        const pinId = `arg-${arg.id}`;
+        const isWired = edges.some((e) => e.target === node.id && e.targetHandle === pinId);
+        return (
+          <label key={arg.id} className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">Arg {i + 1}</span>
+            {isWired ? (
+              <>
+                <span className="text-[11px] text-neutral-500">Wired — the connected node's value is used instead.</span>
+                <input
+                  type="text"
+                  disabled
+                  value="Wired"
+                  className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-500"
+                />
+              </>
+            ) : (
+              <>
+                <span className="text-[11px] text-neutral-500">Any JS literal: a number, a quoted string, or true/false.</span>
+                <input
+                  type="text"
+                  value={String(literals[pinId] ?? "")}
+                  onChange={(e) => setLiteral(pinId, e.target.value)}
+                  className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+                />
+              </>
+            )}
           </label>
         );
       })}
@@ -661,6 +728,8 @@ export function NodeConfigPanel() {
         />
       ) : node.type === "logic.require" ? (
         <RequireNodeConfig node={node} updateNodeConfig={updateNodeConfig} />
+      ) : node.type === "logic.callback" ? (
+        <CallbackConfig node={node} edges={edges} updateNodeConfig={updateNodeConfig} />
       ) : node.type === "debug.consoleLog" ? (
         <ConsoleLogConfig node={node} edges={edges} updateNodeConfig={updateNodeConfig} openCodeExpand={openCodeExpand} />
       ) : node.type === "controlFlow.switch" ? (

@@ -1,4 +1,5 @@
 import type { NodeDefinition } from "../../schema/node-registry.js";
+import type { FlowNode } from "../../schema/node.types.js";
 import { resolveValuePin } from "../../codegen/value-pins.js";
 import { formatLiteralForType } from "../../codegen/variable-declarations.js";
 import { buildFunctionCallExpression, functionCallResultInlinesInto } from "./function-call.node.js";
@@ -43,11 +44,20 @@ export const variableSetNode: NodeDefinition = {
         ? buildFunctionCallExpression(incomingSource, ctx)
         : undefined;
 
+    // If the "Value" pin is wired directly from a Function node (Phase 20), inline the function
+    // expression into this assignment instead of emitting a separate declaration — collapses
+    // `function f(...) {...}; variable = f;` into `let variable = function f(...) {...};`.
+    const inlinedFunction =
+      inlinedCall === undefined && incomingSource?.type === "logic.function"
+        ? buildFunctionExpression(incomingSource, ctx)
+        : undefined;
+
     // Only the literal (unwired) fallback needs per-dataType formatting — a wired value is
     // already a proper JS expression (an identifier, a computed result) and must be spliced
     // as-is; formatLiteral is never invoked on that branch (see resolveValuePin).
     const expr =
       inlinedCall ??
+      inlinedFunction ??
       resolveValuePin(node, ctx, "value", {
         formatLiteral: (raw) => formatLiteralForType(variable.dataType, raw),
       });
@@ -67,3 +77,24 @@ export const variableSetNode: NodeDefinition = {
     return { body: statement, order: 0 };
   },
 };
+
+/**
+ * Builds a function expression string from a Function node (Phase 20: inline into SET variable).
+ * Returns the function as a named function expression: `function name(params) { body }`
+ * (not a declaration, so it can be used as a value expression in assignment contexts).
+ */
+function buildFunctionExpression(node: FlowNode, ctx: any): string {
+  const name = String(node.data?.name ?? "").trim() || "anonymous";
+  const params = String(node.data?.params ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .join(", ");
+  const body = String(node.data?.body ?? "");
+  const indent = (code: string) =>
+    code
+      .split("\n")
+      .map((line) => (line.length > 0 ? `  ${line}` : line))
+      .join("\n");
+  return `function ${name}(${params}) {\n${indent(body)}\n}`;
+}

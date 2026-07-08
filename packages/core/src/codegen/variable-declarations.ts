@@ -124,6 +124,14 @@ export function validateVariableDeclaration(variable: VariableDeclaration): stri
       }
       return null;
 
+    case "function": {
+      const looksLikeFunction = raw.startsWith("function") || raw.includes("=>") || IDENTIFIER_RE.test(raw);
+      if (!looksLikeFunction) {
+        return `Variable "${variable.name}" is typed "function" but its default value "${raw}" doesn't look like a function expression or reference`;
+      }
+      return null;
+    }
+
     case "symbol":
     case "buffer":
     case "string":

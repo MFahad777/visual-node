@@ -1,6 +1,6 @@
 import type { Flow, FlowEdge } from "../schema/node.types.js";
 import { requireNodeDefinition, type EmitContext, type EmittedCode } from "../schema/node-registry.js";
-import { validateFlow } from "../schema/validate.js";
+import { validateFlow, getConstVariablesOverriddenFromBegin } from "../schema/validate.js";
 import { topologicalSortStructuralNodes, collectLogicNodes } from "./graph-walker.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
 
@@ -57,8 +57,11 @@ export function emitExpress(flow: Flow): EmitResult {
 
   // Module-level variable declarations (Phase 10): order 1, after express.init's 0 and before
   // logic.function's 5 — though since function declarations hoist, anywhere before
-  // express.listen's 100 is actually safe.
+  // express.listen's 100 is actually safe. Skip variables that are overridden by a Set node
+  // from Begin — the Set node's own declaration will replace the default.
+  const overriddenVarIds = getConstVariablesOverriddenFromBegin(flow);
   for (const variable of flow.variables ?? []) {
+    if (overriddenVarIds.has(variable.id)) continue;
     const setup = buildVariableDeclarationStatement(variable);
     if (setup) setupFragments.push({ order: 1, setup });
   }

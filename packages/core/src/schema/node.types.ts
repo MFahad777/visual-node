@@ -27,7 +27,8 @@ export type VariableDataType =
   | "bigint"
   | "symbol"
   | "buffer"
-  | "url";
+  | "url"
+  | "function";
 
 export interface VariableDeclaration {
   id: string;
@@ -44,8 +45,11 @@ export interface VariableDeclaration {
    * element to be an object/array literal, since `WeakSet` rejects primitives at runtime),
    * integer text for "bigint" (wrapped as `${raw}n`), a description for "symbol" (wrapped as
    * `Symbol(...)`), UTF-8 text for "buffer" (wrapped as `Buffer.from(...)`), a URL string for
-   * "url" (wrapped as `new URL(...)`), or the fixed literal text `"null"`/`"undefined"` for
-   * those two types. Absent/empty = no initializer, regardless of `dataType`.
+   * "url" (wrapped as `new URL(...)`), a JS function expression or bare identifier reference
+   * for "function" (emitted as-is, same "trust the user's raw JS" treatment as "object" — see
+   * `validateVariableDeclaration`'s light "looks like a function" heuristic), or the fixed
+   * literal text `"null"`/`"undefined"` for those two types. Absent/empty = no initializer,
+   * regardless of `dataType`.
    */
   defaultValue?: string;
 }

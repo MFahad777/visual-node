@@ -571,24 +571,34 @@ describe("logic.begin", () => {
     expect(code).toContain("console.log(DIR);");
   });
 
-  it("rejects a const-with-default Set placed directly on Begin's trunk (would duplicate the top-level declaration)", () => {
+  it("allows a const-with-default Set placed directly on Begin's trunk (the Set's value overrides the default)", () => {
     const flow = makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "5" } } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "var_get", target: "handler", sourceHandle: "value", targetHandle: "body" },
+        { id: "e4", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
     flow.variables = [{ id: "v1", name: "counter", keyword: "const", dataType: "number", defaultValue: "0" }];
 
     const result = validateFlow(flow);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('duplicate top-level "const'))).toBe(true);
+    expect(result.valid).toBe(true);
+
+    const { code } = emitExpress(flow);
+    // The default value "0" should NOT be emitted; the Set's value "5" replaces it
+    expect(code).not.toContain("const counter = 0;");
+    expect(code).toContain("const counter = (5);");
   });
 
   it("allows the same const-with-default Set when placed inside a Branch arm reachable from Begin (no false positive)", () => {

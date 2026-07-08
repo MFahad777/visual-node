@@ -52,6 +52,7 @@ import { arrayShiftNode } from "./array/shift.node.js";
 import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
 import { pathExtractorNode } from "./logic/path-extractor.node.js";
+import { callbackNode } from "./logic/callback.node.js";
 
 const BUILTIN_NODES = [
   expressInitNode,
@@ -124,6 +125,10 @@ const BUILTIN_NODES = [
   // usable on both the main canvas and inside Function Graphs (see
   // FUNCTION_GRAPH_NODE_DEFINITIONS below), same "full parity" treatment as operators/arrays.
   pathExtractorNode,
+  // Phase 20: Callback — invokes a wired function-value reference with dynamically-added
+  // argument pins, usable on both the main canvas and inside Function Graphs (see
+  // FUNCTION_GRAPH_NODE_DEFINITIONS below).
+  callbackNode,
 ];
 
 /** Registers all built-in MVP node definitions. Safe to call more than once (e.g. after clearRegistry()). */
@@ -185,4 +190,5 @@ export {
   arrayIncludesNode,
   arrayIndexOfNode,
   pathExtractorNode,
+  callbackNode,
 };

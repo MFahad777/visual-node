@@ -3,8 +3,13 @@ import {
   getSwitchCases,
   getSequencePins,
   getPathExtractorParamCount,
+  getCallbackArgs,
+  functionAllowedInputHandles,
+  functionAllowedOutputHandles,
   type SwitchCase,
   type SequencePin,
+  type CallbackArg,
+  type FunctionUsage,
 } from "../canvas/effectivePorts.js";
 
 /**
@@ -138,6 +143,65 @@ export function removePathExtractorParam(
   return {
     nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, paramCount: count - 1 } } : n)),
     edges: edges.filter((e) => !(e.target === nodeId && e.targetHandle === removedPinId)),
+  };
+}
+
+/**
+ * Appends a new argument pin (`arg-<seq>`) to a Callback node's `data.args`. `nextArgSeq` is
+ * a monotonic counter, never reused — same convention as `addSequencePin`'s `nextPinSeq`.
+ * Unlike Sequence (an exec-output stable-id list), this is a value-INPUT stable-id list, so
+ * removal (`removeCallbackArg`) drops an incoming wire, not an outgoing one.
+ */
+export function addCallbackArg(node: Node): Node {
+  const args = getCallbackArgs(node.data as Record<string, unknown>);
+  const seq = Number(node.data?.nextArgSeq ?? 0);
+  const newArg: CallbackArg = { id: String(seq) };
+  return { ...node, data: { ...node.data, args: [...args, newArg], nextArgSeq: seq + 1 } };
+}
+
+/** Removes one dynamic arg pin from a Callback node by its stable id, dropping any wire targeting it. */
+export function removeCallbackArg(
+  nodeId: string,
+  argId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const handle = `arg-${argId}`;
+  return {
+    nodes: nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, args: getCallbackArgs(n.data as Record<string, unknown>).filter((a) => a.id !== argId) } }
+        : n,
+    ),
+    edges: edges.filter((e) => !(e.target === nodeId && e.targetHandle === handle)),
+  };
+}
+
+/**
+ * Sets a `logic.function` instance's `usage` ("callback" | "standalone") and drops any edge
+ * touching this node whose handle isn't allowed under the new usage — e.g. switching to
+ * "standalone" removes the "Assign / Parameter" output wire and any wired `param-<i>` input,
+ * switching to "callback" removes the "Function" exec-out wire. Uses the same
+ * `functionAllowedInputHandles`/`functionAllowedOutputHandles` helpers `effectivePorts.ts`'s
+ * `computeEffectiveInputs`/`computeEffectiveOutputs` use for rendering, so a pin that's about
+ * to disappear from the canvas never keeps a dangling edge reference.
+ */
+export function setFunctionUsage(
+  nodeId: string,
+  usage: FunctionUsage,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const node = nodes.find((n) => n.id === nodeId);
+  const allowedInputs = functionAllowedInputHandles(usage, node?.data as Record<string, unknown> | undefined);
+  const allowedOutputs = functionAllowedOutputHandles(usage);
+  return {
+    nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, usage } } : n)),
+    edges: edges.filter((e) => {
+      if (e.target === nodeId && e.targetHandle && !allowedInputs.has(e.targetHandle)) return false;
+      if (e.source === nodeId && e.sourceHandle && !allowedOutputs.has(e.sourceHandle)) return false;
+      return true;
+    }),
   };
 }
 

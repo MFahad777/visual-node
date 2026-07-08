@@ -16,8 +16,10 @@ import { CustomEdge } from "./CustomEdge.js";
 import { NodePickerMenu } from "./NodePickerMenu.js";
 import { CategoryLegend } from "./CategoryLegend.js";
 import { VariableDropMenu } from "./VariableDropMenu.js";
+import { FunctionUsageMenu } from "./FunctionUsageMenu.js";
 import { isValidPinConnection } from "./connectionValidation.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
+import type { FunctionUsage } from "./effectivePorts.js";
 
 const edgeTypes = { "flow-edge": CustomEdge };
 
@@ -32,6 +34,12 @@ interface VariableDropState {
   screenY: number;
   flowPosition: XYPosition;
   variableId: string;
+}
+
+interface FunctionUsageDropState {
+  screenX: number;
+  screenY: number;
+  flowPosition: XYPosition;
 }
 
 export function FlowCanvas() {
@@ -58,6 +66,7 @@ export function FlowCanvas() {
 
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [variableDrop, setVariableDrop] = useState<VariableDropState | null>(null);
+  const [functionUsageDrop, setFunctionUsageDrop] = useState<FunctionUsageDropState | null>(null);
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
@@ -101,6 +110,14 @@ export function FlowCanvas() {
 
       const nodeType = event.dataTransfer.getData("application/flowserver-node-type");
       if (nodeType) {
+        // logic.function needs an extra Callback/Standalone choice — see
+        // FunctionUsageMenu's doc comment — so it's routed through the same
+        // "open a small popup at the drop point" pattern as a Variables-panel drop above,
+        // instead of being added immediately.
+        if (nodeType === "logic.function") {
+          setFunctionUsageDrop({ screenX: event.clientX, screenY: event.clientY, flowPosition });
+          return;
+        }
         addNodeFromPalette(nodeType, flowPosition);
       }
     },
@@ -168,6 +185,17 @@ export function FlowCanvas() {
             />
           );
         })()}
+      {functionUsageDrop && (
+        <FunctionUsageMenu
+          x={functionUsageDrop.screenX}
+          y={functionUsageDrop.screenY}
+          onChoose={(usage: FunctionUsage) => {
+            addNodeFromPalette("logic.function", functionUsageDrop.flowPosition, { usage });
+            setFunctionUsageDrop(null);
+          }}
+          onClose={() => setFunctionUsageDrop(null)}
+        />
+      )}
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { useFlowStore } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction, type ResolvedRequireModule } from "../lib/resolveRequiredFunctions.js";
 import { CATEGORY_ORDER, CATEGORY_THEME } from "./categoryTheme.js";
 import { CategoryIcon } from "./CategoryIcon.js";
+import { FunctionUsageMenu } from "./FunctionUsageMenu.js";
+import type { FunctionUsage } from "./effectivePorts.js";
 
 export interface NodePickerMenuProps {
   screenX: number;
@@ -24,6 +26,10 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
   const nodes = useFlowStore((s) => s.nodes);
 
   const [query, setQuery] = useState("");
+  // Set instead of immediately adding when a Function node is picked — see
+  // FunctionUsageMenu's doc comment. Swaps this same fixed-position box over to the
+  // Callback/Standalone choice rather than closing the picker outright.
+  const [pendingFunctionAdd, setPendingFunctionAdd] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,8 +115,21 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
   const left = Math.max(8, Math.min(screenX, window.innerWidth - MENU_WIDTH - 8));
   const top = Math.max(8, Math.min(screenY, window.innerHeight - MENU_MAX_HEIGHT - 8));
 
+  if (pendingFunctionAdd) {
+    return <FunctionUsageMenu x={screenX} y={screenY} onChoose={handleChooseFunctionUsage} onClose={onClose} />;
+  }
+
   function handleSelect(type: string) {
+    if (type === "logic.function") {
+      setPendingFunctionAdd(true);
+      return;
+    }
     addNodeFromPalette(type, flowPosition);
+    onClose();
+  }
+
+  function handleChooseFunctionUsage(usage: FunctionUsage) {
+    addNodeFromPalette("logic.function", flowPosition, { usage });
     onClose();
   }
 

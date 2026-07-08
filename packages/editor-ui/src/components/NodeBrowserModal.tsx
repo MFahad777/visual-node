@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import type { NodeCategory, NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import { CATEGORY_ORDER, CATEGORY_THEME } from "../canvas/categoryTheme.js";
 import { CategoryIcon } from "../canvas/CategoryIcon.js";
+import { FunctionUsageMenu } from "../canvas/FunctionUsageMenu.js";
+import type { FunctionUsage } from "../canvas/effectivePorts.js";
 
 export function NodeBrowserModal() {
   const isNodeBrowserOpen = useFlowStore((s) => s.isNodeBrowserOpen);
@@ -16,6 +18,9 @@ export function NodeBrowserModal() {
 
   const [query, setQuery] = useState("");
   const [lastAdded, setLastAdded] = useState<string | null>(null);
+  // Anchors FunctionUsageMenu near the clicked Function card instead of adding immediately
+  // — see FunctionUsageMenu's doc comment for why Function nodes need this extra step.
+  const [functionUsagePopup, setFunctionUsagePopup] = useState<{ x: number; y: number } | null>(null);
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,9 +85,19 @@ export function NodeBrowserModal() {
 
   if (!isNodeBrowserOpen) return null;
 
-  function handleAdd(def: NodeDefinition) {
+  function handleAdd(def: NodeDefinition, event: MouseEvent<HTMLButtonElement>) {
+    if (def.type === "logic.function") {
+      setFunctionUsagePopup({ x: event.clientX, y: event.clientY });
+      return;
+    }
     addNodeFromBrowser(def.type);
     setLastAdded(def.label);
+  }
+
+  function handleChooseFunctionUsage(usage: FunctionUsage) {
+    addNodeFromBrowser("logic.function", { usage });
+    setLastAdded("Function");
+    setFunctionUsagePopup(null);
   }
 
   function handleAddFunctionCall(entry: ResolvedFunction) {
@@ -109,7 +124,7 @@ export function NodeBrowserModal() {
                 e.dataTransfer.setData("application/flowserver-node-type", def.type);
                 e.dataTransfer.effectAllowed = "move";
               }}
-              onClick={() => handleAdd(def)}
+              onClick={(e) => handleAdd(def, e)}
               disabled={currentFilePath === null}
               title={def.description}
               className="relative rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5 text-left text-xs shadow-sm hover:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -211,6 +226,14 @@ export function NodeBrowserModal() {
           )}
         </div>
       </div>
+      {functionUsagePopup && (
+        <FunctionUsageMenu
+          x={functionUsagePopup.x}
+          y={functionUsagePopup.y}
+          onChoose={handleChooseFunctionUsage}
+          onClose={() => setFunctionUsagePopup(null)}
+        />
+      )}
     </div>
   );
 }

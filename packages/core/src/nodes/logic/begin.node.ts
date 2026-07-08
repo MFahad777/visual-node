@@ -35,7 +35,7 @@ export const beginNode: NodeDefinition = {
   emit: (node, ctx) => {
     const outgoing = ctx.getOutgoing(node.id);
     if (outgoing.length === 0) {
-      return { order: 2 };
+      return { order: 10 };
     }
 
     const result = emitExecChain(outgoing[0].target, ctx);
@@ -44,7 +44,7 @@ export const beginNode: NodeDefinition = {
     return {
       imports: result.imports.length > 0 ? result.imports : undefined,
       setup,
-      order: 2,
+      order: 10,
     };
   },
 };

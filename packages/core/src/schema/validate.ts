@@ -94,7 +94,7 @@ export function validateFlow(flow: Flow): ValidationResult {
           }
           seenVariableIds.add(variableId);
         }
-        if (variable && variable.keyword === "const" && !(variable.defaultValue?.trim().length ?? 0)) {
+        if (variable && variable.keyword === "const" && !(variable.defaultValue?.trim().length ?? 0) && variable.dataType !== "function") {
           errors.push({
             nodeId: exp.id,
             message:
@@ -197,7 +197,6 @@ export function validateFlow(flow: Flow): ValidationResult {
   errors.push(...checkCrossArmValueReferences(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
   errors.push(...validateExecOutputArity(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
   errors.push(...validateVariables(flow.nodes, flow.variables ?? [], (nodeId, message) => ({ nodeId, message })));
-  errors.push(...checkBeginReachableConstOverwrite(flow, (nodeId, message) => ({ nodeId, message })));
 
   const cycleError = detectCycle(flow);
   if (cycleError) errors.push(cycleError);
@@ -604,6 +603,42 @@ function validateOperatorsAndControlFlow(
       }
     }
 
+    // Phase 20: Callback's dynamic `arg-<id>` pins mirror Sequence's `data.pins` shape check
+    // above, but on the INPUT side — a stable-id array of value-input pins, not exec-output
+    // pins, so it's incoming edges (not outgoing) that must reference a still-present id.
+    if (node.type === "logic.callback") {
+      const rawArgs = (node.data as Record<string, unknown> | undefined)?.args;
+      const argsArray = rawArgs === undefined ? [] : Array.isArray(rawArgs) ? (rawArgs as unknown[]) : undefined;
+      const validArgs: string[] = [];
+      if (!argsArray) {
+        errors.push(makeError(node.id, `Callback node "${node.id}" has an invalid "args" list (must be an array)`));
+      } else {
+        const seenIds = new Set<string>();
+        for (const entry of argsArray) {
+          const a = entry as { id?: unknown } | undefined;
+          const id = typeof a?.id === "string" ? a.id : undefined;
+          if (!id) {
+            errors.push(makeError(node.id, `Callback node "${node.id}" has an invalid arg entry (needs a string "id")`));
+            continue;
+          }
+          if (seenIds.has(id)) {
+            errors.push(makeError(node.id, `Callback node "${node.id}" has duplicate arg id "${id}"`));
+            continue;
+          }
+          seenIds.add(id);
+          validArgs.push(id);
+        }
+      }
+
+      const validHandles = new Set<string>(["in", "function", ...validArgs.map((id) => `arg-${id}`)]);
+      const incoming = edges.filter((e) => e.target === node.id);
+      for (const e of incoming) {
+        if (!validHandles.has(e.targetHandle ?? "")) {
+          errors.push(makeError(node.id, `Callback node "${node.id}" has an incoming connection ("${e.targetHandle ?? ""}") that references a pin that no longer exists`));
+        }
+      }
+    }
+
     // Phase 12: Return's "value" pin follows the same arity/literal-fallback rule as Branch's
     // "condition"/Switch's "selection" above. Deliberately no check on the "in" (exec) pin
     // here: an unwired "in" is legal — `emit-function-graph.ts` treats it as the backward-
@@ -946,21 +981,21 @@ function checkCrossArmValueReferences(
  * module-level variable-declarations loop (`emit-express.ts`, order 1); one reached through a
  * Branch/Switch arm instead gets that arm's own `{ }` block, a fresh scope regardless of what
  * it declares, so it's excluded. Reuses `computeExecArmPaths` (seeded from Begin nodes only) so
- * this can never disagree with what `exec-chain.ts` actually emits. Only `const` variables that
- * already have a `defaultValue` are at risk — that's the only case where `emit-express.ts`
- * already emitted a top-level declaration for `variable-set.node.ts`'s own scoped `const`
- * redeclaration to collide with (see docs/phase11-begin-node-plan.md).
+ * this can never disagree with what `exec-chain.ts` actually emits.
+ *
+ * This function computes which `const` variables with defaults have an overriding Set node from
+ * Begin and should skip their default emission (see `emit-express.ts`). Returns a Set of
+ * variable ids that should NOT emit their defaults because a Set node will declare them instead.
  */
-function checkBeginReachableConstOverwrite(
+export function getConstVariablesOverriddenFromBegin(
   flow: Flow,
-  makeError: (nodeId: string, message: string) => ValidationError,
-): ValidationError[] {
+): Set<string> {
   const beginIds = flow.nodes.filter((n) => n.type === "logic.begin").map((n) => n.id);
-  if (beginIds.length === 0) return [];
+  if (beginIds.length === 0) return new Set();
 
   const armPathOf = computeExecArmPaths(flow.nodes, flow.edges, beginIds);
   const variablesById = new Map((flow.variables ?? []).map((v) => [v.id, v]));
-  const errors: ValidationError[] = [];
+  const overridden = new Set<string>();
 
   for (const n of flow.nodes) {
     if (n.type !== "variable.set") continue;
@@ -969,19 +1004,13 @@ function checkBeginReachableConstOverwrite(
 
     const variableId = (n.data as Record<string, unknown> | undefined)?.variableId;
     const variable = typeof variableId === "string" ? variablesById.get(variableId) : undefined;
-    if (variable?.keyword === "const" && (variable.defaultValue?.trim().length ?? 0) > 0) {
-      errors.push(
-        makeError(
-          n.id,
-          `Set Variable node "${n.id}" targets const variable "${variable.name}", which already has a default value ` +
-            `declared at module scope. Reached directly from a Begin node (not inside a Branch/Switch arm), this would ` +
-            `emit a duplicate top-level "const ${variable.name}" declaration. Change "${variable.name}" to "let"/"var", ` +
-            `clear its default value, or move this Set node behind a Branch, Switch, Route, or Function instead.`,
-        ),
-      );
+    // Only const variables can be overridden — let/var variables still need their default
+    // declaration since a Set node on them emits a bare assignment, not a const redeclaration.
+    if (variable?.keyword === "const") {
+      overridden.add(variableId as string);
     }
   }
-  return errors;
+  return overridden;
 }
 
 function detectCycle(flow: Flow): ValidationError | null {

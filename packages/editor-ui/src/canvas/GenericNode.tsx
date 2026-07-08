@@ -12,6 +12,7 @@ import {
   literalKindFor,
   staticLiteralPinIds,
   getPathExtractorParamCount,
+  getCallbackArgs,
   VARIADIC_BOOLEAN_TYPES,
 } from "./effectivePorts.js";
 import { isExecPort } from "./execPorts.js";
@@ -114,6 +115,10 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
       const literal = literalPreview(data, "searchElement");
       return literal.length > 0 ? `.indexOf(${literal})` : ".indexOf(...)";
     }
+    case "logic.callback": {
+      const argCount = Array.isArray(data.args) ? data.args.length : 0;
+      return `callback(${argCount} arg${argCount === 1 ? "" : "s"})`;
+    }
     default:
       return null;
   }
@@ -158,6 +163,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const globalRemoveSequencePin = useFlowStore((s) => s.removeSequencePin);
   const globalAddPathExtractorParam = useFlowStore((s) => s.addPathExtractorParam);
   const globalRemovePathExtractorParam = useFlowStore((s) => s.removePathExtractorParam);
+  const globalAddCallbackArg = useFlowStore((s) => s.addCallbackArg);
+  const globalRemoveCallbackArg = useFlowStore((s) => s.removeCallbackArg);
   const updateNodeData = scopedEdgeContext?.updateNodeData ?? globalUpdateNodeConfig;
   const addInputPin = scopedEdgeContext?.addInputPin ?? globalAddInputPin;
   const removeInputPin = scopedEdgeContext?.removeInputPin ?? globalRemoveInputPin;
@@ -165,6 +172,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const removeSequencePin = scopedEdgeContext?.removeSequencePin ?? globalRemoveSequencePin;
   const addPathExtractorParam = scopedEdgeContext?.addPathExtractorParam ?? globalAddPathExtractorParam;
   const removePathExtractorParam = scopedEdgeContext?.removePathExtractorParam ?? globalRemovePathExtractorParam;
+  const addCallbackArg = scopedEdgeContext?.addCallbackArg ?? globalAddCallbackArg;
+  const removeCallbackArg = scopedEdgeContext?.removeCallbackArg ?? globalRemoveCallbackArg;
 
   if (!definition) {
     return (
@@ -209,6 +218,26 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const isPathExtractorParamPin = (portId: string) =>
     type === "logic.pathExtractor" && /^param-\d+$/.test(portId) && Number(portId.slice(6)) < pathExtractorParamCount;
 
+  // `logic.function`'s dynamic `param-<N>` default-value pins (Phase 20) have the exact same
+  // "not part of the static NodeDefinition shape" problem Path Extractor's params do — gated
+  // here the same way, off the live parsed parameter count instead of a fixed pin list.
+  const functionParamCount =
+    type === "logic.function"
+      ? String((data as Record<string, unknown> | undefined)?.params ?? "")
+          .split(",")
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0).length
+      : 0;
+  const isFunctionParamPin = (portId: string) =>
+    type === "logic.function" && /^param-\d+$/.test(portId) && Number(portId.slice(6)) < functionParamCount;
+
+  // `logic.callback`'s dynamic `arg-<id>` pins (Phase 21) have the same "not part of the
+  // static NodeDefinition shape" problem Path Extractor's/Function's params do — a callback
+  // arg can be any JS type, so it gets the same free-form raw-JS-text box, and (like every
+  // other value pin here) only shows it when unwired — `resolveValuePin` already prefers the
+  // wired value over the literal, so this is purely presentational, not a new precedence rule.
+  const isCallbackArgPin = (portId: string) => type === "logic.callback" && /^arg-/.test(portId);
+
   const resolvedLiteralKindFor = (portId: string): "number" | "boolean" | "text" | null => {
     if (type === "variable.set" && portId === "value" && boundVariable) {
       if (boundVariable.dataType === "number") return "number";
@@ -216,6 +245,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
       return "text";
     }
     if (isPathExtractorParamPin(portId)) return "text";
+    if (isFunctionParamPin(portId)) return "text";
+    if (isCallbackArgPin(portId)) return "text";
     if (!literalKind || !type) return null;
     return staticLiteralPinIds(type, definition).includes(portId) ? literalKind : null;
   };
@@ -281,6 +312,8 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
     (Array.isArray(nodeData.pins) ? (nodeData.pins as Array<{ id: string }>) : []).map((p) => `then-${p.id}`),
   );
   const isPathExtractorNode = type === "logic.pathExtractor";
+  const isCallbackNode = type === "logic.callback";
+  const callbackArgIds = new Set(getCallbackArgs(nodeData).map((a) => `arg-${a.id}`));
 
   return (
     <div
@@ -312,6 +345,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                 const portLiteralKind = resolvedLiteralKindFor(port.id);
                 const showLiteral = portLiteralKind !== null && !isExecPort(port) && !connected;
                 const isRemovableInput = isVariadicBooleanNode && extraInputIds.has(port.id);
+                const isRemovableCallbackArg = isCallbackNode && callbackArgIds.has(port.id);
                 return (
                   // `relative` makes this row (not the whole node) the offset parent for its
                   // Handle — react-flow's default handle CSS centers vertically (`top: 50%`)
@@ -370,6 +404,16 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                         ×
                       </button>
                     )}
+                    {isRemovableCallbackArg && (
+                      <button
+                        type="button"
+                        onClick={() => removeCallbackArg(id, port.id.replace(/^arg-/, ""))}
+                        title="Remove arg"
+                        className="nodrag nopan flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-red-400 text-[9px] leading-none text-red-400 hover:bg-red-500 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -380,6 +424,15 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                   className="nodrag nopan mt-0.5 self-start text-left text-[10px] text-sky-400 hover:text-sky-300"
                 >
                   + Add pin
+                </button>
+              )}
+              {isCallbackNode && (
+                <button
+                  type="button"
+                  onClick={() => addCallbackArg(id)}
+                  className="nodrag nopan mt-0.5 self-start text-left text-[10px] text-sky-400 hover:text-sky-300"
+                >
+                  + Add Arg
                 </button>
               )}
               {isPathExtractorNode && (

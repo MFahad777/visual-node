@@ -21,7 +21,7 @@ import { nodeTypes } from "../canvas/nodeTypes.js";
 import { CustomEdge } from "../canvas/CustomEdge.js";
 import { CategoryLegend } from "../canvas/CategoryLegend.js";
 import { FunctionGraphNodeDefinitionsContext, useFunctionGraphNodeDefinitions } from "../canvas/functionGraphNodeDefinitions.js";
-import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
+import { defaultLiteralsFor, getCallbackArgs } from "../canvas/effectivePorts.js";
 import { isValidPinConnection } from "../canvas/connectionValidation.js";
 import { FunctionGraphEdgeContext } from "../canvas/functionGraphEdgeContext.js";
 import { VariableDropMenu } from "../canvas/VariableDropMenu.js";
@@ -132,6 +132,8 @@ function FunctionGraphModalContent({
   const removeSequencePin = useGraphStore((s) => s.removeSequencePin);
   const addPathExtractorParam = useGraphStore((s) => s.addPathExtractorParam);
   const removePathExtractorParam = useGraphStore((s) => s.removePathExtractorParam);
+  const addCallbackArg = useGraphStore((s) => s.addCallbackArg);
+  const removeCallbackArg = useGraphStore((s) => s.removeCallbackArg);
   const addParam = useGraphStore((s) => s.addParam);
   const removeParam = useGraphStore((s) => s.removeParam);
   const renameParam = useGraphStore((s) => s.renameParam);
@@ -228,6 +230,8 @@ function FunctionGraphModalContent({
                   removeSequencePin,
                   addPathExtractorParam,
                   removePathExtractorParam,
+                  addCallbackArg,
+                  removeCallbackArg,
                   variables,
                 }}
               >
@@ -286,6 +290,7 @@ function FunctionGraphModalContent({
               <SubCanvasNodeConfig
                 node={selectedNode}
                 definition={functionGraphDefinitions?.[selectedNode.type ?? ""] ?? null}
+                edges={edges as Edge[]}
                 updateNodeData={updateNodeData}
                 addSwitchCasePin={addSwitchCasePin}
                 removeSwitchCasePin={removeSwitchCasePin}
@@ -480,6 +485,7 @@ function GraphCanvas({
 function SubCanvasNodeConfig({
   node,
   definition,
+  edges,
   updateNodeData,
   addSwitchCasePin,
   removeSwitchCasePin,
@@ -488,6 +494,7 @@ function SubCanvasNodeConfig({
 }: {
   node: Node;
   definition: NodeDefinition | null;
+  edges: Edge[];
   updateNodeData: (nodeId: string, key: string, value: unknown) => void;
   addSwitchCasePin: (nodeId: string) => void;
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
@@ -520,6 +527,48 @@ function SubCanvasNodeConfig({
         onRemoveCase={removeSwitchCasePin}
         onUpdateCaseValue={updateSwitchCaseValue}
       />
+    );
+  }
+
+  if (node.type === "logic.callback") {
+    const args = getCallbackArgs(node.data as Record<string, unknown> | undefined);
+    const literals = (node.data?.literals as Record<string, unknown> | undefined) ?? {};
+    if (args.length === 0) {
+      return <p className="text-xs text-neutral-500">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
+    }
+    return (
+      <div className="flex flex-col gap-3">
+        {args.map((arg, i) => {
+          const pinId = `arg-${arg.id}`;
+          const isWired = edges.some((e) => e.target === node.id && e.targetHandle === pinId);
+          return (
+            <label key={arg.id} className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-neutral-400">Arg {i + 1}</span>
+              {isWired ? (
+                <>
+                  <span className="text-[11px] text-neutral-500">Wired — the connected node's value is used instead.</span>
+                  <input
+                    type="text"
+                    disabled
+                    value="Wired"
+                    className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-500"
+                  />
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] text-neutral-500">Any JS literal: a number, a quoted string, or true/false.</span>
+                  <input
+                    type="text"
+                    value={String(literals[pinId] ?? "")}
+                    onChange={(e) => updateNodeData(node.id, "literals", { ...literals, [pinId]: e.target.value })}
+                    className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+                  />
+                </>
+              )}
+            </label>
+          );
+        })}
+      </div>
     );
   }
 

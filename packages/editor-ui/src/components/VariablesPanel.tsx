@@ -326,7 +326,9 @@ function DefaultValueField({
           ? "UTF-8 text"
           : dataType === "url"
             ? "https://example.com"
-            : "no default";
+            : dataType === "function"
+              ? "e.g. (x) => x * 2, or myFunction"
+              : "no default";
 
   return (
     <input

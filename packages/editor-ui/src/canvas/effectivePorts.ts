@@ -149,6 +149,50 @@ export function getSequencePins(data: Record<string, unknown> | undefined): Sequ
 }
 
 /**
+ * How a `logic.function` instance is meant to be used, chosen via `FunctionUsageMenu` at
+ * creation time (or changed later from the config panel) — `undefined` means "no choice
+ * was ever made" (every pre-existing node from before this concept existed), which must
+ * keep rendering with BOTH pin sets below for backward compatibility.
+ */
+export type FunctionUsage = "callback" | "standalone";
+
+function functionParamPinIds(data: Record<string, unknown> | undefined): string[] {
+  return String(data?.params ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((_, i) => `param-${i}`);
+}
+
+/** Value-input pin ids a `logic.function` instance has under a given usage — `"standalone"`
+ * drops every wireable default-value param pin (Parameters goes back to plain text, as it
+ * was pre-Phase-20); `"callback"`/`undefined` (legacy) keep them. */
+export function functionAllowedInputHandles(usage: FunctionUsage | undefined, data: Record<string, unknown> | undefined): Set<string> {
+  if (usage === "standalone") return new Set();
+  return new Set(functionParamPinIds(data));
+}
+
+/** Output pin ids a `logic.function` instance has under a given usage — `"callback"` drops
+ * the exec-out "Function" pin (no execution pin on either side); `"standalone"` drops the
+ * "Assign / Parameter" value pin; `undefined` (legacy, no choice ever made) keeps both. */
+export function functionAllowedOutputHandles(usage: FunctionUsage | undefined): Set<string> {
+  if (usage === "callback") return new Set(["value"]);
+  if (usage === "standalone") return new Set(["out"]);
+  return new Set(["out", "value"]);
+}
+
+export interface CallbackArg {
+  id: string;
+}
+
+/** Stable-id array of a `logic.callback` instance's dynamic `arg-<id>` value-input pins —
+ * same convention as `getSequencePins`, so removing an arg from the middle never disturbs
+ * another arg's wiring. */
+export function getCallbackArgs(data: Record<string, unknown> | undefined): CallbackArg[] {
+  return Array.isArray(data?.args) ? (data!.args as CallbackArg[]) : [];
+}
+
+/**
  * Number of dynamic `param-<N>` value-input pins on a `logic.pathExtractor` instance.
  * Unlike Sequence/Switch's per-pin stable-id arrays, this is a plain counter — removal
  * always targets the highest-index pin (`- Remove Param`), so there's no need to track
@@ -193,6 +237,34 @@ export function computeEffectiveInputs(
     ];
   }
 
+  if (type === "logic.function") {
+    // One dynamic `param-<i>` value-input pin per parsed parameter name, for an optional JS
+    // default value (`function f(a = <wired-or-literal>) {...}`) — positional like
+    // `logic.functionCall`'s own `param-<i>` pins above, so renaming a parameter's text
+    // doesn't dangle its wire, only its displayed label. A `"standalone"`-usage instance
+    // (FunctionUsageMenu / config panel "Usage" toggle) drops these entirely, reverting
+    // Parameters to plain non-wireable text like it was pre-Phase-20.
+    const usage = data?.usage as FunctionUsage | undefined;
+    if (usage === "standalone") return [...definition.inputs];
+    return [
+      ...definition.inputs,
+      ...String(data?.params ?? "")
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0)
+        .map((paramName, i) => ({ id: `param-${i}`, label: paramName, kind: "value" as const })),
+    ];
+  }
+
+  if (type === "logic.callback") {
+    // Live-index label (not the stored id), same convention as Sequence's `then-<id>` pins —
+    // removing a middle arg relabels the remainder without renumbering ids/wires.
+    return [
+      ...definition.inputs,
+      ...getCallbackArgs(data).map((a, i) => ({ id: `arg-${a.id}`, label: `Arg ${i + 1}`, kind: "value" as const })),
+    ];
+  }
+
   return definition.inputs;
 }
 
@@ -215,6 +287,16 @@ export function computeEffectiveOutputs(
       ...definition.outputs,
       ...(Array.isArray(data?.params) ? (data!.params as string[]) : []).map((name) => ({ id: name, label: name })),
     ];
+  }
+
+  if (type === "logic.function") {
+    // "callback" drops the exec-out "Function" pin (no execution pin on either side);
+    // "standalone" drops the "Assign / Parameter" value pin; `undefined` (legacy — no
+    // choice was ever made, e.g. every pre-existing `.blueprint` file) keeps both, exactly
+    // matching pre-this-feature behavior.
+    const usage = data?.usage as FunctionUsage | undefined;
+    const allowed = functionAllowedOutputHandles(usage);
+    return definition.outputs.filter((p) => allowed.has(p.id));
   }
 
   if (type === "controlFlow.switch") {

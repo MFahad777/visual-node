@@ -42,6 +42,7 @@ import { arrayShiftNode } from "./array/shift.node.js";
 import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
 import { pathExtractorNode } from "./logic/path-extractor.node.js";
+import { callbackNode } from "./logic/callback.node.js";
 
 /**
  * Node types offered inside a Function node's blueprint body sub-canvas — deliberately kept
@@ -116,6 +117,9 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   // Phase 18: Path Extractor — ordinary statement-producing node with no req/res dependency,
   // same "full main-canvas/Function-Graph parity" reasoning as operators/array nodes above.
   pathExtractorNode,
+  // Phase 20: Callback — ordinary statement-producing node with no req/res dependency, same
+  // "full main-canvas/Function-Graph parity" reasoning as operators/array/Path Extractor above.
+  callbackNode,
 ];
 
 /**

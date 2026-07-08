@@ -29,6 +29,8 @@ export interface FunctionGraphEdgeContextValue {
   removeSequencePin?: (nodeId: string, pinId: string) => void;
   addPathExtractorParam?: (nodeId: string) => void;
   removePathExtractorParam?: (nodeId: string) => void;
+  addCallbackArg?: (nodeId: string) => void;
+  removeCallbackArg?: (nodeId: string, argId: string) => void;
 }
 
 /**
