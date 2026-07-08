@@ -21,7 +21,7 @@ export interface VariablesPanelProps {
  * Pure, store-agnostic Variables panel (Phase 10) — parameterized entirely by props so the
  * same component renders identically whether wired to the main canvas's `flowStore`
  * (`NodeConfigPanel.tsx`) or a Function's own scoped `functionGraphStore`
- * (`FunctionGraphModal.tsx`'s `FunctionDetailsPanel`). No Collapsible/Accordion component
+ * (`FunctionGraphSidePanel.tsx`'s `FunctionDetailsPanel`). No Collapsible/Accordion component
  * exists anywhere else in this codebase, so the expand/collapse toggle below is a minimal
  * local `useState`, not a new dependency.
  */
@@ -116,7 +116,7 @@ function VariableRow({
   const [collapsed, setCollapsed] = useState(false);
   // Local draft so the input reflects every keystroke even while invalid — only a valid,
   // unique name is ever committed via `onRename`, same "only commit if valid" precedent as
-  // FunctionGraphModal.tsx's FunctionDetailsPanel Inputs-row rename, extended here with the
+  // FunctionGraphSidePanel.tsx's FunctionDetailsPanel Inputs-row rename, extended here with the
   // identifier-regex + uniqueness checks that panel doesn't itself need (params are
   // deduped implicitly by the caller; a user-authored variable name has no such guarantee).
   const [draftName, setDraftName] = useState(variable.name);

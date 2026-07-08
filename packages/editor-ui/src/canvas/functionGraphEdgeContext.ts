@@ -15,7 +15,7 @@ export interface FunctionGraphEdgeContextValue {
   // name inside a Function's blueprint sub-canvas, where the main canvas's `flowStore`
   // variables would be the wrong (and namespace-unrelated) list to look up against.
   variables?: VariableDeclaration[];
-  // Present only inside a Function node's blueprint sub-canvas (FunctionGraphModal wires
+  // Present only inside a Function node's blueprint sub-canvas (FunctionGraphTabView wires
   // these to the scoped functionGraphStore instance) — GenericNode.tsx prefers these over
   // the global flowStore's equivalents when this context is provided, mirroring how it
   // already prefers `edges`/`nodes` here over the global store.
@@ -39,7 +39,7 @@ export interface FunctionGraphEdgeContextValue {
  * see `functionGraphStore.ts`). Reading `useFlowStore` directly for edges/nodes/`deleteEdge`
  * silently no-ops inside the sub-canvas: a `fgedge_*`/`fgnode_*` id never matches anything in
  * the global store, so the wire never renders its exec/category color correctly and its
- * "Disconnect" button does nothing. `FunctionGraphModal` provides this context with the local
+ * "Disconnect" button does nothing. `FunctionGraphTabView` provides this context with the local
  * store's data so `CustomEdge` can prefer it, the same fallback pattern
  * `functionGraphNodeDefinitions.ts` already uses for node definitions; the main canvas never
  * provides it, so `CustomEdge` falls back to the global store there, unchanged.

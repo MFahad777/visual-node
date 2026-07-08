@@ -9,7 +9,7 @@ import type { NodeDefinition } from "@visual-node/core";
  * main canvas's NodeBrowserModal/NodePickerMenu). Those types only ever exist inside a
  * Function node's blueprint sub-canvas, rendered by the SAME `GenericNode` component via the
  * shared `nodeTypes` map — so it needs a second, scoped source of definitions for whichever
- * sub-canvas it's currently rendering inside. `FunctionGraphModal` provides this context with
+ * sub-canvas it's currently rendering inside. `FunctionGraphTabView` provides this context with
  * the `?scope=function-graph` definitions; the main canvas never provides it, so `GenericNode`
  * falls back to the global map there, unchanged.
  */

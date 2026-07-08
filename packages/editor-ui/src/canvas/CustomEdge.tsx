@@ -26,7 +26,7 @@ export function CustomEdge({
   selected,
 }: EdgeProps) {
   // Inside a Function node's blueprint sub-canvas, `scoped` is non-null (provided by
-  // `FunctionGraphModal`) and every lookup below reads the local `functionGraphStore`'s data
+  // `FunctionGraphTabView`) and every lookup below reads the local `functionGraphStore`'s data
   // through it instead of the global `flowStore` — see `functionGraphEdgeContext.ts`.
   const scoped = useFunctionGraphEdgeContext();
   const functionGraphDefinitions = useFunctionGraphNodeDefinitions();

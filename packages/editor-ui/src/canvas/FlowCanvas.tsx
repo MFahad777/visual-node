@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useFlowStore } from "../store/flowStore.js";
+import { useEditorTabsStore } from "../store/editorTabsStore.js";
 import { nodeTypes } from "./nodeTypes.js";
 import { CustomEdge } from "./CustomEdge.js";
 import { NodePickerMenu } from "./NodePickerMenu.js";
@@ -53,8 +54,8 @@ export function FlowCanvas() {
   const addFunctionCallNode = useFlowStore((s) => s.addFunctionCallNode);
   const addVariableNode = useFlowStore((s) => s.addVariableNode);
   const variables = useFlowStore((s) => s.variables);
-  const openFunctionGraph = useFlowStore((s) => s.openFunctionGraph);
-  const isFunctionGraphOpen = useFlowStore((s) => s.openFunctionGraphNodeId !== null);
+  const openFunctionGraphTab = useEditorTabsStore((s) => s.openFunctionGraphTab);
+  const isFunctionGraphOpen = useEditorTabsStore((s) => s.activeTabId !== "main");
   const nodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
 
   const { screenToFlowPosition } = useReactFlow();
@@ -138,7 +139,7 @@ export function FlowCanvas() {
         onNodeClick={(_, node) => selectNode(node.id)}
         onNodeDoubleClick={(_, node) => {
           if (node.type === "logic.function" && node.data?.mode === "blueprint") {
-            openFunctionGraph(node.id);
+            openFunctionGraphTab(node);
           }
         }}
         onPaneClick={() => selectNode(null)}
@@ -147,12 +148,13 @@ export function FlowCanvas() {
         defaultEdgeOptions={{ style: { stroke: "#8f8f8f", strokeWidth: 2 } }}
         // react-flow's own default is `deleteKeyCode: 'Backspace'` only — the physical
         // Delete key does nothing unless explicitly added here too. Disabled entirely
-        // while a Function Graph modal is open: react-flow's delete handling attaches a
-        // real `document`-level keydown listener regardless of which instance is visually
-        // on top, so with two mounted <ReactFlow> instances (this one sitting behind the
-        // modal overlay, never unmounted) a single Delete/Backspace press was deleting
-        // whatever's selected on THIS canvas too — including the very Function node whose
-        // blueprint graph is open, which unmounts the modal out from under the user.
+        // whenever a function-graph tab is active (Phase 21): react-flow's delete handling
+        // attaches a real `document`-level keydown listener regardless of which instance is
+        // visually on top, and every open tab's <ReactFlow> stays mounted (visibility
+        // toggled via CSS, not unmount) so pan/zoom/selection survive switching tabs — so a
+        // single Delete/Backspace press would otherwise delete whatever's selected on THIS
+        // canvas too, even while a different tab is focused. See the mirror-image guard in
+        // FunctionGraphTabView.tsx's GraphCanvas.
         deleteKeyCode={isFunctionGraphOpen ? null : ["Backspace", "Delete"]}
         fitView
       >

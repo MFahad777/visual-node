@@ -134,7 +134,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   const globalDefinitions = useFlowStore((s) => s.nodeDefinitions);
   // Function-graph-only types (logic.graphEntry/graphReturn) are deliberately
   // absent from `globalDefinitions` (see functionGraphNodeDefinitions.ts) — when rendering
-  // inside a Function node's blueprint sub-canvas, FunctionGraphModal provides this context
+  // inside a Function node's blueprint sub-canvas, FunctionGraphTabView provides this context
   // with the scoped definitions those types actually need to render correctly.
   const functionGraphDefinitions = useFunctionGraphNodeDefinitions();
   const definition = type ? (functionGraphDefinitions?.[type] ?? globalDefinitions[type]) : undefined;
@@ -154,7 +154,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
 
   // Same scoped/global fallback for the Phase 7 dynamic-pin/literal-editing mutations below:
   // inside a Function node's blueprint sub-canvas these must hit the local functionGraphStore
-  // instance (provided via context by FunctionGraphModal), not the global flowStore, or the
+  // instance (provided via context by FunctionGraphTabView), not the global flowStore, or the
   // edit would silently target a node id that doesn't exist there.
   const globalUpdateNodeConfig = useFlowStore((s) => s.updateNodeConfig);
   const globalAddInputPin = useFlowStore((s) => s.addInputPin);
@@ -366,7 +366,7 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
                       <input
                         type="number"
                         className="nodrag nopan w-10 rounded border border-neutral-700 bg-[#1f1f1f] px-1 py-0.5 text-[10px] text-neutral-100"
-                        value={Number(literals[port.id] ?? 0)}
+                        value={Number(literals[port.id] ?? 0) || 0}
                         onChange={(e) => setLiteral(port.id, Number(e.target.value))}
                       />
                     )}

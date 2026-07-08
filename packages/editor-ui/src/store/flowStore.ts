@@ -14,6 +14,7 @@ import type { Flow, NodeDefinition, ValidationError, VariableDeclaration } from 
 import * as api from "../api/client.js";
 import type { CompiledFile, ProjectFileError, WrittenFile, ProjectSettings } from "../api/client.js";
 import { flowToGraph, graphToFlow } from "./adapters.js";
+import { useEditorTabsStore } from "./editorTabsStore.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import {
   addVariadicInputPin,
@@ -126,8 +127,6 @@ export interface FlowStoreState {
 
   expandedCodeField: { nodeId: string; fieldKey: string; fieldLabel: string } | null;
 
-  openFunctionGraphNodeId: string | null;
-
   isLoading: boolean;
   isSaving: boolean;
   isDirty: boolean;
@@ -190,8 +189,6 @@ export interface FlowStoreState {
   closeErrorLog: () => void;
   openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
   closeCodeExpand: () => void;
-  openFunctionGraph: (nodeId: string) => void;
-  closeFunctionGraph: () => void;
 
   startServer: () => Promise<boolean>;
   stopServer: () => Promise<void>;
@@ -250,8 +247,6 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   expandedCodeField: null,
 
-  openFunctionGraphNodeId: null,
-
   isLoading: false,
   isSaving: false,
   isDirty: false,
@@ -284,6 +279,10 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
       );
       if (!confirmed) return;
     }
+
+    // Open function-graph tabs reference node ids scoped to the flow being replaced — they
+    // can't carry over to whatever file loads next.
+    useEditorTabsStore.getState().closeAllFunctionGraphTabs();
 
     set({ isLoading: true, lastError: null });
     try {
@@ -694,9 +693,6 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   openCodeExpand: (nodeId, fieldKey, fieldLabel) => set({ expandedCodeField: { nodeId, fieldKey, fieldLabel } }),
   closeCodeExpand: () => set({ expandedCodeField: null }),
-
-  openFunctionGraph: (nodeId) => set({ openFunctionGraphNodeId: nodeId }),
-  closeFunctionGraph: () => set({ openFunctionGraphNodeId: null }),
 
   startServer: async () => {
     const { projectSettings, currentFilePath } = get();

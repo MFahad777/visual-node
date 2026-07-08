@@ -5,6 +5,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import type { Edge, Node } from "@xyflow/react";
 import type { ConfigField, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
+import { useEditorTabsStore } from "../store/editorTabsStore.js";
 import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { RequiredModulesPanel } from "./RequiredModulesPanel.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
@@ -441,12 +442,12 @@ function FunctionNodeConfig({
   node,
   updateNodeConfig,
   openCodeExpand,
-  openFunctionGraph,
+  onOpenBlueprintGraph,
 }: {
   node: Node;
   updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
   openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
-  openFunctionGraph: (nodeId: string) => void;
+  onOpenBlueprintGraph: () => void;
 }) {
   const mode = node.data?.mode === "blueprint" ? "blueprint" : "code";
   const graph = node.data?.graph as { nodes?: unknown[]; edges?: unknown[] } | undefined;
@@ -558,7 +559,7 @@ function FunctionNodeConfig({
           </div>
           <button
             type="button"
-            onClick={() => openFunctionGraph(node.id)}
+            onClick={onOpenBlueprintGraph}
             className="rounded bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700"
           >
             Open Blueprint Graph
@@ -647,7 +648,7 @@ export function NodeConfigPanel() {
   const edges = useFlowStore((s) => s.edges);
   const nodes = useFlowStore((s) => s.nodes);
   const openCodeExpand = useFlowStore((s) => s.openCodeExpand);
-  const openFunctionGraph = useFlowStore((s) => s.openFunctionGraph);
+  const openFunctionGraphTab = useEditorTabsStore((s) => s.openFunctionGraphTab);
   const addSwitchCasePin = useFlowStore((s) => s.addSwitchCasePin);
   const removeSwitchCasePin = useFlowStore((s) => s.removeSwitchCasePin);
   const updateSwitchCaseValue = useFlowStore((s) => s.updateSwitchCaseValue);
@@ -724,7 +725,7 @@ export function NodeConfigPanel() {
           node={node}
           updateNodeConfig={updateNodeConfig}
           openCodeExpand={openCodeExpand}
-          openFunctionGraph={openFunctionGraph}
+          onOpenBlueprintGraph={() => openFunctionGraphTab(node)}
         />
       ) : node.type === "logic.require" ? (
         <RequireNodeConfig node={node} updateNodeConfig={updateNodeConfig} />

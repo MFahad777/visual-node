@@ -14,6 +14,11 @@ export interface FunctionGraphNodePickerProps {
    * and (via its `logic.graphEntry` node) the live, possibly-unsaved parameter list of the
    * function currently being edited — see `sameFileEntries` below. */
   localNodes: Array<{ type?: string; data?: Record<string, unknown> }>;
+  /** The outer flow node id whose graph this picker's sub-canvas belongs to — used to flag
+   * that function's own entry in "Functions in This File" as "(recursive)". Passed down from
+   * the owning tab (`FunctionGraphTabView`) rather than read from a store, since this picker
+   * has no way to know which tab it's rendering inside of otherwise. */
+  currentFunctionNodeId: string;
   onAddNode: (type: string, position: XYPosition, data: Record<string, unknown>) => void;
   onClose: () => void;
 }
@@ -47,7 +52,7 @@ function generateUniqueResultVariable(functionName: string, nodes: Array<{ type?
 }
 
 // `logic.graphEntry` is managed exclusively via the Details panel's Inputs section in
-// `FunctionGraphModal.tsx` (at most one per graph) — never offered here.
+// `FunctionGraphSidePanel.tsx` (at most one per graph) — never offered here.
 // `logic.functionCall` is excluded too: it's only ever added pre-filled from a specific
 // resolved function — either Require'd ("Function Calls" section below) or declared in
 // this same file ("Functions in This File" section below) — never blank.
@@ -83,13 +88,13 @@ export function FunctionGraphNodePicker({
   screenY,
   flowPosition,
   localNodes,
+  currentFunctionNodeId,
   onAddNode,
   onClose,
 }: FunctionGraphNodePickerProps) {
   const currentFilePath = useFlowStore((s) => s.currentFilePath);
   const requireNodes = useFlowStore((s) => s.nodes.filter((n) => n.type === "logic.require"));
   const siblingFunctionNodes = useFlowStore((s) => s.nodes.filter((n) => n.type === "logic.function"));
-  const currentFunctionNodeId = useFlowStore((s) => s.openFunctionGraphNodeId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

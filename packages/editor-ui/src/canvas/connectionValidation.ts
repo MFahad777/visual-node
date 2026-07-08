@@ -15,7 +15,7 @@ interface ConnectableNode {
  * enforced by react-flow's default `connectionMode="strict"`, since every input pin
  * renders as a `target` handle on the left and every output as a `source` handle on the
  * right — this only adds the kind check react-flow has no concept of.) Shared by
- * `FlowCanvas.tsx` and `FunctionGraphModal.tsx`'s `isValidConnection` so a drag is
+ * `FlowCanvas.tsx` and `FunctionGraphTabView.tsx`'s `isValidConnection` so a drag is
  * rejected mid-gesture instead of only being flagged later by `runValidation()`.
  * Resolves both endpoints' actual `PortDefinition` via the same
  * `computeEffectiveInputs`/`computeEffectiveOutputs` helpers `GenericNode.tsx`/
