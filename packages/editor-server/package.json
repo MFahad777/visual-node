@@ -11,6 +11,22 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MFahad777/visual-node.git"
+  },
+  "keywords": [
+    "visual-programming",
+    "node-based",
+    "backend-builder",
+    "code-generation",
+    "express",
+    "fastify",
+    "flow-based-programming",
+    "no-code",
+    "low-code",
+    "nodejs"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node ../../scripts/copy-ui-assets.mjs && node ../../scripts/copy-examples.mjs",
     "dev": "tsx watch src/server.ts",
