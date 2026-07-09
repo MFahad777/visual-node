@@ -1,4 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyflow/react";
+import { memo } from "react";
 import type { NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { useFunctionGraphNodeDefinitions } from "./functionGraphNodeDefinitions.js";
@@ -11,7 +12,7 @@ import { getVariableTypeColor } from "./variableTypeTheme.js";
 const FALLBACK_ACCENT = "#8f8f8f";
 const EXEC_WIRE_COLOR = "#f5f5f5";
 
-export function CustomEdge({
+function CustomEdgeImpl({
   id,
   source,
   target,
@@ -30,20 +31,29 @@ export function CustomEdge({
   // through it instead of the global `flowStore` — see `functionGraphEdgeContext.ts`.
   const scoped = useFunctionGraphEdgeContext();
   const functionGraphDefinitions = useFunctionGraphNodeDefinitions();
-  const globalEdges = useFlowStore((s) => s.edges);
-  const globalNodes = useFlowStore((s) => s.nodes);
   const globalNodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
-  const globalValidationErrors = useFlowStore((s) => s.validationErrors);
   const globalDeleteEdge = useFlowStore((s) => s.deleteEdge);
+  // A3: move the .find() calls inside the selector functions so Zustand's Object.is check
+  // on the selector's output (the individual edge/node object) correctly skips re-rendering
+  // edges untouched by a given drag frame.
+  const globalEdge = useFlowStore((s) => s.edges.find((e) => e.id === id));
+  const globalSourceNode = useFlowStore((s) => s.nodes.find((n) => n.id === source));
+  const globalTargetNode = useFlowStore((s) => s.nodes.find((n) => n.id === target));
   const globalVariables = useFlowStore((s) => s.variables);
+  const globalHasValidationError = useFlowStore((s) =>
+    s.validationErrors.some((e) => e.nodeId === source || e.nodeId === target)
+  );
 
-  const edges = scoped?.edges ?? globalEdges;
-  const nodes = scoped?.nodes ?? globalNodes;
+  const edges = scoped?.edges;
+  const nodes = scoped?.nodes;
   const deleteEdge = scoped?.deleteEdge ?? globalDeleteEdge;
   const variables = scoped?.variables ?? globalVariables;
+  const edge = scoped ? edges?.find((e) => e.id === id) : globalEdge;
+  const sourceNode = scoped ? nodes?.find((n) => n.id === source) : globalSourceNode;
+  const targetNode = scoped ? nodes?.find((n) => n.id === target) : globalTargetNode;
   // The sub-canvas has no live per-node validation feed (Live Preview was removed) —
   // errors only ever apply to the main canvas's own node ids.
-  const hasError = !scoped && globalValidationErrors.some((e) => e.nodeId === source || e.nodeId === target);
+  const hasError = !scoped && globalHasValidationError;
   // The "in"/"out" chain ports (App/Request/Handler/Next), plus Phase 7's dynamically
   // synthesized exec pins (Branch's true/false, Switch's case-<n>/default), are sequential/
   // structural, not a value, so the wire between them is always plain white — like an exec
@@ -53,13 +63,11 @@ export function CustomEdge({
   // dynamic pin like Switch's `case-3` has no fixed id to whitelist — computeEffectiveOutputs/
   // computeEffectiveInputs are the same functions GenericNode.tsx uses to render these pins,
   // so the two can never disagree about a pin's kind.
-  const edge = edges.find((e) => e.id === id);
-  const sourceNode = nodes.find((n) => n.id === source);
-  const targetNode = nodes.find((n) => n.id === target);
 
   function definitionFor(type: string | undefined): NodeDefinition | undefined {
     if (!type) return undefined;
-    return functionGraphDefinitions?.[type] ?? globalNodeDefinitions[type];
+    const funcGraphDefs = scoped ? (functionGraphDefinitions as Record<string, NodeDefinition> | undefined) : undefined;
+    return funcGraphDefs?.[type] ?? globalNodeDefinitions[type];
   }
 
   const sourceDefinition = definitionFor(sourceNode?.type);
@@ -136,3 +144,8 @@ export function CustomEdge({
     </>
   );
 }
+
+// A3: wrap in React.memo with the default shallow comparator. Every EdgeProps field is
+// meaningful and should trigger a re-render when it changes (unlike GenericNode's custom
+// comparator which deliberately excludes drag-frame fields).
+export const CustomEdge = memo(CustomEdgeImpl);

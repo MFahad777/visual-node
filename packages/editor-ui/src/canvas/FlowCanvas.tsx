@@ -56,13 +56,18 @@ export function FlowCanvas() {
   const variables = useFlowStore((s) => s.variables);
   const openFunctionGraphTab = useEditorTabsStore((s) => s.openFunctionGraphTab);
   const isFunctionGraphOpen = useEditorTabsStore((s) => s.activeTabId !== "main");
-  const nodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
 
   const { screenToFlowPosition } = useReactFlow();
 
+  // A6: read nodes/nodeDefinitions via useFlowStore.getState() inside the callback body
+  // instead of closing over the render-time value, so the callback doesn't re-create every
+  // drag frame when nodes changes reference.
   const isValidConnection = useCallback(
-    (connection: Connection | Edge) => isValidPinConnection(connection, nodes, (type) => nodeDefinitions[type ?? ""]),
-    [nodes, nodeDefinitions],
+    (connection: Connection | Edge) => {
+      const { nodes, nodeDefinitions } = useFlowStore.getState();
+      return isValidPinConnection(connection, nodes, (type) => nodeDefinitions[type ?? ""]);
+    },
+    [],
   );
 
   const [picker, setPicker] = useState<PickerState | null>(null);

@@ -104,7 +104,8 @@ export function FunctionGraphNodePicker({
 
   useEffect(() => {
     let cancelled = false;
-    api.fetchNodeRegistry("function-graph").then((result) => {
+    // B1: use the shared cached fetchNodeRegistry to dedupe concurrent picker opens.
+    api.fetchNodeRegistryCached("function-graph").then((result) => {
       if (!cancelled) setDefinitions(result.definitions);
     });
     return () => {

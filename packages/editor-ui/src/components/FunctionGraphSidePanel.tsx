@@ -75,7 +75,8 @@ function FunctionGraphSidePanelContent({
   );
   useEffect(() => {
     let cancelled = false;
-    api.fetchNodeRegistry("function-graph").then((result) => {
+    // B1: use the shared cached fetchNodeRegistry to dedupe concurrent tab opens/switches.
+    api.fetchNodeRegistryCached("function-graph").then((result) => {
       if (!cancelled) setFunctionGraphDefinitions(Object.fromEntries(result.definitions.map((d) => [d.type, d])));
     });
     return () => {

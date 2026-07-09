@@ -139,6 +139,20 @@ export async function fetchNodeRegistry(scope?: string): Promise<NodeRegistryRes
   };
 }
 
+// B1: shared cache for function-graph node definitions — initialized once, reused across all
+// tabs and sidebar/picker components, deduping concurrent mounts and avoiding redundant network
+// round trips on tab switch (the cache lookup is now fast enough that fetch-on-tab-switch was
+// never necessary; this just makes it explicit).
+const nodeRegistryCaches = new Map<string, Promise<NodeRegistryResult>>();
+
+export async function fetchNodeRegistryCached(scope?: string): Promise<NodeRegistryResult> {
+  const key = scope ?? "";
+  if (!nodeRegistryCaches.has(key)) {
+    nodeRegistryCaches.set(key, fetchNodeRegistry(scope));
+  }
+  return nodeRegistryCaches.get(key)!;
+}
+
 export async function fetchFlow(): Promise<Flow | null> {
   const res = await client.getFlow({});
   if (!res.found) return null;

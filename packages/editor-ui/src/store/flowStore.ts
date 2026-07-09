@@ -112,6 +112,7 @@ export interface FlowStoreState {
   selectedNodeId: string | null;
 
   validationErrors: ValidationError[];
+  validationErrorsByNodeId: Map<string, ValidationError[]>;
 
   compiledResults: CompiledFile[] | null;
   compileErrors: ProjectFileError[];
@@ -201,6 +202,21 @@ export interface FlowStoreState {
   installPlugin: (bytes: Uint8Array) => Promise<boolean>;
 }
 
+/** A2: group validation errors by node ID into a Map for O(1) lookup per node, avoiding the
+ * allocation of a fresh array on every GenericNode render and defeating Zustand's
+ * reference-equality selector bailout. */
+function groupErrorsByNodeId(errors: ValidationError[]): Map<string, ValidationError[]> {
+  const grouped = new Map<string, ValidationError[]>();
+  for (const error of errors) {
+    const nodeId = error.nodeId || "";
+    if (!grouped.has(nodeId)) {
+      grouped.set(nodeId, []);
+    }
+    grouped.get(nodeId)!.push(error);
+  }
+  return grouped;
+}
+
 /** Shared by `bootstrap()` and `installPlugin()` — both need to (re)fetch the full node
  * registry and reindex it by type. Factored out so a freshly installed plugin node can be
  * made visible immediately without duplicating this fetch-and-set logic. */
@@ -232,6 +248,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   selectedNodeId: null,
 
   validationErrors: [],
+  validationErrorsByNodeId: new Map(),
 
   compiledResults: null,
   compileErrors: [],
@@ -629,7 +646,10 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
         try {
           const { nodes, edges, meta, variables } = get();
           const result = await api.validateFlowRemote(graphToFlow(nodes, edges, meta, variables));
-          set({ validationErrors: result.errors });
+          set({
+            validationErrors: result.errors,
+            validationErrorsByNodeId: groupErrorsByNodeId(result.errors),
+          });
         } catch {
           // Live validation is best-effort; a transient failure shouldn't block editing.
         }

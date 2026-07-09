@@ -1,4 +1,6 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { memo, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { PortDefinition, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { useFunctionGraphNodeDefinitions } from "./functionGraphNodeDefinitions.js";
@@ -130,7 +132,7 @@ function isLongForm(type: string): boolean {
 
 export type GenericNodeProps = NodeProps;
 
-export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
+function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const globalDefinitions = useFlowStore((s) => s.nodeDefinitions);
   // Function-graph-only types (logic.graphEntry/graphReturn) are deliberately
   // absent from `globalDefinitions` (see functionGraphNodeDefinitions.ts) — when rendering
@@ -138,13 +140,17 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
   // with the scoped definitions those types actually need to render correctly.
   const functionGraphDefinitions = useFunctionGraphNodeDefinitions();
   const definition = type ? (functionGraphDefinitions?.[type] ?? globalDefinitions[type]) : undefined;
-  const errors = useFlowStore((s) => s.validationErrors.filter((e) => e.nodeId === id));
+  const errors = useFlowStore((s) => s.validationErrorsByNodeId.get(id) || []);
   // Mirrors CustomEdge's scoped/global fallback (functionGraphEdgeContext.ts): inside a
   // Function node's blueprint sub-canvas, edges live in a local functionGraphStore with
   // `fgedge_*` ids that never match the global flowStore, so pin-connected checks below
   // would always miss and never glow without reading the scoped edges here instead.
   const scopedEdgeContext = useFunctionGraphEdgeContext();
-  const globalEdges = useFlowStore((s) => s.edges);
+  // A4: use useShallow to only trigger re-render if the edges array reference changes
+  // (i.e. a real wiring change), not on every store update (like position drag).
+  const globalEdges = useFlowStore(
+    useShallow((s) => s.edges.filter((e) => e.source === id || e.target === id))
+  );
   const edges = scopedEdgeContext?.edges ?? globalEdges;
 
   // Phase 10: same scoped/global fallback, for resolving a variable.get/variable.set
@@ -296,8 +302,15 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
     isExecPort(port) ? execPinStyle(connected) : pinStyle(connected, valuePinColor(port));
 
   const nodeData = (data ?? {}) as Record<string, unknown>;
-  const effectiveInputs = computeEffectiveInputs(type, nodeData, definition);
-  const effectiveOutputs = computeEffectiveOutputs(type, nodeData, definition);
+  // A5: memoize effectiveInputs/Outputs computation, which is pure and keyed on type/data/definition.
+  const effectiveInputs = useMemo(
+    () => computeEffectiveInputs(type, nodeData, definition),
+    [type, nodeData, definition]
+  );
+  const effectiveOutputs = useMemo(
+    () => computeEffectiveOutputs(type, nodeData, definition),
+    [type, nodeData, definition]
+  );
 
   const literalKind = literalKindFor(type);
   const literals = (nodeData.literals as Record<string, unknown> | undefined) ?? {};
@@ -502,3 +515,18 @@ export function GenericNode({ id, type, data, selected }: GenericNodeProps) {
     </div>
   );
 }
+
+// A1: wrap in React.memo with a custom comparator that only compares `id`, `type`, `selected`,
+// and `data` (by reference). React Flow injects `xPos`, `yPos`, `dragging`, `zIndex`, `width`,
+// `height`, and `positionAbsolute` as real values that change every drag frame; a default
+// shallow-compare would (correctly, but unhelpfully) see them as "changed" and skip memoization.
+// The custom comparator deliberately ignores these, since the component only destructures the
+// four compared fields from NodeProps (see GenericNodeImpl above).
+export const GenericNode = memo(GenericNodeImpl, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.type === nextProps.type &&
+    prevProps.selected === nextProps.selected &&
+    prevProps.data === nextProps.data
+  );
+});

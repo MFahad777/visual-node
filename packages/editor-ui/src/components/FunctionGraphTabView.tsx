@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -30,8 +30,6 @@ import * as api from "../api/client.js";
 
 const edgeTypes = { "flow-edge": CustomEdge };
 
-// Shared cache for function-graph node definitions — initialized once, reused across all tabs.
-let nodeRegistryCacheGlobal: Record<string, NodeDefinition> | null = null;
 
 interface PickerState {
   screenX: number;
@@ -92,25 +90,61 @@ export function FunctionGraphTabView({
 
   // GenericNode (shared with the main canvas) can't resolve graphEntry/graphReturn from the
   // global flowStore — those types are deliberately excluded from it. Fetch the scoped
-  // definitions once per tab and provide them via context so this sub-canvas's nodes render
-  // correctly instead of falling into GenericNode's "Unknown node type" branch.
+  // definitions and provide them via context so this sub-canvas's nodes render correctly
+  // instead of falling into GenericNode's "Unknown node type" branch. B1: use the shared
+  // cached fetchNodeRegistry to dedupe concurrent tab opens and avoid redundant fetches.
   const [functionGraphDefinitions, setFunctionGraphDefinitions] = useState<Record<string, NodeDefinition> | null>(
-    nodeRegistryCacheGlobal,
+    null,
   );
 
   useEffect(() => {
-    // If we already have the result cached, use it immediately.
-    if (nodeRegistryCacheGlobal) {
-      setFunctionGraphDefinitions(nodeRegistryCacheGlobal);
-      return;
-    }
-
-    api.fetchNodeRegistry("function-graph").then((result) => {
+    api.fetchNodeRegistryCached("function-graph").then((result) => {
       const defs = Object.fromEntries(result.definitions.map((d) => [d.type, d]));
-      nodeRegistryCacheGlobal = defs;
       setFunctionGraphDefinitions(defs);
     });
   }, []);
+
+  // A7: wrap the context value object in useMemo so updates to any constituent field
+  // don't defeat the GenericNode/CustomEdge memo boundaries for consumers reading this context.
+  // MUST be called unconditionally (before the early return below) to satisfy React's Rules of Hooks.
+  const edgeContextValue = useMemo(
+    () => ({
+      edges,
+      nodes,
+      deleteEdge,
+      updateNodeData,
+      addInputPin,
+      removeInputPin,
+      addSwitchCasePin,
+      removeSwitchCasePin,
+      updateSwitchCaseValue,
+      addSequencePin,
+      removeSequencePin,
+      addPathExtractorParam,
+      removePathExtractorParam,
+      addCallbackArg,
+      removeCallbackArg,
+      variables,
+    }),
+    [
+      edges,
+      nodes,
+      deleteEdge,
+      updateNodeData,
+      addInputPin,
+      removeInputPin,
+      addSwitchCasePin,
+      removeSwitchCasePin,
+      updateSwitchCaseValue,
+      addSequencePin,
+      removeSequencePin,
+      addPathExtractorParam,
+      removePathExtractorParam,
+      addCallbackArg,
+      removeCallbackArg,
+      variables,
+    ]
+  );
 
   // Don't render ReactFlow until node definitions have loaded — React Flow validates edges on
   // mount, and if handles aren't defined yet (because definitions are still null), edge
@@ -123,26 +157,7 @@ export function FunctionGraphTabView({
 
   return (
     <FunctionGraphNodeDefinitionsContext.Provider value={functionGraphDefinitions}>
-      <FunctionGraphEdgeContext.Provider
-        value={{
-          edges,
-          nodes,
-          deleteEdge,
-          updateNodeData,
-          addInputPin,
-          removeInputPin,
-          addSwitchCasePin,
-          removeSwitchCasePin,
-          updateSwitchCaseValue,
-          addSequencePin,
-          removeSequencePin,
-          addPathExtractorParam,
-          removePathExtractorParam,
-          addCallbackArg,
-          removeCallbackArg,
-          variables,
-        }}
-      >
+      <FunctionGraphEdgeContext.Provider value={edgeContextValue}>
         <ReactFlowProvider>
           <GraphCanvas
             functionNodeId={functionNodeId}

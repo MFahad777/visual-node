@@ -33,14 +33,29 @@ interface EditorTabsState {
  * live sub-graph state back into the outer Function node's `data.params`/`data.graph`.
  * Called from the tab's store `subscribe` (see `openFunctionGraphTab` below) on every real
  * edit, not from an explicit Save button — this is the "live-sync" persistence model.
+ * B2: combine two sequential updateNodeConfig calls into one setState + runValidation,
+ * halving global set()/runValidation() invocations per real edit inside a tab.
  */
 function persistTabToOuterNode(functionNodeId: string, store: FunctionGraphStore): void {
   const state = store.getState();
   const entry = state.nodes.find((n) => n.type === "logic.graphEntry");
   const params: string[] = Array.isArray(entry?.data?.params) ? (entry!.data!.params as string[]) : [];
-  const { updateNodeConfig } = useFlowStore.getState();
-  updateNodeConfig(functionNodeId, "params", params.join(", "));
-  updateNodeConfig(functionNodeId, "graph", state.exportGraph());
+  const { nodes, updateNodeConfig: updateFromState } = useFlowStore.getState();
+  const nodeIndex = nodes.findIndex((n) => n.id === functionNodeId);
+  if (nodeIndex < 0) return;
+
+  const updatedNodes = [...nodes];
+  updatedNodes[nodeIndex] = {
+    ...updatedNodes[nodeIndex],
+    data: {
+      ...updatedNodes[nodeIndex].data,
+      params: params.join(", "),
+      graph: state.exportGraph(),
+    },
+  };
+
+  useFlowStore.setState({ nodes: updatedNodes });
+  useFlowStore.getState().runValidation();
 }
 
 export const useEditorTabsStore = create<EditorTabsState>((set, get) => ({
