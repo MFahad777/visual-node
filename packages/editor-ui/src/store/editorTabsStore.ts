@@ -36,6 +36,11 @@ interface EditorTabsState {
  * B2: combine two sequential updateNodeConfig calls into one setState + runValidation,
  * halving global set()/runValidation() invocations per real edit inside a tab.
  */
+/** Collapses runs of consecutive identical ids left behind after filtering an id out of history. */
+function dedupeConsecutive(ids: string[]): string[] {
+  return ids.filter((id, i) => i === 0 || id !== ids[i - 1]);
+}
+
 function persistTabToOuterNode(functionNodeId: string, store: FunctionGraphStore): void {
   const state = store.getState();
   const entry = state.nodes.find((n) => n.type === "logic.graphEntry");
@@ -108,7 +113,7 @@ export const useEditorTabsStore = create<EditorTabsState>((set, get) => ({
     tab.unsubscribe();
 
     const remainingTabs = get().functionGraphTabs.filter((t) => t.functionNodeId !== functionNodeId);
-    let newHistory = get().history.filter((id) => id !== functionNodeId);
+    let newHistory = dedupeConsecutive(get().history.filter((id) => id !== functionNodeId));
     if (newHistory.length === 0) newHistory = ["main"];
 
     const wasActive = get().activeTabId === functionNodeId;

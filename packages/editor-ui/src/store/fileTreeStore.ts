@@ -89,7 +89,11 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     try {
       await api.deleteFile(path);
       await get().refreshTree();
-      useFlowStore.getState().bumpProjectRevision();
+      const flowStore = useFlowStore.getState();
+      if (flowStore.currentFilePath === path || flowStore.currentFilePath?.startsWith(`${path}/`)) {
+        flowStore.closeFile();
+      }
+      flowStore.bumpProjectRevision();
       return true;
     } catch (err) {
       set({ lastError: (err as Error).message });

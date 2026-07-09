@@ -1,7 +1,4 @@
 import { useEffect, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
-import { json } from "@codemirror/lang-json";
-import { javascript } from "@codemirror/lang-javascript";
 import type { Edge, Node } from "@xyflow/react";
 import type { ConfigField, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
@@ -10,124 +7,11 @@ import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { RequiredModulesPanel } from "./RequiredModulesPanel.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
 import { VariablesPanel } from "./VariablesPanel.js";
-import { CODE_MIRROR_BASIC_SETUP, CODE_MIRROR_THEME } from "./codeEditorShared.js";
 import { useResize } from "../hooks/useResize.js";
 import { ResizeHandle } from "./ResizeHandle.js";
+import { LazyJsonCodeField } from "./LazyJsonCodeField.js";
+import { LazyJsCodeField } from "./LazyJsCodeField.js";
 
-/**
- * Small, muted expand-icon button shown in a field's header row when `onExpand` is provided.
- *
- * Deliberately a `<span role="button">`, not a native `<button>`. Every field in this panel
- * (see the `configSchema.map` below) is wrapped in a `<label>` — for text/select/checkbox
- * fields that's the field's own control and the browser's native "click the label activates
- * its labelable descendant" behavior is exactly what you want (e.g. click-to-toggle a
- * checkbox by its text). But `<button>` is ALSO a labelable element per the HTML spec, so a
- * real `<button>` placed here — alongside, not as, the field's actual control — gets an
- * EXTRA synthetic click auto-fired by the browser any time you click anywhere else in the
- * same `<label>` (confirmed via a live click-event trace: clicking into the CodeMirror editor
- * fires a `click` on `.cm-content`, and the browser immediately fires a second `click` on this
- * button too, silently reopening the expand modal on every click into the editor). A
- * `<span role="button">` isn't in the labelable-elements list, so it doesn't get forwarded.
- */
-function ExpandButton({ onExpand }: { onExpand: () => void }) {
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={onExpand}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onExpand();
-        }
-      }}
-      className="cursor-pointer rounded px-1 text-xs text-neutral-400 hover:text-neutral-200"
-      title="Expand"
-    >
-      ⤢
-    </span>
-  );
-}
-
-function JsonCodeField({
-  field,
-  value,
-  onChange,
-  onExpand,
-}: {
-  field: ConfigField;
-  value: unknown;
-  onChange: (value: unknown) => void;
-  onExpand?: () => void;
-}) {
-  const [text, setText] = useState(() => JSON.stringify(value ?? field.default, null, 2));
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setText(JSON.stringify(value ?? field.default, null, 2));
-    setError(null);
-  }, [value, field.default]);
-
-  return (
-    <div>
-      {onExpand && (
-        <div className="mb-0.5 flex justify-end">
-          <ExpandButton onExpand={onExpand} />
-        </div>
-      )}
-      <div className={`overflow-hidden rounded border ${error ? "border-red-500" : "border-neutral-700"}`}>
-        <CodeMirror
-          value={text}
-          theme={CODE_MIRROR_THEME}
-          height="140px"
-          extensions={[json()]}
-          basicSetup={CODE_MIRROR_BASIC_SETUP}
-          onChange={(next) => {
-            setText(next);
-            try {
-              const parsed = JSON.parse(next);
-              setError(null);
-              onChange(parsed);
-            } catch {
-              setError("Invalid JSON");
-            }
-          }}
-        />
-      </div>
-      {error && <div className="mt-0.5 text-[11px] text-red-400">{error}</div>}
-    </div>
-  );
-}
-
-function JsCodeField({
-  value,
-  onChange,
-  onExpand,
-}: {
-  value: unknown;
-  onChange: (value: unknown) => void;
-  onExpand?: () => void;
-}) {
-  return (
-    <div>
-      {onExpand && (
-        <div className="mb-0.5 flex justify-end">
-          <ExpandButton onExpand={onExpand} />
-        </div>
-      )}
-      <div className="overflow-hidden rounded border border-neutral-700">
-        <CodeMirror
-          value={String(value ?? "")}
-          theme={CODE_MIRROR_THEME}
-          height="140px"
-          extensions={[javascript()]}
-          basicSetup={CODE_MIRROR_BASIC_SETUP}
-          onChange={(next) => onChange(next)}
-        />
-      </div>
-    </div>
-  );
-}
 
 function ConfigFieldInput({
   field,
@@ -183,9 +67,9 @@ function ConfigFieldInput({
       );
     case "code":
       if (typeof field.default === "string") {
-        return <JsCodeField value={value} onChange={onChange} onExpand={onExpand} />;
+        return <LazyJsCodeField value={value} onChange={onChange} onExpand={onExpand} />;
       }
-      return <JsonCodeField field={field} value={value} onChange={onChange} onExpand={onExpand} />;
+      return <LazyJsonCodeField field={field} value={value} onChange={onChange} onExpand={onExpand} />;
     default:
       return null;
   }
@@ -532,7 +416,7 @@ function FunctionNodeConfig({
             <span className="text-[11px] text-neutral-500">
               Available: the parameter names declared above. Use `return` to produce a value.
             </span>
-            <JsCodeField
+            <LazyJsCodeField
               value={node.data?.body}
               onChange={(value) => updateNodeConfig(node.id, "body", value)}
               onExpand={() => openCodeExpand(node.id, "body", "Function Body")}
@@ -604,7 +488,7 @@ function ConsoleLogConfig({
             {String(node.data?.expression ?? '""')}
           </div>
         ) : (
-          <JsCodeField
+          <LazyJsCodeField
             value={node.data?.expression}
             onChange={(value) => updateNodeConfig(node.id, "expression", value)}
             onExpand={() => openCodeExpand(node.id, "expression", "Expression")}

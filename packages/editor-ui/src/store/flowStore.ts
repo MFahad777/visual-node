@@ -144,6 +144,7 @@ export interface FlowStoreState {
 
   bootstrap: () => Promise<void>;
   openFile: (path: string) => Promise<void>;
+  closeFile: () => void;
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -323,6 +324,21 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     } catch (err) {
       set({ isLoading: false, lastError: (err as Error).message });
     }
+  },
+
+  closeFile: () => {
+    useEditorTabsStore.getState().closeAllFunctionGraphTabs();
+    set({
+      nodes: [],
+      edges: [],
+      meta: INITIAL_META,
+      variables: [],
+      currentFilePath: null,
+      selectedNodeId: null,
+      validationErrors: [],
+      validationErrorsByNodeId: new Map(),
+      isDirty: false,
+    });
   },
 
   onNodesChange: (changes) => {

@@ -3,9 +3,9 @@ import type { NodeCategory, NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import { CATEGORY_ORDER, CATEGORY_THEME } from "../canvas/categoryTheme.js";
-import { CategoryIcon } from "../canvas/CategoryIcon.js";
 import { FunctionUsageMenu } from "../canvas/FunctionUsageMenu.js";
 import type { FunctionUsage } from "../canvas/effectivePorts.js";
+import { VirtualizedNodeList, type VirtualizedNodeItem } from "./VirtualizedNodeList.js";
 
 export function NodeBrowserModal() {
   const isNodeBrowserOpen = useFlowStore((s) => s.isNodeBrowserOpen);
@@ -83,6 +83,76 @@ export function NodeBrowserModal() {
     });
   }, [resolvedModules, query]);
 
+  // Build a flat list of virtualized items: headers + node cards + function calls
+  const virtualItems = useMemo(() => {
+    const items: VirtualizedNodeItem[] = [];
+    const logicIndex = CATEGORY_ORDER.indexOf("logic");
+    const categoriesBeforeFunctionCalls = CATEGORY_ORDER.slice(0, logicIndex + 1).filter((c) => grouped.has(c));
+    const categoriesAfterFunctionCalls = CATEGORY_ORDER.slice(logicIndex + 1).filter((c) => grouped.has(c));
+
+    // Add categories before Function Calls
+    for (const category of categoriesBeforeFunctionCalls) {
+      items.push({
+        id: `header-${category}`,
+        type: "header",
+        category,
+        label: CATEGORY_THEME[category].label,
+      });
+      const defs = grouped.get(category) || [];
+      for (const def of defs) {
+        items.push({
+          id: def.type,
+          type: "node",
+          label: def.label,
+          definition: def,
+          description: def.description,
+          isPlugin: def.type.startsWith("plugin."),
+        });
+      }
+    }
+
+    // Add Function Calls
+    if (functionCallEntries.length > 0) {
+      items.push({
+        id: "header-function-calls",
+        type: "header",
+        label: "Function Calls",
+      });
+      for (const entry of functionCallEntries) {
+        const label = `${entry.functionName}(${entry.params})`;
+        items.push({
+          id: `${entry.requirePath}:${entry.variableName}:${entry.functionName}`,
+          type: "functionCall",
+          label,
+          description: `Call via ${entry.variableName} (${entry.requirePath})`,
+        });
+      }
+    }
+
+    // Add categories after Function Calls
+    for (const category of categoriesAfterFunctionCalls) {
+      items.push({
+        id: `header-${category}`,
+        type: "header",
+        category,
+        label: CATEGORY_THEME[category].label,
+      });
+      const defs = grouped.get(category) || [];
+      for (const def of defs) {
+        items.push({
+          id: def.type,
+          type: "node",
+          label: def.label,
+          definition: def,
+          description: def.description,
+          isPlugin: def.type.startsWith("plugin."),
+        });
+      }
+    }
+
+    return items;
+  }, [grouped, functionCallEntries]);
+
   if (!isNodeBrowserOpen) return null;
 
   function handleAdd(def: NodeDefinition, event: MouseEvent<HTMLButtonElement>) {
@@ -105,56 +175,17 @@ export function NodeBrowserModal() {
     setLastAdded(`${entry.functionName}(${entry.params})`);
   }
 
-  function renderCategoryGroup(category: NodeCategory) {
-    const theme = CATEGORY_THEME[category];
-    return (
-      <div key={category} className="mb-4 last:mb-0">
-        <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-          <span style={{ color: theme.accentHex }}>
-            <CategoryIcon category={category} className="h-3 w-3" />
-          </span>
-          {theme.label}
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {grouped.get(category)!.map((def) => (
-            <button
-              key={def.type}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/flowserver-node-type", def.type);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onClick={(e) => handleAdd(def, e)}
-              disabled={currentFilePath === null}
-              title={def.description}
-              className="relative rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5 text-left text-xs shadow-sm hover:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <div className="flex items-center gap-1.5 font-medium text-neutral-100">
-                <span
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded"
-                  style={{ backgroundColor: theme.accentHex }}
-                >
-                  <CategoryIcon category={category} className="h-2.5 w-2.5 text-white" />
-                </span>
-                <span className="truncate">{def.label}</span>
-                {def.type.startsWith("plugin.") && (
-                  <span className="ml-auto shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-400">
-                    Plugin
-                  </span>
-                )}
-              </div>
-              <div className="truncate text-neutral-400">{def.description}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Function Calls group sits between "Logic" and "Debugging" in CATEGORY_ORDER.
-  const logicIndex = CATEGORY_ORDER.indexOf("logic");
-  const categoriesBeforeFunctionCalls = CATEGORY_ORDER.slice(0, logicIndex + 1).filter((c) => grouped.has(c));
-  const categoriesAfterFunctionCalls = CATEGORY_ORDER.slice(logicIndex + 1).filter((c) => grouped.has(c));
+  const handleSelectItem = (item: VirtualizedNodeItem) => {
+    if (item.type === "node" && item.definition) {
+      const event = new MouseEvent("click") as any;
+      handleAdd(item.definition, event);
+    } else if (item.type === "functionCall") {
+      const entry = functionCallEntries.find(
+        (e) => `${e.requirePath}:${e.variableName}:${e.functionName}` === item.id
+      );
+      if (entry) handleAddFunctionCall(entry);
+    }
+  };
 
   return (
     <div
@@ -188,41 +219,15 @@ export function NodeBrowserModal() {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3">
-          {categoriesBeforeFunctionCalls.map(renderCategoryGroup)}
-          {functionCallEntries.length > 0 && (
-            <div className="mb-4 last:mb-0">
-              <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-                Function Calls
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {functionCallEntries.map((entry, index) => {
-                  const label = `${entry.functionName}(${entry.params})`;
-                  const description = `Call via ${entry.variableName} (${entry.requirePath})`;
-                  return (
-                    <button
-                      key={`${entry.requirePath}:${entry.variableName}:${entry.functionName}:${index}`}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("application/flowserver-function-call", JSON.stringify(entry));
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onClick={() => handleAddFunctionCall(entry)}
-                      disabled={currentFilePath === null}
-                      title={description}
-                      className="rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5 text-left text-xs shadow-sm hover:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <div className="font-medium text-neutral-100">{label}</div>
-                      <div className="truncate text-neutral-400">{description}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {categoriesAfterFunctionCalls.map(renderCategoryGroup)}
-          {grouped.size === 0 && functionCallEntries.length === 0 && (
-            <div className="px-1 py-2 text-xs text-neutral-500">No matching nodes</div>
+        <div className="flex-1 border-t border-black/60">
+          {virtualItems.length === 0 ? (
+            <div className="flex items-center justify-center p-3 text-xs text-neutral-500">No matching nodes</div>
+          ) : (
+            <VirtualizedNodeList
+              items={virtualItems}
+              onSelect={handleSelectItem}
+              disabled={currentFilePath === null}
+            />
           )}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { XYPosition } from "@xyflow/react";
 import type { NodeCategory, NodeDefinition } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
@@ -7,6 +7,7 @@ import { CATEGORY_ORDER, CATEGORY_THEME } from "./categoryTheme.js";
 import { CategoryIcon } from "./CategoryIcon.js";
 import { FunctionUsageMenu } from "./FunctionUsageMenu.js";
 import type { FunctionUsage } from "./effectivePorts.js";
+import { VirtualizedNodeList, type VirtualizedNodeItem } from "../components/VirtualizedNodeList.js";
 
 export interface NodePickerMenuProps {
   screenX: number;
@@ -115,6 +116,73 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
   const left = Math.max(8, Math.min(screenX, window.innerWidth - MENU_WIDTH - 8));
   const top = Math.max(8, Math.min(screenY, window.innerHeight - MENU_MAX_HEIGHT - 8));
 
+  const virtualItems = useMemo(() => {
+    const items: VirtualizedNodeItem[] = [];
+    const categoriesNonDebug = CATEGORY_ORDER.filter((c) => c !== "debugging" && grouped.has(c));
+
+    // Add non-debugging categories
+    for (const category of categoriesNonDebug) {
+      items.push({
+        id: `header-${category}`,
+        type: "header",
+        category,
+        label: CATEGORY_THEME[category].label,
+      });
+      const defs = grouped.get(category) || [];
+      for (const def of defs) {
+        items.push({
+          id: def.type,
+          type: "node",
+          label: def.label,
+          definition: def,
+          description: def.description,
+          isPlugin: def.type.startsWith("plugin."),
+        });
+      }
+    }
+
+    // Add Function Calls
+    if (functionCallEntries.length > 0) {
+      items.push({
+        id: "header-function-calls",
+        type: "header",
+        label: "Function Calls",
+      });
+      for (const entry of functionCallEntries) {
+        const label = `${entry.functionName}(${entry.params})`;
+        items.push({
+          id: `${entry.requirePath}:${entry.variableName}:${entry.functionName}`,
+          type: "functionCall",
+          label,
+          description: `Call via ${entry.variableName} (${entry.requirePath})`,
+        });
+      }
+    }
+
+    // Add debugging category if present
+    if (grouped.has("debugging")) {
+      items.push({
+        id: "header-debugging",
+        type: "header",
+        category: "debugging",
+        label: CATEGORY_THEME.debugging.label,
+      });
+      const defs = grouped.get("debugging") || [];
+      for (const def of defs) {
+        items.push({
+          id: def.type,
+          type: "node",
+          label: def.label,
+          definition: def,
+          description: def.description,
+          isPlugin: def.type.startsWith("plugin."),
+        });
+      }
+    }
+
+    return items;
+  }, [grouped, functionCallEntries]);
+
   if (pendingFunctionAdd) {
     return <FunctionUsageMenu x={screenX} y={screenY} onChoose={handleChooseFunctionUsage} onClose={onClose} />;
   }
@@ -138,6 +206,17 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
     onClose();
   }
 
+  const handleSelectItem = (item: VirtualizedNodeItem) => {
+    if (item.type === "node" && item.definition) {
+      handleSelect(item.definition.type);
+    } else if (item.type === "functionCall") {
+      const entry = functionCallEntries.find(
+        (e) => `${e.requirePath}:${e.variableName}:${e.functionName}` === item.id
+      );
+      if (entry) handleSelectFunctionCall(entry);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -153,78 +232,15 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
           className="w-full rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1 text-xs text-neutral-100 outline-none focus:border-sky-500"
         />
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        {CATEGORY_ORDER.filter((c) => c !== "debugging" && grouped.has(c)).map((category) => (
-          <PickerGroup key={category} category={category} title={CATEGORY_THEME[category].label}>
-            {grouped.get(category)!.map((def) => (
-              <PickerCard key={def.type} label={def.label} description={def.description} onClick={() => handleSelect(def.type)} />
-            ))}
-          </PickerGroup>
-        ))}
-        {functionCallEntries.length > 0 && (
-          <PickerGroup title="Function Calls">
-            {functionCallEntries.map((fn, index) => {
-              const label = `${fn.functionName}(${fn.params})`;
-              const description = `Call via ${fn.variableName} (${fn.requirePath})`;
-              return (
-                <PickerCard
-                  key={`${fn.requirePath}:${fn.variableName}:${fn.functionName}:${index}`}
-                  label={label}
-                  description={description}
-                  onClick={() => handleSelectFunctionCall(fn)}
-                />
-              );
-            })}
-          </PickerGroup>
-        )}
-        {grouped.has("debugging") && (
-          <PickerGroup category="debugging" title={CATEGORY_THEME.debugging.label}>
-            {grouped.get("debugging")!.map((def) => (
-              <PickerCard key={def.type} label={def.label} description={def.description} onClick={() => handleSelect(def.type)} />
-            ))}
-          </PickerGroup>
-        )}
-        {grouped.size === 0 && functionCallEntries.length === 0 && (
-          <div className="px-1 py-2 text-xs text-neutral-500">No matching nodes</div>
-        )}
-      </div>
+      {virtualItems.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center px-2 py-2 text-xs text-neutral-500">No matching nodes</div>
+      ) : (
+        <VirtualizedNodeList
+          items={virtualItems}
+          onSelect={handleSelectItem}
+          disabled={false}
+        />
+      )}
     </div>
-  );
-}
-
-function PickerGroup({
-  title,
-  category,
-  children,
-}: {
-  title: string;
-  category?: NodeCategory;
-  children: ReactNode;
-}) {
-  return (
-    <div className="mb-3 last:mb-0">
-      <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-        {category && (
-          <span style={{ color: CATEGORY_THEME[category].accentHex }}>
-            <CategoryIcon category={category} className="h-3 w-3" />
-          </span>
-        )}
-        {title}
-      </h3>
-      <div className="flex flex-col gap-1.5">{children}</div>
-    </div>
-  );
-}
-
-function PickerCard({ label, description, onClick }: { label: string; description: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      title={description}
-      className="rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1.5 text-left text-xs shadow-sm hover:border-sky-500"
-    >
-      <div className="font-medium text-neutral-100">{label}</div>
-      <div className="truncate text-neutral-400">{description}</div>
-    </button>
   );
 }

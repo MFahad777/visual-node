@@ -9,4 +9,20 @@ export default defineConfig({
       "/api": { target: "http://localhost:4000", changeOrigin: true },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "xyflow": ["@xyflow/react"],
+          "codemirror": [
+            "@uiw/react-codemirror",
+            "@uiw/codemirror-theme-vscode",
+            "@codemirror/lang-json",
+            "@codemirror/lang-javascript",
+          ],
+        },
+      },
+    },
+  },
 });

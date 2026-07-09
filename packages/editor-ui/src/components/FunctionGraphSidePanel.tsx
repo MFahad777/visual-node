@@ -7,8 +7,7 @@ import { useEditorTabsStore, type FunctionGraphTab } from "../store/editorTabsSt
 import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
 import { VariablesPanel } from "./VariablesPanel.js";
-import { CODE_MIRROR_BASIC_SETUP, CODE_MIRROR_THEME, extensionsForField } from "./codeEditorShared.js";
-import CodeMirror from "@uiw/react-codemirror";
+import { LazyCodeEditor } from "./LazyCodeEditor.js";
 
 /**
  * Sidebar half of the active function-graph tab (Phase 21) — the `w-72` column
@@ -266,17 +265,13 @@ function SubCanvasNodeConfig({
           <span className="text-xs font-medium text-neutral-400">{field.label}</span>
           {field.hint && <span className="text-[11px] text-neutral-500">{field.hint}</span>}
           {field.type === "code" ? (
-            <div className="overflow-hidden rounded border border-neutral-700">
-              <CodeMirror
-                key={`${node.id}:${field.key}`}
-                value={String(node.data?.[field.key] ?? "")}
-                theme={CODE_MIRROR_THEME}
-                height="100px"
-                extensions={extensionsForField(field)}
-                basicSetup={CODE_MIRROR_BASIC_SETUP}
-                onChange={(next) => updateNodeData(node.id, field.key, next)}
-              />
-            </div>
+            <LazyCodeEditor
+              key={`${node.id}:${field.key}`}
+              value={node.data?.[field.key] ?? ""}
+              field={field}
+              onChange={(next) => updateNodeData(node.id, field.key, next)}
+              height="100px"
+            />
           ) : field.type === "boolean" ? (
             <input
               type="checkbox"
