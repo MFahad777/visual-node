@@ -8,7 +8,7 @@ Demonstrates the [middleware escape hatch](/node-reference/middleware): a hand-w
 `app.use(...)` request logger placed ahead of the JSON body parser.
 
 **Nodes involved:** `middleware.customCode`, plus the standard `express.*` wiring and a
-`handler.sendJson` route.
+route attached to a `logic.handlerFunction`/`handler.sendJson` pair.
 
 `middleware.customCode` wraps its raw code in `app.use((req, res, next) => { ... })` —
 call `next()` to continue the chain, or respond directly to end it there. This example
@@ -22,6 +22,10 @@ const express = require("express");
 
 const app = express();
 
+function handler(req, res, next) {
+  res.status(200).json({ pong: true });
+}
+
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
@@ -29,9 +33,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-app.get("/ping", (req, res) => {
-  res.status(200).json({ pong: true });
-});
+app.get("/ping", handler);
 
 app.listen(3003, () => {
   console.log("Server running on port 3003");

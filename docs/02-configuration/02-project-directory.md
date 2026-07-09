@@ -15,9 +15,9 @@ inside that folder.
 | --- | --- |
 | `*.blueprint` files | Your flows' source of truth — a file explorer inside the editor lets you create your own folder/file layout. Stored on disk as a compact binary format (FlatBuffers/FlexBuffers), not JSON, though the extension stays `.blueprint`. |
 | Generated `*.js` files | Whatever "Compile" produces — plain CommonJS Express source, one output file per `.blueprint` file, written next to your flow files. |
-| `package.json` | Created/merged automatically the first time you compile — declares `express` plus any npm packages your flow nodes require (see `logic.require` and Custom Code/Function nodes' `npmDependencies` fields in the [Node Reference](/node-reference)). |
+| `package.json` | Created/merged automatically the first time you compile — declares `express` plus any npm packages your flow nodes require (see `logic.require` and Handler Function/Function nodes' `npmDependencies` fields in the [Node Reference](/node-reference)). |
 | `visual-node-project-settings.json` | Project execution mode and other settings (created/edited via the **Settings** button in the toolbar). Controls whether the Run button executes as a Server or Script, and optionally which file is the entry point. Auto-detected defaults apply if this file doesn't exist. |
-| `.flowserver/plugins/` | Installed [plugin](/plugins) node definitions (hidden from the file explorer). |
+| `.visualnode/plugins/` | Installed [plugin](/plugins) node definitions (hidden from the file explorer). |
 | `README.PLUGIN.md` | A full plugin-authoring guide, scaffolded automatically into every project the first time its editor-server starts. |
 
 ## Multi-file projects

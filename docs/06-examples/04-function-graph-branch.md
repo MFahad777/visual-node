@@ -12,7 +12,8 @@ function-scoped Variable to carry the result back out.
 **Nodes involved (inside the function's nested graph):** `logic.graphEntry`,
 `controlFlow.branch`, `variable.set`, `variable.get`, `logic.graphReturn`. **On the main
 canvas:** the same `logic.function` node (private — never wired to an Export, so it stays
-a file-local helper), called directly by name from a `handler.customCode` node.
+a file-local helper), called directly by name from a code-mode `logic.handlerFunction`
+node attached to the route.
 
 The nested graph: Start → Branch (condition `n % 2 === 0`, a literal expression, not
 wired) → **True** arm sets a `result` variable to `true`, **False** arm sets it to
@@ -39,12 +40,14 @@ function isEven(n) {
   return result;
 }
 
-app.use(express.json());
-
-app.get("/is-even", (req, res) => {
+function handler(req, res, next) {
   const n = Number(req.query.n ?? 0);
   res.status(200).json({ n, isEven: isEven(n) });
-});
+}
+
+app.use(express.json());
+
+app.get("/is-even", handler);
 
 app.listen(3004, () => {
   console.log("Server running on port 3004");

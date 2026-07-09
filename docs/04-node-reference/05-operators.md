@@ -112,15 +112,15 @@ const _op_not1 = !(Boolean(a));
 ## A main-canvas example
 
 Operators aren't limited to Function Graphs — wiring `operators.add` (with literals
-`a: 5, b: 7`) into a `handler.customCode` node's arbitrary value handle hoists the
-declaration ahead of the handler body automatically:
+`a: 5, b: 7`) into a **Set Variable** node's Value pin, reached from a **Begin** node,
+hoists the declaration ahead of it automatically:
 
 ```js
-app.get("/sum", (req, res) => {
-  const _op_add1 = (5 + 7);
-  res.status(200).json({ sum: _op_add1 });
-});
+const _op_add1 = 5 + 7;
+sum = _op_add1;
 ```
 
 See [How Code Generation Works](/core-concepts/how-codegen-works) for why this hoisting
-happens even though nothing wired the operator directly into the route's chain.
+happens even though nothing wired the operator directly into the exec chain. The same
+hoisting also applies inside a Handler Function's blueprint-mode body — wiring an
+operator into a **Console Log** node's Value pin there works the same way.

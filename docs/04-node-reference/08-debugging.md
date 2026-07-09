@@ -28,5 +28,6 @@ console.log(_op_add1);
 console.log(req.method, req.path);
 ```
 
-Usable both on the main canvas and inside a Function Graph — like `handler.customCode`,
-it doubles as a generic escape-hatch statement there too.
+Usable both on the main canvas and inside a Function Graph — like a Handler Function's
+code-mode body, it doubles as a way to drop a quick debug statement wherever you need
+one.

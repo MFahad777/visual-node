@@ -7,11 +7,11 @@ title: Hello World
 The canonical minimal flow — the shape every other example builds on.
 
 **Nodes involved:** [`express.init`, `express.middleware.jsonParser`,
-`express.route`, `handler.sendJson`, `express.listen`](/node-reference).
+`express.route`, `logic.handlerFunction`, `handler.sendJson`,
+`express.listen`](/node-reference).
 
 A single `GET /hello` route answers with a static JSON body. No custom code, no
-variables, no dependencies — just the five node types every generated server starts
-from.
+variables, no dependencies — just the node types every generated server starts from.
 
 ## Generated `server.js`
 
@@ -20,11 +20,13 @@ const express = require("express");
 
 const app = express();
 
+function handler(req, res, next) {
+  res.status(200).json({ message: "Hello World" });
+}
+
 app.use(express.json());
 
-app.get("/hello", (req, res) => {
-  res.status(200).json({ message: "Hello World" });
-});
+app.get("/hello", handler);
 
 app.listen(3001, () => {
   console.log("Server running on port 3001");

@@ -31,7 +31,7 @@ Mode](/core-concepts/function-graphs-and-blueprint-mode)). Not every node type i
 available in both places:
 
 - **Main canvas only**: `express.init`, `express.listen`, `express.middleware.jsonParser`,
-  `middleware.customCode`, `express.route`, `handler.sendJson`, `logic.function`,
+  `middleware.customCode`, `express.route`, `logic.handlerFunction`, `logic.function`,
   `logic.export`, `logic.require`, `logic.begin`.
 - **Function Graph only**: `logic.graphEntry` (the graph's entry point, never added
   manually — managed via the Function Graph editor's own panel). `logic.graphReturn`
@@ -39,7 +39,7 @@ available in both places:
   `array.*` loop body on the main canvas.
 - **Both, full parity**: `logic.functionCall`, `logic.callback`, `logic.pathExtractor`,
   `logic.graphReturn`, `variable.get`, `variable.set`, `debug.consoleLog`,
-  `handler.customCode`, all 17 `operators.*` nodes, all three `controlFlow.*` nodes
+  `handler.sendJson`, all 17 `operators.*` nodes, all three `controlFlow.*` nodes
   (`branch`, `switch`, `sequence`), and all 15 `array.*` nodes.
 
 Each node's page in the [Node Reference](/node-reference) notes which of these applies.

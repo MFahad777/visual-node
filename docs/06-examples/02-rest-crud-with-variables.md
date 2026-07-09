@@ -5,23 +5,23 @@ title: REST CRUD with Variables
 # REST CRUD with Variables
 
 An in-memory `items` REST API demonstrating the [Variables
-system](/node-reference/logic) alongside the Custom Code escape hatch.
+system](/node-reference/logic) alongside [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)'s
+code/blueprint dual authoring mode.
 
 **Nodes involved:** `variable.set`, `variable.get`, `debug.consoleLog`,
-`handler.customCode`, `handler.sendJson`, plus the standard `express.*` wiring.
+`logic.handlerFunction`, `handler.sendJson`, plus the standard `express.*` wiring.
 
 A file-scoped `let items = []` (declared once, in the flow's Variables panel) backs four
-routes:
+routes, each attached to its own Handler Function:
 
-- `GET /items` — reads `items` directly (a Custom Code node can reference any
-  file-scoped variable by name, no wiring needed).
-- `POST /items` — pushes a new item built from `req.body`.
-- `DELETE /items/:id` — reassigns `items` via a wired **Set Variable** node (its literal
-  value field holds `items.filter(...)`), then responds with a static Send JSON node.
-- `GET /items/count` — wires a **Get Variable** node's output into a **Console Log**
-  node (logging the current array server-side) before a Custom Code node responds with
-  the count — the one route here that actually wires a value pin end to end, rather than
-  referencing the variable by bare identifier.
+- `GET /items` — a code-mode Handler Function reads `items` directly (code mode can
+  reference any file-scoped variable by name, no wiring needed).
+- `POST /items` — a code-mode Handler Function pushes a new item built from `req.body`.
+- `DELETE /items/:id` — a blueprint-mode Handler Function reassigns `items` via a wired
+  **Set Variable** node (its literal value field holds `items.filter(...)`), then
+  responds with a static Send JSON node.
+- `GET /items/count` — a code-mode Handler Function logs the current array server-side
+  and responds with its live length.
 
 ## Generated `server.js`
 
@@ -32,27 +32,35 @@ const app = express();
 
 let items = [];
 
-app.use(express.json());
-
-app.get("/items", (req, res) => {
+function listItems(req, res, next) {
   res.status(200).json(items);
-});
+}
 
-app.post("/items", (req, res) => {
+function createItem(req, res, next) {
   const item = { id: String(items.length + 1), ...req.body };
   items.push(item);
   res.status(201).json(item);
-});
+}
 
-app.delete("/items/:id", (req, res) => {
+function deleteItem(req, res, next) {
   items = items.filter((item) => item.id !== req.params.id);
   res.status(200).json({ success: true });
-});
+}
 
-app.get("/items/count", (req, res) => {
-  console.log(items);
+function countItems(req, res, next) {
+  console.log("items snapshot:", items);
   res.status(200).json({ count: items.length });
-});
+}
+
+app.use(express.json());
+
+app.get("/items", listItems);
+
+app.post("/items", createItem);
+
+app.delete("/items/:id", deleteItem);
+
+app.get("/items/count", countItems);
 
 app.listen(3002, () => {
   console.log("Server running on port 3002");

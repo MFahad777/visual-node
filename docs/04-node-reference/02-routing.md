@@ -6,7 +6,8 @@ title: Routing
 
 ## Route — `express.route`
 
-Defines an HTTP route and wires it to a handler chain.
+Defines an HTTP route and attaches a [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)
+to it.
 
 - **Inputs**: `in` — "App"
 - **Outputs**: `out` — "Handler"
@@ -16,23 +17,26 @@ Defines an HTTP route and wires it to a handler chain.
 | --- | --- | --- | --- |
 | `method` | select | `GET` | One of `GET`, `POST`, `PUT`, `DELETE`, `PATCH`. |
 | `path` | text | `/` | |
-| `isAsync` | boolean | `false` | Enable to use `await` inside this handler chain (e.g. for an async plugin node). |
 
-- **Constraints**: the "Handler" output must have at least one outgoing wire — an
-  unattached Route fails compilation with a clear error naming the route. If the wired
-  handler chain requires `await` but `isAsync` isn't enabled, compiling fails rather than
-  emitting invalid JavaScript.
+- **Constraints**: the "Handler" output must be wired to a **Handler Function** node —
+  an unattached Route, or one wired to anything else, fails compilation with a clear
+  error naming the route. Chain additional Handler Functions off the first one's "Next"
+  output to register more than one on the same route.
 
-Everything wired downstream from "Handler" — Custom Code, Send JSON, Console Log,
-Branch/Switch, operators, Function Call, Set Variable, and so on — is compiled by the
-same [exec-chain walker](/core-concepts/how-codegen-works) into this route's body.
+A Route has no "Async Handler" setting of its own — enable **Async Handler** on the
+Handler Function(s) it's attached to instead (see the [npm Package Require
+example](/examples/npm-package-require)).
 
 ```js
-app.get("/hello", (req, res) => {
+function handler(req, res, next) {
   res.status(200).json({ message: "Hello World" });
-});
+}
+
+app.get("/hello", handler);
 ```
 
-With `isAsync` enabled, the arrow function is prefixed `async (req, res) => { ... }`,
-letting the chain use `await` (see the [npm Package Require
-example](/examples/npm-package-require)).
+Wiring a chain of Handler Functions — `Route → Handler Function A → Handler Function B`
+— compiles to `app.get(path, handlerA, handlerB)`, with each handler declared separately
+above; every handler but the last must call `next()` in its body to reach the next one.
+See the [Logic reference](/node-reference/logic#handler-function--logichandlerfunction)
+for the Handler Function node itself.

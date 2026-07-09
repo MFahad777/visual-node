@@ -47,7 +47,7 @@ the currently open file).
 ## Settings file
 
 Settings are saved to `visual-node-project-settings.json` at your project root. This is a
-regular, discoverable project file (not hidden like `.flowserver/plugins/`) and is safe to
+regular, discoverable project file (not hidden like `.visualnode/plugins/`) and is safe to
 commit to version control:
 
 ```json

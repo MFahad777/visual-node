@@ -4,7 +4,104 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 0.5.0 (Latest)
+## Version 1.0.0 (Latest)
+
+### 🚨 Breaking Changes
+
+- **Custom Code handlers are gone — replaced by Handler Function.** The old
+  `handler.customCode` node (raw JavaScript wired directly onto a route) has been
+  removed. Every route now needs a **Handler Function** node instead — see below. If you
+  have existing flows using Custom Code as a handler, see "Upgrading" at the bottom of
+  this page for the exact steps.
+- **A Route's own "Async Handler" setting is gone.** It's now a checkbox on the Handler
+  Function itself, not on the Route.
+- **Environment variable renamed**: `FLOWSERVER_PROJECT_DIR` is now
+  `VISUAL_NODE_PROJECT_DIR`. There's no fallback to the old name — if a script or shell
+  profile still sets `FLOWSERVER_PROJECT_DIR`, rename it or the project directory won't
+  resolve the way you expect.
+- **Plugin folder renamed**: installed plugins now live in `.visualnode/plugins/` inside
+  your project directory, instead of `.flowserver/plugins/`. If you have an existing
+  project with plugins installed, rename that folder once by hand; nothing else about
+  plugins changes.
+
+### New
+
+#### New node: Handler Function
+Routes now attach to a **Handler Function** node instead of embedding a handler inline.
+A Handler Function is a named handler you can write as plain code or as its own visual
+blueprint graph, and — because it's a standalone node — the same one can be reused
+across multiple routes, or chained to another Handler Function to run several in a row
+on one route (call `next()` to hand off to the next one; the last handler in the chain
+owns the response).
+
+- **Code or blueprint mode**, same toggle Function nodes already have.
+- **Async Handler** checkbox, for using `await` inside the handler.
+- Can read and write **module-level variables** from the main canvas, not just its own
+  local ones, when authored in blueprint mode.
+
+**Use case**: Attach the same "require login" handler to several different routes
+without copy-pasting it, or split one route's work into a chain of small, named,
+independently reusable handlers instead of one long inline block.
+
+See the [Handler Function reference](/node-reference/logic#handler-function--logichandlerfunction)
+and the updated [Routing reference](/node-reference/routing).
+
+#### Module Variables, editable from inside a blueprint graph
+A Function's or Handler Function's blueprint graph now shows a second **"Module
+Variables"** panel alongside its own local Variables panel, listing the main canvas's
+variables. Drag one onto the graph to read or write it, exactly like a local variable —
+and any change you make here (add, rename, remove, retype) shows up on the main canvas
+immediately, since it's the same underlying list.
+
+**Use case**: Read or update shared, app-wide state (like a counter or a cached config
+value) from inside a handler's or function's own visual logic, without leaving that
+graph to go find the variable elsewhere.
+
+#### Write only the files you want to disk
+The "Compiled Project" preview now has a checkbox next to every file (plus a "Select
+All"), so you can write just the files you actually changed to disk instead of only
+"Write All to Disk."
+
+**Use case**: Review a multi-file compile, then persist only the handful of files you're
+confident about — the rest keep their existing on-disk content.
+
+### Improved
+
+- **Themed checkboxes and scrollbars.** Every checkbox in the app (config panels, the new
+  per-file selection above, canvas boolean pins) and every scrollable panel now match the
+  app's dark theme instead of showing the browser's default light styling.
+
+### Fixed
+
+- **The right-click node picker could appear cut off**, showing fewer results than fit
+  the available space. It now sizes itself correctly to the space it actually has.
+- **The Browse Nodes modal's cards could visually overlap** each other slightly. Spacing
+  is fixed so every card has clean room around it.
+- **Long node names in Browse Nodes/the node picker didn't truncate properly** and could
+  push a node's "Plugin" badge out of place. Long names now truncate with an ellipsis as
+  intended.
+- **Searching the node picker or Browse Nodes for a term like "callback" also returned
+  unrelated results** (e.g. array nodes that merely mentioned a similar word). Search now
+  matches names/descriptions that *start with* your search term, giving more focused
+  results.
+
+### Documentation
+
+- New [Handler Function reference](/node-reference/logic#handler-function--logichandlerfunction)
+  entry; the [Routing reference](/node-reference/routing) and [Handler
+  reference](/node-reference/handler) pages are updated for the new attach-a-Handler-
+  Function model. The [Node Categories](/core-concepts/node-categories) and [Node
+  Reference overview](/node-reference) pages now list Handler Function in place of the
+  removed Custom Code handler node.
+- [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode)
+  now describes the Module Variables panel.
+- [Environment Variables](/configuration/environment-variables) and [Project
+  Directory](/configuration/project-directory) are updated for the `VISUAL_NODE_PROJECT_DIR`
+  and `.visualnode/plugins/` renames.
+
+---
+
+## Version 0.5.0
 
 ### New
 
@@ -248,8 +345,24 @@ an exact type match.
 
 ## Upgrading
 
-No action needed — every change above is fully backward compatible. Existing projects
-keep working exactly as they did before.
+### Coming from before Version 1.0.0
+
+Version 1.0.0 has three breaking changes — everything from Version 0.5.0 downward is
+still fully backward compatible on its own.
+
+1. **Replace every Custom Code handler with a Handler Function.** For each route using
+   the old `handler.customCode` node:
+   - Add a **Handler Function** node and paste the old handler's code into its
+     **Function Body** field.
+   - Give it a name, wire the Route's output into the Handler Function's **Attach**
+     input, and delete the old Custom Code node.
+   - If the old handler had **Async Handler** checked on the Route, check **Async
+     Handler** on the new Handler Function instead — Routes no longer have their own
+     Async setting.
+2. **Rename the `FLOWSERVER_PROJECT_DIR` environment variable** to
+   `VISUAL_NODE_PROJECT_DIR` anywhere you set it (shell profile, scripts, CI).
+3. **Rename the `.flowserver/` folder** to `.visualnode/` inside any existing project
+   directory that has plugins installed, so they keep loading.
 
 ### To try the new features:
 
@@ -266,3 +379,9 @@ keep working exactly as they did before.
    new **Callback** node, and give the Callback whatever arguments it needs.
 8. Open a blueprint-mode Function's graph and try the new tab bar — open a few at once
    and use **◀ / ▶** to jump between them.
+9. Attach a **Handler Function** to a route, then chain a second one off its **Next**
+   output to see multiple handlers run in sequence.
+10. Open a Function's or Handler Function's blueprint graph and check the new **Module
+    Variables** panel to read/write a main-canvas variable without leaving the graph.
+11. After compiling a multi-file project, use the per-file checkboxes in the preview
+    modal to write only the files you want to disk.

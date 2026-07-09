@@ -18,7 +18,7 @@ code) and install it directly from the editor. No TypeScript, no rebuild, no res
    shows up in **"Browse Nodes"** right away with an amber "Plugin" badge, no restart
    needed.
 
-Installed plugins are saved into `.flowserver/plugins/` inside your project directory and
+Installed plugins are saved into `.visualnode/plugins/` inside your project directory and
 are automatically reloaded every time that project is opened — you only need to install
 once per project.
 
@@ -170,7 +170,10 @@ file is ever saved.
 }
 ```
 
-Place this in a Route's handler chain and enable that Route's "Async Handler" checkbox.
+Place this inside a [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)'s
+blueprint-mode body and enable that Handler Function's "Async Handler" checkbox — a
+Route's own chain only accepts Handler Function nodes, so a chain-position plugin like
+this one lives inside one of those, not wired directly to the Route.
 
 **Terminal, synchronous, zero outputs — a self-contained handler:**
 
@@ -194,7 +197,9 @@ Place this in a Route's handler chain and enable that Route's "Async Handler" ch
 
 No `async`, no value output — this node does its own thing and responds directly,
 exactly like the built-in ["Send JSON"](/node-reference/handler) node's shape
-(`outputs: []`). Wire a Route straight into it and nothing needs to come after.
+(`outputs: []`). Same as that example above, place it inside a Handler Function's
+blueprint-mode body — it responds directly, so nothing needs to come after it in that
+body.
 
 These two examples are deliberately as different as possible (different packages,
 different categories, async vs. sync, one value output vs. zero, chain-through vs.
@@ -206,7 +211,7 @@ HTTP-style nodes.
 - **No update-in-place.** Re-installing a `type` that's already registered (built-in or a
   previously installed plugin) is rejected. While iterating on a plugin, just bump the
   `type` (e.g. `plugin.myCustomNode2`) until you're happy, then clean up the old
-  `.flowserver/plugins/*.node.json` file if you want.
+  `.visualnode/plugins/*.node.json` file if you want.
 - **No multi-arm branching.** A plugin can't create new Branch/Switch-style forks — that
   requires codegen capabilities not exposed to the plugin format. Use the built-in
   [Branch/Switch nodes](/node-reference/control-flow) for conditional flow, and plugins

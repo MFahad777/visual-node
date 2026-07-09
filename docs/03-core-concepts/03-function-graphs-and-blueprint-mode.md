@@ -87,12 +87,21 @@ name (e.g., `factorial(n - 1)`), enabling real recursive logic.
 ## Everything else works exactly like the main canvas
 
 Inside a blueprint-mode function's graph you can use `logic.functionCall` (including
-recursive calls to the same function), `variable.get`/`variable.set` (with their own
-graph-scoped variable list — never cross-checked against the main canvas's variables),
-`debug.consoleLog`, `handler.customCode` (as a generic escape-hatch statement, not just
-for Express handlers), all 17 operator nodes, and `controlFlow.branch`/`controlFlow.switch`
-for real branching. See [Node Categories](/core-concepts/node-categories) for the full
-main-canvas/Function-Graph availability breakdown.
+recursive calls to the same function), `variable.get`/`variable.set`, `debug.consoleLog`,
+`handler.sendJson` (the way a Handler Function's graph responds), all 17 operator nodes,
+and `controlFlow.branch`/`controlFlow.switch` for real branching. See [Node
+Categories](/core-concepts/node-categories) for the full main-canvas/Function-Graph
+availability breakdown.
+
+### Local variables and Module Variables
+
+Every function graph has its own local variable list, never cross-checked against the
+main canvas's. But it can also see the main canvas's variables, via a second **Module
+Variables** panel shown right alongside the local **Variables** panel in the graph's
+side panel — drag one out the same way you'd drag a local variable to drop a Get/Set
+node for it. Editing a module variable from inside the graph (renaming it, changing its
+type, adding or removing one) updates the main canvas immediately, since it's the exact
+same underlying list, not a copy.
 
 ## A worked example
 

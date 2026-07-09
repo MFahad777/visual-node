@@ -14,7 +14,7 @@ been built and run for real — the curl commands and output on each page are no
 | Example | Demonstrates |
 | --- | --- |
 | [Hello World](/examples/hello-world) | The minimal flow: init → middleware → route → handler → listen |
-| [REST CRUD with Variables](/examples/rest-crud-with-variables) | Variables (`variable.get`/`variable.set`) + the Custom Code escape hatch |
+| [REST CRUD with Variables](/examples/rest-crud-with-variables) | Variables (`variable.get`/`variable.set`) + Handler Function's code/blueprint dual mode |
 | [Custom Middleware Logging](/examples/custom-middleware-logging) | The middleware escape hatch (`middleware.customCode`) |
 | [Function Graph with Branch](/examples/function-graph-branch) | A visual Function Graph with `controlFlow.branch` |
 | [Function Graph with Recursion](/examples/function-graph-recursion) | A recursive function in a visual Function Graph (factorial example) |

@@ -37,7 +37,7 @@ Reference's Logic section](/node-reference/logic) for `logic.export`/`logic.requ
 - **The full Express request lifecycle, visually**: app initialization, middleware
   (built-in JSON body parsing or your own custom middleware), routing, and handlers.
   Or run plain logic files without Express — switch modes in **Settings**.
-- **An escape hatch everywhere you need one**: `handler.customCode` and
+- **An escape hatch everywhere you need one**: a code-mode **Handler Function** and
   `middleware.customCode` let you drop in raw JavaScript wherever the visual nodes don't
   cover your case — see the [Node Reference](/node-reference) for both.
 - **Programming primitives**: named variables, functions (either hand-typed or authored
