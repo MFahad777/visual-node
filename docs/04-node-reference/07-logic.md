@@ -11,8 +11,10 @@ module-load-time setup, and reading/writing named variables.
 
 Declares a named JavaScript function at the top level of the current file.
 
-- **Inputs**: none
-- **Outputs**: `out` — "Function"
+- **Inputs**: one dynamic value pin per declared parameter (see "Default parameter
+  values" below)
+- **Outputs**: `out` — "Function" (call it directly); `value` — "Assign / Parameter"
+  (wire the function itself out as a value — see "Usage" below)
 - **Config fields**:
 
 | Key | Type | Default | Notes |
@@ -23,6 +25,7 @@ Declares a named JavaScript function at the top level of the current file.
 | `body` | code | `""` | Only used in `"code"` mode. Available: the declared parameter names. Use `return` to produce a value. |
 | `isAsync` | boolean | `false` | Enable to use `await` inside this function's body. |
 | `npmDependencies` | text | `""` | Comma-separated npm packages (code mode only). |
+| `usage` | select | *(none — full pin set)* | "For Calling / Callback" or "Standalone Function" — see below. Leave unset to keep every pin visible. |
 
 Multiple Function nodes are expected in one file, each named and configured
 independently. A Function left unconnected to an Export node just stays a private,
@@ -31,6 +34,34 @@ still-emitted helper within that file.
 ```js
 function formatDate(date) {
   return date.toISOString();
+}
+```
+
+### Usage: Calling/Callback vs. Standalone
+
+The config panel's **Usage** toggle controls which pins the node shows, so its face
+matches how you're actually using it:
+
+- **For Calling / Callback** — hides the "Function" execution-out pin. Keeps "Assign /
+  Parameter" (so you can wire the function into a **Callback** node or assign it to a
+  variable) and the per-parameter default-value pins.
+- **Standalone Function** — the original, pre-Callback behavior: hides "Assign /
+  Parameter" and every default-value parameter pin. Keeps "Function," for wiring
+  directly into an Export node or a Function Call. Parameters revert to plain,
+  non-wireable text.
+
+Leaving Usage unset keeps every pin from both modes visible at once — existing Function
+nodes created before this setting existed are unaffected.
+
+### Default parameter values
+
+Each declared parameter gets its own wireable input pin (`param-<i>`), letting you give
+it a default value — either typed directly on the pin, or wired in from elsewhere — used
+whenever a caller omits that argument:
+
+```js
+function greet(name = "world") {
+  return `Hello, ${name}!`;
 }
 ```
 
@@ -130,6 +161,34 @@ const remainder = factorial(n - 1);
 const answer = n * remainder;
 return answer;
 ```
+
+Usable both on the main canvas and inside a Function Graph.
+
+## Callback — `logic.callback`
+
+Calls a wired-in function *reference* — not a named function you pick from a list, but
+whatever function value happens to be wired into it (from a Function node in "For
+Calling / Callback" usage, a `"function"`-typed variable, or any other node that
+produces a function value) — with however many arguments you give it, and captures the
+result.
+
+- **Inputs**: `in` (exec) — "In"; `function` (value) — "Function"; plus dynamic
+  `arg-<id>` value pins, each with inline free-form literal editing when unwired
+- **Outputs**: `out` (exec) — "Next"; `result` (value) — "Result"
+- **Config fields**: none
+
+Grow or shrink the argument list with the **"+ Add Arg"**/**"×"** buttons rendered
+directly on the node face — unlike Path Extractor's parameters, an argument can be
+removed from anywhere in the list, not just the end.
+
+```js
+// "function" wired from a variable holding a function value, two arguments
+const result = onComplete(orderId, "shipped");
+```
+
+**Use case**: invoke a function that was handed to you as a value — for example, a
+callback stored in a variable or passed in from elsewhere — without knowing in advance
+which specific function it'll be at compile time.
 
 Usable both on the main canvas and inside a Function Graph.
 

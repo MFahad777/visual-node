@@ -4,7 +4,73 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 0.4.1 (Latest)
+## Version 0.5.0 (Latest)
+
+### New
+
+#### Functions as values
+A Function node's output can now be wired out as a value — not just called directly.
+Assign it to a variable, or pass it straight into another node as an argument, the same
+way you'd wire any other value.
+
+**Use case**: Pass a function around and decide later where and how it gets called,
+instead of only being able to call it in place.
+
+#### New node: Callback
+A new **Callback** node calls a wired-in function reference with however many arguments
+you give it, and captures the result. Grow or shrink the argument list directly on the
+node with the **"+ Add Arg"**/**"×"** buttons.
+
+**Use case**: Invoke a function that was handed to you as a value — for example, one
+stored in a variable or passed in from elsewhere — without knowing in advance which
+function it'll be.
+
+#### Function node: choose how it's used
+The Function node's config panel gained a **Usage** toggle:
+
+- **For Calling / Callback** — shows the function as a wireable value (so it can be
+  passed to a Callback node or stored in a variable) and hides the plain "call it
+  directly" execution pin.
+- **Standalone Function** — the original behavior: a plain callable function, wired
+  directly into an Export node or a Function Call.
+
+Function parameters can also now have **default values** — typed directly on the pin or
+wired in from elsewhere — so a parameter left unset at the call site still gets a
+sensible value.
+
+**Use case**: Keep a Function node's on-canvas pins focused on however you're actually
+using it, instead of showing every possible pin all the time.
+
+### Improved
+
+- **Function graphs now open in a tab, not a popup.** Double-clicking a blueprint-mode
+  Function node (or its "Open Blueprint Graph" button) opens that function's visual
+  graph in its own tab next to "Main Graph" — the same way a code editor handles
+  multiple open files. Open several function graphs at once, switch between them
+  instantly, and use the new **◀ / ▶** buttons to step back and forth through recently
+  visited tabs. Every edit now saves itself automatically as you make it — there's no
+  more Save/Save & Close/Cancel step, and nothing is lost by simply switching tabs or
+  closing one.
+- **Smoother dragging on the canvas.** Moving nodes around — especially in larger flows
+  with many nodes and wires — no longer stutters.
+- **Faster to open, and smoother to browse.** The editor now loads faster on first
+  open, and the node browser/right-click node picker scroll smoothly even with 100+
+  node types to search through.
+
+### Documentation
+
+- New [Callback node reference](/node-reference/logic#callback--logiccallback) entry,
+  and the [Function node reference](/node-reference/logic#function--logicfunction) entry
+  has been updated for the Usage toggle, wireable function output, and default parameter
+  values.
+- The [Node Categories](/core-concepts/node-categories) and [Node Reference
+  overview](/node-reference) pages now list the Callback node.
+- [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode)
+  now describes the tab-based editing experience.
+
+---
+
+## Version 0.4.1
 
 Patch release fixing three bugs that could combine to make Save and live error-checking
 seem to stop working, with no error message to explain why.
@@ -196,3 +262,7 @@ keep working exactly as they did before.
    variable across files.
 6. Explore the new **Array** nodes for working with lists, and the new **Path Extractor**
    node for reading values out of dynamic data.
+7. Switch a Function node's **Usage** to "For Calling / Callback," wire its output into a
+   new **Callback** node, and give the Callback whatever arguments it needs.
+8. Open a blueprint-mode Function's graph and try the new tab bar — open a few at once
+   and use **◀ / ▶** to jump between them.

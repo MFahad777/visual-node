@@ -15,6 +15,18 @@ config field:
   together on this second canvas exactly like the main canvas, and it compiles
   one-directionally into the function's body.
 
+## Editing a function graph: tabs, not a popup
+
+Double-clicking a blueprint-mode Function node (or its "Open Blueprint Graph" button)
+opens that function's graph in its own **tab**, next to an always-present "Main Graph"
+tab — the same way a code editor handles multiple open files, rather than a full-screen
+popup. Open several function graphs at once (reopening one that's already open just
+switches to its existing tab instead of duplicating it), and use the **◀ / ▶** buttons to
+step back and forth through recently visited tabs. Every edit **saves itself
+automatically** the moment you make it, straight back into the outer Function node —
+there's no Save/Save & Close/Cancel step, and nothing is lost by switching tabs or
+closing one.
+
 ## The nested graph's own entry and exit
 
 A function's blueprint graph has its own entry/exit concept, distinct from the main
