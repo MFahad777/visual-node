@@ -85,10 +85,10 @@ export function Toolbar() {
   return (
     <div className="flex h-12 items-center gap-2 border-b border-black/60 bg-[#242424] px-3">
       <span className="mr-1 text-sm font-bold tracking-wide text-neutral-100">FlowServer</span>
-      <span title={projectDir ?? undefined} className="mr-2 text-xs text-neutral-500">
+      <span title={projectDir ?? undefined} className="mr-2 text-xs text-neutral-400">
         {displayProjectDir(projectDir)}
       </span>
-      <span className="mr-2 text-xs text-neutral-500">{currentFilePath ?? "No file open"}</span>
+      <span className="mr-2 text-xs text-neutral-400">{currentFilePath ?? "No file open"}</span>
 
       <button
         onClick={saveFlow}

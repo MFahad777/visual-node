@@ -46,10 +46,10 @@ export function VariablesPanel({
       <div className="mb-2 flex items-center justify-between">
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-300"
+          className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400 hover:text-neutral-300"
           title={collapsed ? "Expand" : "Collapse"}
         >
-          <span className="inline-block w-2.5 text-neutral-500">{collapsed ? "▸" : "▾"}</span>
+          <span className="inline-block w-2.5 text-neutral-400">{collapsed ? "▸" : "▾"}</span>
           Variables
           <span className="rounded-full bg-neutral-700 px-1.5 py-0.5 text-[10px] font-normal normal-case text-neutral-300">
             {variables.length}
@@ -68,15 +68,15 @@ export function VariablesPanel({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search variables..."
-          className="mb-2 w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100 placeholder:text-neutral-500"
+          className="mb-2 w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100 placeholder:text-neutral-400"
         />
       )}
 
       {!collapsed && (
         <div className="flex flex-col gap-2">
-          {variables.length === 0 && <p className="text-[11px] text-neutral-500">No variables declared.</p>}
+          {variables.length === 0 && <p className="text-[11px] text-neutral-400">No variables declared.</p>}
           {filteredVariables.length === 0 && variables.length > 0 && (
-            <p className="text-[11px] text-neutral-500">No variables match "{search}".</p>
+            <p className="text-[11px] text-neutral-400">No variables match "{search}".</p>
           )}
           {filteredVariables.map((variable) => (
             <VariableRow
@@ -168,7 +168,7 @@ function VariableRow({
       <div className="flex items-center gap-1">
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="flex h-5 w-4 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-300"
+          className="flex h-5 w-4 shrink-0 items-center justify-center text-neutral-400 hover:text-neutral-300"
           title={collapsed ? "Expand" : "Collapse"}
         >
           <span className="text-xs">{collapsed ? "▸" : "▾"}</span>
@@ -188,7 +188,7 @@ function VariableRow({
             event.dataTransfer.effectAllowed = "move";
           }}
           title="Drag onto the canvas to add a Get/Set node"
-          className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-neutral-500 hover:text-neutral-300"
+          className="flex h-5 w-4 shrink-0 cursor-grab items-center justify-center text-neutral-400 hover:text-neutral-300"
         >
           ⠿
         </span>

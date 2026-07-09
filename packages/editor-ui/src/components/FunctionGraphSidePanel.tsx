@@ -104,7 +104,7 @@ function FunctionGraphSidePanelContent({
       <div className="my-3 border-t border-black/60" />
 
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Node Config</h3>
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Node Config</h3>
         {selectedNode && selectedNode.type !== "logic.graphEntry" && (
           <button
             onClick={deleteSelectedNode}
@@ -126,7 +126,7 @@ function FunctionGraphSidePanelContent({
           variables={variables}
         />
       ) : (
-        <p className="text-xs text-neutral-500">Select a node to configure it.</p>
+        <p className="text-xs text-neutral-400">Select a node to configure it.</p>
       )}
     </div>
   );
@@ -161,7 +161,7 @@ function SubCanvasNodeConfig({
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
   variables: VariableDeclaration[];
 }) {
-  if (!definition) return <p className="text-xs text-neutral-500">Loading…</p>;
+  if (!definition) return <p className="text-xs text-neutral-400">Loading…</p>;
 
   if (node.type === "variable.get" || node.type === "variable.set") {
     const variable = variables.find((v) => v.id === node.data?.variableId);
@@ -194,7 +194,7 @@ function SubCanvasNodeConfig({
     const args = getCallbackArgs(node.data as Record<string, unknown> | undefined);
     const literals = (node.data?.literals as Record<string, unknown> | undefined) ?? {};
     if (args.length === 0) {
-      return <p className="text-xs text-neutral-500">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
+      return <p className="text-xs text-neutral-400">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
     }
     return (
       <div className="flex flex-col gap-3">
@@ -206,17 +206,17 @@ function SubCanvasNodeConfig({
               <span className="text-xs font-medium text-neutral-400">Arg {i + 1}</span>
               {isWired ? (
                 <>
-                  <span className="text-[11px] text-neutral-500">Wired — the connected node's value is used instead.</span>
+                  <span className="text-[11px] text-neutral-400">Wired — the connected node's value is used instead.</span>
                   <input
                     type="text"
                     disabled
                     value="Wired"
-                    className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-500"
+                    className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-400"
                   />
                 </>
               ) : (
                 <>
-                  <span className="text-[11px] text-neutral-500">Any JS literal: a number, a quoted string, or true/false.</span>
+                  <span className="text-[11px] text-neutral-400">Any JS literal: a number, a quoted string, or true/false.</span>
                   <input
                     type="text"
                     value={String(literals[pinId] ?? "")}
@@ -255,7 +255,7 @@ function SubCanvasNodeConfig({
   }
 
   if (definition.configSchema.length === 0) {
-    return <p className="text-xs text-neutral-500">This node has no configuration.</p>;
+    return <p className="text-xs text-neutral-400">This node has no configuration.</p>;
   }
 
   return (
@@ -263,7 +263,7 @@ function SubCanvasNodeConfig({
       {definition.configSchema.map((field) => (
         <label key={`${node.id}:${field.key}`} className="flex flex-col gap-1">
           <span className="text-xs font-medium text-neutral-400">{field.label}</span>
-          {field.hint && <span className="text-[11px] text-neutral-500">{field.hint}</span>}
+          {field.hint && <span className="text-[11px] text-neutral-400">{field.hint}</span>}
           {field.type === "code" ? (
             <LazyCodeEditor
               key={`${node.id}:${field.key}`}
@@ -341,7 +341,7 @@ function FunctionDetailsPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Function</h3>
+      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Function</h3>
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">Name</span>
         <input
@@ -364,7 +364,7 @@ function FunctionDetailsPanel({
           </button>
         </div>
         <div className="flex flex-col gap-1">
-          {paramNames.length === 0 && <p className="text-[11px] text-neutral-500">No inputs.</p>}
+          {paramNames.length === 0 && <p className="text-[11px] text-neutral-400">No inputs.</p>}
           {paramNames.map((name, index) => (
             // Keyed by index, not name: renaming changes `name` every keystroke, and a
             // name-based key would remount the input on every character typed, kicking

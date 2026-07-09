@@ -32,7 +32,7 @@ export function CodePreviewModal() {
               Compiled Project ({compiledResults.length} files)
             </h2>
           </div>
-          <button onClick={closePreview} className="text-neutral-500 hover:text-neutral-300">
+          <button onClick={closePreview} className="text-neutral-400 hover:text-neutral-300">
             ✕
           </button>
         </div>

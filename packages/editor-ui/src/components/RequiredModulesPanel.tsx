@@ -50,9 +50,9 @@ export function RequiredModulesPanel() {
 
   return (
     <div className="mt-4 border-t border-black/60 pt-3">
-      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Required Modules</h3>
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Required Modules</h3>
       {isLoading && modules.length === 0 ? (
-        <p className="text-xs text-neutral-500">Loading…</p>
+        <p className="text-xs text-neutral-400">Loading…</p>
       ) : (
         <div className="flex flex-col gap-2.5">
           {modules.map((mod) => (
@@ -88,9 +88,9 @@ function ModuleCard({ module: mod }: { module: RequiredModuleInfo }) {
         {mod.error ? (
           <p className="text-[11px] text-red-400">{mod.error}</p>
         ) : mod.isNpm ? (
-          <p className="text-[11px] text-neutral-500">npm package — functions not auto-discovered.</p>
+          <p className="text-[11px] text-neutral-400">npm package — functions not auto-discovered.</p>
         ) : mod.functions.length === 0 ? (
-          <p className="text-[11px] text-neutral-500">No exported functions.</p>
+          <p className="text-[11px] text-neutral-400">No exported functions.</p>
         ) : (
           <div className="flex flex-col gap-1">
             {mod.functions.map((fn) => (
@@ -126,9 +126,9 @@ function FunctionRow({ variableName, fn }: { variableName: string; fn: RequiredM
       <span className="text-[10px] text-violet-400">ƒ</span>
       <span className="truncate font-mono text-[11px] text-neutral-200">
         {fn.functionName}
-        <span className="text-neutral-500">({fn.params})</span>
+        <span className="text-neutral-400">({fn.params})</span>
       </span>
-      <span className="ml-auto shrink-0 text-[10px] text-neutral-500 opacity-0 group-hover:opacity-100">
+      <span className="ml-auto shrink-0 text-[10px] text-neutral-400 opacity-0 group-hover:opacity-100">
         {copied ? "Copied!" : "Copy call"}
       </span>
     </button>

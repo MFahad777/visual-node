@@ -56,7 +56,7 @@ export default function ComplexDefaultValueEditor({
             ⛶
           </button>
         </div>
-        <div className="text-[10px] text-neutral-500 italic px-1">
+        <div className="text-[10px] text-neutral-400 italic px-1">
           {dataType === "object"
             ? "JS object: {key: value, fn: function(x){ return x; }}"
             : dataType === "map"

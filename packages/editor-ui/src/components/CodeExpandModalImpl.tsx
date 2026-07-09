@@ -58,7 +58,7 @@ export default function CodeExpandModalContent({
           <h2 className="text-sm font-semibold text-neutral-100">
             {definition?.label ?? node.type} — {expandedCodeField.fieldLabel}
           </h2>
-          <button onClick={closeCodeExpand} className="text-neutral-500 hover:text-neutral-300">
+          <button onClick={closeCodeExpand} className="text-neutral-400 hover:text-neutral-300">
             ✕
           </button>
         </div>

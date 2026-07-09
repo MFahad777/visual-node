@@ -32,17 +32,17 @@ export function ErrorLogPanel() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
           Problems {totalCount > 0 && `(${totalCount})`}
         </span>
-        <button onClick={closeErrorLog} className="ml-auto text-neutral-500 hover:text-neutral-300">
+        <button onClick={closeErrorLog} className="ml-auto text-neutral-400 hover:text-neutral-300">
           ✕
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-1.5 font-mono text-[11px] leading-5">
-        {totalCount === 0 && <div className="text-neutral-500">No problems found.</div>}
+        {totalCount === 0 && <div className="text-neutral-400">No problems found.</div>}
 
         {compileErrors.length > 0 && (
           <div className="mb-2">
-            <div className="mb-1 text-neutral-500">Compile errors (last "Compile" run):</div>
+            <div className="mb-1 text-neutral-400">Compile errors (last "Compile" run):</div>
             {compileErrors.map((err, i) => (
               <button
                 key={i}
@@ -50,7 +50,7 @@ export function ErrorLogPanel() {
                 className="block w-full whitespace-pre-wrap py-0.5 text-left text-red-400 hover:bg-white/5"
               >
                 <span className="text-neutral-400">{err.relativePath}</span>
-                {err.nodeId && <span className="text-neutral-500"> [{err.nodeId}]</span>}
+                {err.nodeId && <span className="text-neutral-400"> [{err.nodeId}]</span>}
                 {": "}
                 {err.message}
               </button>
@@ -60,7 +60,7 @@ export function ErrorLogPanel() {
 
         {validationErrors.length > 0 && (
           <div>
-            <div className="mb-1 text-neutral-500">
+            <div className="mb-1 text-neutral-400">
               Validation errors in {currentFilePath ?? "the current file"}:
             </div>
             {validationErrors.map((err, i) => (
@@ -69,7 +69,7 @@ export function ErrorLogPanel() {
                 onClick={() => err.nodeId && selectNode(err.nodeId)}
                 className="block w-full whitespace-pre-wrap py-0.5 text-left text-amber-400 hover:bg-white/5"
               >
-                {err.nodeId && <span className="text-neutral-500">[{err.nodeId}] </span>}
+                {err.nodeId && <span className="text-neutral-400">[{err.nodeId}] </span>}
                 {err.message}
               </button>
             ))}

@@ -47,7 +47,7 @@ export function VirtualizedNodeList({
         if (item.type === "header") {
           return (
             <div style={style} key={item.id} className="border-t border-neutral-700 bg-[#1f1f1f] px-3 py-2">
-              <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+              <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
                 {item.category && (
                   <span style={{ color: CATEGORY_THEME[item.category].accentHex }}>
                     <CategoryIcon category={item.category} className="h-3 w-3" />

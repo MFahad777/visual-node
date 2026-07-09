@@ -63,20 +63,20 @@ function FileTreeRow({ node, depth, selectedFolderPath, onSelectFolder }: FileTr
           style={{ paddingLeft }}
           className={`group flex cursor-pointer items-center gap-1 py-1 pr-2 text-xs hover:bg-neutral-700 ${isSelected ? "bg-neutral-700/70" : ""}`}
         >
-          <span className="w-3 shrink-0 text-neutral-500">{isExpanded ? "▾" : "▸"}</span>
+          <span className="w-3 shrink-0 text-neutral-400">{isExpanded ? "▾" : "▸"}</span>
           <span className="truncate text-neutral-200">{node.name}</span>
-          <span className="ml-auto flex shrink-0 gap-1 opacity-0 group-hover:opacity-100">
+          <span className="ml-auto flex shrink-0 gap-1.5 opacity-0 group-hover:opacity-100">
             <button
               onClick={handleRename}
               title="Rename"
-              className="rounded px-1 text-neutral-400 hover:text-neutral-100"
+              className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:text-neutral-100"
             >
               ✎
             </button>
             <button
               onClick={handleDelete}
               title="Delete"
-              className="rounded px-1 text-neutral-400 hover:text-red-400"
+              className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:text-red-400"
             >
               🗑
             </button>
@@ -109,18 +109,18 @@ function FileTreeRow({ node, depth, selectedFolderPath, onSelectFolder }: FileTr
       className={`group flex items-center gap-1 py-1 pr-2 text-xs ${isBlueprint ? "cursor-pointer hover:bg-neutral-700" : "cursor-default opacity-50"} ${isSelected ? "bg-sky-700/40" : ""}`}
     >
       <span className="truncate text-neutral-200">{node.name}</span>
-      <span className="ml-auto flex shrink-0 gap-1 opacity-0 group-hover:opacity-100">
+      <span className="ml-auto flex shrink-0 gap-1.5 opacity-0 group-hover:opacity-100">
         <button
           onClick={handleRename}
           title="Rename"
-          className="rounded px-1 text-neutral-400 hover:text-neutral-100"
+          className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:text-neutral-100"
         >
           ✎
         </button>
         <button
           onClick={handleDelete}
           title="Delete"
-          className="rounded px-1 text-neutral-400 hover:text-red-400"
+          className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:text-red-400"
         >
           🗑
         </button>
@@ -167,18 +167,18 @@ export function FileExplorer() {
     <div className="flex h-full shrink-0" style={{ width }}>
       <div className="flex h-full min-w-0 flex-1 flex-col overflow-y-auto border-r border-black/60 bg-[#1f1f1f]">
         <div className="flex items-center justify-between px-3 pt-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Explorer</h2>
-          <div className="flex gap-1 text-[11px] text-neutral-400">
-            <button onClick={handleNewFile} title="New File" className="rounded px-1 hover:text-neutral-100">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Explorer</h2>
+          <div className="flex gap-1.5 text-[11px] text-neutral-400">
+            <button onClick={handleNewFile} title="New File" className="flex h-6 items-center rounded px-1 hover:text-neutral-100">
               +File
             </button>
-            <button onClick={handleNewFolder} title="New Folder" className="rounded px-1 hover:text-neutral-100">
+            <button onClick={handleNewFolder} title="New Folder" className="flex h-6 items-center rounded px-1 hover:text-neutral-100">
               +Folder
             </button>
-            <button onClick={() => refreshTree()} title="Refresh" className="rounded px-1 hover:text-neutral-100">
+            <button onClick={() => refreshTree()} title="Refresh" className="flex h-6 w-6 items-center justify-center rounded hover:text-neutral-100">
               ⟳
             </button>
-            <button onClick={collapseAll} title="Collapse All" className="rounded px-1 hover:text-neutral-100">
+            <button onClick={collapseAll} title="Collapse All" className="flex h-6 w-6 items-center justify-center rounded hover:text-neutral-100">
               ⊟
             </button>
           </div>

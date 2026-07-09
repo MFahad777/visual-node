@@ -14,7 +14,7 @@ export function CategoryLegend() {
             <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Legend</span>
             <button
               onClick={() => setExpanded(false)}
-              className="text-[11px] text-neutral-500 hover:text-neutral-300"
+              className="text-[11px] text-neutral-400 hover:text-neutral-300"
               aria-label="Collapse legend"
             >
               ▴

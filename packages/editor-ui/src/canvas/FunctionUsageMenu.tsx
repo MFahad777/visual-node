@@ -48,7 +48,7 @@ export function FunctionUsageMenu({ x, y, onChoose, onClose }: FunctionUsageMenu
       style={{ position: "fixed", left, top, width: MENU_WIDTH }}
       className="z-50 flex flex-col overflow-hidden rounded-lg border border-black/60 bg-[#1f1f1f] shadow-2xl shadow-black/60"
     >
-      <div className="border-b border-black/60 px-2.5 py-1.5 text-[10px] uppercase tracking-wide text-neutral-500">
+      <div className="border-b border-black/60 px-2.5 py-1.5 text-[10px] uppercase tracking-wide text-neutral-400">
         Use Function As
       </div>
       <button

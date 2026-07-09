@@ -34,10 +34,10 @@ export function App() {
       <EditorTabBar />
       <div className="flex flex-1 overflow-hidden">
         <FileExplorer />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-hidden">
           <div className="relative flex-1">
             {currentFilePath === null ? (
-              <div className="flex h-full w-full items-center justify-center text-sm text-neutral-500">
+              <div className="flex h-full w-full items-center justify-center text-sm text-neutral-400">
                 Select or create a file to begin
               </div>
             ) : (
@@ -63,7 +63,7 @@ export function App() {
           </div>
           <ErrorLogPanel />
           <ServerLogPanel />
-        </div>
+        </main>
         {activeTabId === "main" ? <NodeConfigPanel /> : <FunctionGraphSidePanel />}
       </div>
       <CodePreviewModal />

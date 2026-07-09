@@ -120,13 +120,13 @@ function FunctionCallConfig({
           </>
         )}
       </div>
-      <p className="text-[11px] text-neutral-500">
+      <p className="text-[11px] text-neutral-400">
         {isSameFile ? "Calls a function defined in this same file." : "Calls an exported function from a required module."}
       </p>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">Result Variable Name</span>
-        <span className="text-[11px] text-neutral-500">
+        <span className="text-[11px] text-neutral-400">
           Must be a valid, unique JS identifier. Other nodes reference this call's return value by this name.
         </span>
         <input
@@ -148,7 +148,7 @@ function FunctionCallConfig({
           return (
             <label key={i} className="flex flex-col gap-1">
               <span className="text-xs font-medium text-neutral-400">{paramName}</span>
-              <span className="text-[11px] text-neutral-500">← wired from "{sourceLabel}"</span>
+              <span className="text-[11px] text-neutral-400">← wired from "{sourceLabel}"</span>
             </label>
           );
         }
@@ -195,7 +195,7 @@ function CallbackConfig({
   };
 
   if (args.length === 0) {
-    return <p className="text-xs text-neutral-500">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
+    return <p className="text-xs text-neutral-400">No arguments yet — use "+ Add Arg" on the node to add one.</p>;
   }
 
   return (
@@ -208,17 +208,17 @@ function CallbackConfig({
             <span className="text-xs font-medium text-neutral-400">Arg {i + 1}</span>
             {isWired ? (
               <>
-                <span className="text-[11px] text-neutral-500">Wired — the connected node's value is used instead.</span>
+                <span className="text-[11px] text-neutral-400">Wired — the connected node's value is used instead.</span>
                 <input
                   type="text"
                   disabled
                   value="Wired"
-                  className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-500"
+                  className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-400"
                 />
               </>
             ) : (
               <>
-                <span className="text-[11px] text-neutral-500">Any JS literal: a number, a quoted string, or true/false.</span>
+                <span className="text-[11px] text-neutral-400">Any JS literal: a number, a quoted string, or true/false.</span>
                 <input
                   type="text"
                   value={String(literals[pinId] ?? "")}
@@ -274,7 +274,7 @@ function RequireNodeConfig({
 
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">{sourceType === "npm" ? "Package Name" : "Path"}</span>
-        <span className="text-[11px] text-neutral-500">
+        <span className="text-[11px] text-neutral-400">
           {sourceType === "npm"
             ? 'The npm package name, e.g. "lodash" or a scoped package like "@org/pkg".'
             : "Relative path to the target .blueprint file, e.g. \"./helpers/date-utils\"."}
@@ -290,7 +290,7 @@ function RequireNodeConfig({
       {sourceType === "npm" && (
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-neutral-400">Version</span>
-          <span className="text-[11px] text-neutral-500">leave blank for unpinned</span>
+          <span className="text-[11px] text-neutral-400">leave blank for unpinned</span>
           <input
             type="text"
             placeholder="^1.7.0"
@@ -371,7 +371,7 @@ function FunctionNodeConfig({
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">Parameters</span>
-        <span className="text-[11px] text-neutral-500">Comma-separated parameter names, e.g. "date, format".</span>
+        <span className="text-[11px] text-neutral-400">Comma-separated parameter names, e.g. "date, format".</span>
         <input
           type="text"
           className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
@@ -413,7 +413,7 @@ function FunctionNodeConfig({
         <>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-neutral-400">Function Body</span>
-            <span className="text-[11px] text-neutral-500">
+            <span className="text-[11px] text-neutral-400">
               Available: the parameter names declared above. Use `return` to produce a value.
             </span>
             <LazyJsCodeField
@@ -425,7 +425,7 @@ function FunctionNodeConfig({
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-neutral-400">npm Dependencies</span>
-            <span className="text-[11px] text-neutral-500">
+            <span className="text-[11px] text-neutral-400">
               Comma-separated package names this function's code depends on, e.g. "lodash, dayjs".
             </span>
             <input
@@ -478,13 +478,13 @@ function ConsoleLogConfig({
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1">
         <span className="text-xs font-medium text-neutral-400">Expression</span>
-        <span className="text-[11px] text-neutral-500">
+        <span className="text-[11px] text-neutral-400">
           {isValueWired
             ? "The Value pin is wired — its value is logged instead of this expression."
             : "Available: req, res. Any JS expression(s), comma-separated for multiple console.log arguments, e.g. req.method, req.path."}
         </span>
         {isValueWired ? (
-          <div className="rounded border border-neutral-800 bg-black/30 px-2 py-1.5 font-mono text-[11px] text-neutral-500">
+          <div className="rounded border border-neutral-800 bg-black/30 px-2 py-1.5 font-mono text-[11px] text-neutral-400">
             {String(node.data?.expression ?? '""')}
           </div>
         ) : (
@@ -565,7 +565,7 @@ export function NodeConfigPanel() {
       <div className="flex h-full shrink-0" style={{ width }}>
         <ResizeHandle axis="x" onMouseDown={onMouseDown} />
         <div className="h-full min-w-0 flex-1 overflow-y-auto border-l border-black/60 bg-[#1f1f1f] p-3">
-          <p className="text-xs text-neutral-500">Select a node to configure it.</p>
+          <p className="text-xs text-neutral-400">Select a node to configure it.</p>
           <RequiredModulesPanel />
           {variablesPanel}
         </div>
@@ -600,7 +600,7 @@ export function NodeConfigPanel() {
           Delete
         </button>
       </div>
-      <p className="mb-3 text-[11px] text-neutral-500">{definition.description}</p>
+      <p className="mb-3 text-[11px] text-neutral-400">{definition.description}</p>
 
       {node.type === "logic.functionCall" ? (
         <FunctionCallConfig node={node} edges={edges} nodes={nodes} updateNodeConfig={updateNodeConfig} />
@@ -627,13 +627,13 @@ export function NodeConfigPanel() {
       ) : node.type === "variable.get" || node.type === "variable.set" ? (
         <VariableBindingInfo node={node} variables={variables} />
       ) : definition.configSchema.length === 0 ? (
-        <p className="text-xs text-neutral-500">This node has no configuration.</p>
+        <p className="text-xs text-neutral-400">This node has no configuration.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {definition.configSchema.map((field) => (
             <label key={field.key} className="flex flex-col gap-1">
               <span className="text-xs font-medium text-neutral-400">{field.label}</span>
-              {field.hint && <span className="text-[11px] text-neutral-500">{field.hint}</span>}
+              {field.hint && <span className="text-[11px] text-neutral-400">{field.hint}</span>}
               <ConfigFieldInput
                 // Forces CodeMirror-backed fields to fully remount on node
                 // switch — without this, @uiw/react-codemirror can retain

@@ -42,11 +42,11 @@ export function SwitchCasesConfig({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-neutral-400">Cases</span>
-      <span className="text-[11px] text-neutral-500">
+      <span className="text-[11px] text-neutral-400">
         Each case's value can be a number, text, or true/false — typed exactly as it should match "Selection".
       </span>
 
-      {cases.length === 0 && <p className="text-[11px] text-neutral-500">No cases yet.</p>}
+      {cases.length === 0 && <p className="text-[11px] text-neutral-400">No cases yet.</p>}
 
       {cases.map((c) => (
         <div key={c.id} className="flex items-center gap-1.5">

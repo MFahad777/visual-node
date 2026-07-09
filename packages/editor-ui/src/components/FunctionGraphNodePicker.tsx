@@ -268,7 +268,7 @@ export function FunctionGraphNodePicker({
 
         {filteredSameFileEntries.length > 0 && (
           <div className="mt-3">
-            <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Functions in This File</h3>
+            <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Functions in This File</h3>
             <div className="flex flex-col gap-1.5">
               {filteredSameFileEntries.map((fn) => (
                 <PickerCard
@@ -284,7 +284,7 @@ export function FunctionGraphNodePicker({
 
         {filteredFunctionCallEntries.length > 0 && (
           <div className="mt-3">
-            <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Function Calls</h3>
+            <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Function Calls</h3>
             <div className="flex flex-col gap-1.5">
               {filteredFunctionCallEntries.map((fn, index) => (
                 <PickerCard
@@ -299,7 +299,7 @@ export function FunctionGraphNodePicker({
         )}
 
         {addableDefinitions.length === 0 && filteredFunctionCallEntries.length === 0 && filteredSameFileEntries.length === 0 && (
-          <div className="px-1 py-2 text-xs text-neutral-500">No matching nodes</div>
+          <div className="px-1 py-2 text-xs text-neutral-400">No matching nodes</div>
         )}
       </div>
     </div>

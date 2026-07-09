@@ -198,7 +198,7 @@ export function NodeBrowserModal() {
       >
         <div className="flex items-center justify-between border-b border-black/60 px-4 py-2">
           <h2 className="text-sm font-semibold text-neutral-100">Built-in Nodes</h2>
-          <button onClick={closeNodeBrowser} className="text-neutral-500 hover:text-neutral-300">
+          <button onClick={closeNodeBrowser} className="text-neutral-400 hover:text-neutral-300">
             ✕
           </button>
         </div>
@@ -221,7 +221,7 @@ export function NodeBrowserModal() {
 
         <div className="flex-1 border-t border-black/60">
           {virtualItems.length === 0 ? (
-            <div className="flex items-center justify-center p-3 text-xs text-neutral-500">No matching nodes</div>
+            <div className="flex items-center justify-center p-3 text-xs text-neutral-400">No matching nodes</div>
           ) : (
             <VirtualizedNodeList
               items={virtualItems}

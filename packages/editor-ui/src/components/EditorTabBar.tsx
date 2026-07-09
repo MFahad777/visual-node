@@ -67,7 +67,7 @@ export function EditorTabBar() {
         })}
       </div>
 
-      <div className="flex h-6 items-center gap-1 border-t border-black/40 px-3 text-[11px] text-neutral-500">
+      <div className="flex h-6 items-center gap-1 border-t border-black/40 px-3 text-[11px] text-neutral-400">
         <span>{fileName}</span>
         {activeFunctionName && (
           <>
@@ -108,7 +108,7 @@ function TabButton({
             onClose();
           }}
           title="Close"
-          className="flex h-4 w-4 items-center justify-center rounded text-neutral-500 hover:bg-red-500/20 hover:text-red-400"
+          className="flex h-4 w-4 items-center justify-center rounded text-neutral-400 hover:bg-red-500/20 hover:text-red-400"
         >
           ×
         </button>

@@ -233,7 +233,7 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
         />
       </div>
       {virtualItems.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-2 py-2 text-xs text-neutral-500">No matching nodes</div>
+        <div className="flex flex-1 items-center justify-center px-2 py-2 text-xs text-neutral-400">No matching nodes</div>
       ) : (
         <VirtualizedNodeList
           items={virtualItems}
