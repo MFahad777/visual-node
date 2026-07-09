@@ -17,14 +17,14 @@ export interface LoadInstalledPluginsResult {
 
 /**
  * Re-registers every previously-installed plugin node (Phase 9 Part B) on startup, from
- * `<projectDir>/.flowserver/plugins/*.node.json` — mirrors `registerBuiltinNodes()`'s own
+ * `<projectDir>/.visualnode/plugins/*.node.json` — mirrors `registerBuiltinNodes()`'s own
  * "skip if already registered" idempotency guard (see packages/core/src/nodes/index.ts), so
- * this stays safe to call more than once. A missing `.flowserver/plugins` directory (no
+ * this stays safe to call more than once. A missing `.visualnode/plugins` directory (no
  * plugins ever installed) is treated as "nothing to load", not an error. A single malformed
  * or invalid file is recorded in `failed` and does not abort loading the rest.
  */
 export async function loadInstalledPlugins(projectDir: string): Promise<LoadInstalledPluginsResult> {
-  const pluginsDir = path.join(projectDir, ".flowserver", "plugins");
+  const pluginsDir = path.join(projectDir, ".visualnode", "plugins");
 
   let entries: string[];
   try {

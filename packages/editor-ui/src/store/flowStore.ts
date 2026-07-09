@@ -72,7 +72,7 @@ function seedVariableIdCounter(variables: VariableDeclaration[]): void {
   }
 }
 
-const INITIAL_META: Flow["meta"] = { name: "flowserver-app", target: "express" };
+const INITIAL_META: Flow["meta"] = { name: "visual-node-app", target: "express" };
 
 /**
  * A Function Call node's `resultVariable` shares the same top-level-binding namespace as
@@ -120,8 +120,12 @@ export interface FlowStoreState {
   compiledAtRevision: number | null;
   isCompiling: boolean;
   isWritingAll: boolean;
+  isWritingChecked: boolean;
   lastWrittenFiles: WrittenFile[] | null;
   selectedPreviewFile: string | null;
+  // Files checked in CodePreviewModal's file list for "Write Selected Files to Disk" —
+  // independent of `selectedPreviewFile` (which just controls the code-viewer pane).
+  checkedPreviewFiles: Set<string>;
   isPreviewOpen: boolean;
   isNodeBrowserOpen: boolean;
   isErrorLogOpen: boolean;
@@ -184,8 +188,10 @@ export interface FlowStoreState {
   bumpProjectRevision: () => void;
   compileProject: () => Promise<void>;
   writeProjectToDisk: () => Promise<boolean>;
+  writeCheckedFilesToDisk: () => Promise<boolean>;
+  toggleCheckedPreviewFile: (relativePath: string) => void;
+  setAllCheckedPreviewFiles: (checked: boolean) => void;
   selectPreviewFile: (relativePath: string) => void;
-  openPreview: () => void;
   closePreview: () => void;
   toggleErrorLog: () => void;
   closeErrorLog: () => void;
@@ -257,8 +263,10 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   compiledAtRevision: null,
   isCompiling: false,
   isWritingAll: false,
+  isWritingChecked: false,
   lastWrittenFiles: null,
   selectedPreviewFile: null,
+  checkedPreviewFiles: new Set(),
   isPreviewOpen: false,
   isNodeBrowserOpen: false,
   isErrorLogOpen: false,
@@ -687,6 +695,9 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
         compileErrors: result.valid ? [] : result.errors,
         compiledAtRevision: revision,
         selectedPreviewFile: result.results[0]?.relativePath ?? null,
+        // Stale checkboxes from a previous compile could reference a renamed/removed
+        // file — clear on every fresh compile rather than carrying them forward.
+        checkedPreviewFiles: new Set(),
         isPreviewOpen: result.valid ? true : get().isPreviewOpen,
         // A failed compile has nothing to preview — surface why in the error
         // log instead of leaving the user with a disabled button and a
@@ -719,9 +730,55 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     }
   },
 
+  writeCheckedFilesToDisk: async () => {
+    if (selectIsCompileStale(get())) {
+      set({ lastError: "Project files changed since last compile — click Compile again before writing." });
+      return false;
+    }
+    const relativePaths = Array.from(get().checkedPreviewFiles);
+    if (relativePaths.length === 0) return false;
+
+    set({ isWritingChecked: true, lastError: null });
+    try {
+      const result = await api.writeFilesToDisk(relativePaths);
+      if (!("written" in result)) {
+        set({ isWritingChecked: false, compileErrors: result.errors });
+        return false;
+      }
+      if (result.errors.length > 0) {
+        // Partial success (e.g. one checked path no longer exists in the recompiled
+        // project) — surface which files actually failed without discarding the ones
+        // that succeeded.
+        set({
+          isWritingChecked: false,
+          lastWrittenFiles: result.files,
+          lastError: result.errors.map((e) => `${e.relativePath}: ${e.message}`).join("; "),
+        });
+        return result.written;
+      }
+      set({ isWritingChecked: false, lastWrittenFiles: result.files });
+      return true;
+    } catch (err) {
+      set({ isWritingChecked: false, lastError: (err as Error).message });
+      return false;
+    }
+  },
+
+  toggleCheckedPreviewFile: (relativePath) =>
+    set((s) => {
+      const next = new Set(s.checkedPreviewFiles);
+      if (next.has(relativePath)) next.delete(relativePath);
+      else next.add(relativePath);
+      return { checkedPreviewFiles: next };
+    }),
+
+  setAllCheckedPreviewFiles: (checked) =>
+    set((s) => ({
+      checkedPreviewFiles: checked ? new Set((s.compiledResults ?? []).map((f) => f.relativePath)) : new Set(),
+    })),
+
   selectPreviewFile: (relativePath) => set({ selectedPreviewFile: relativePath }),
 
-  openPreview: () => set({ isPreviewOpen: true }),
   closePreview: () => set({ isPreviewOpen: false }),
 
   toggleErrorLog: () => set((s) => ({ isErrorLogOpen: !s.isErrorLogOpen })),

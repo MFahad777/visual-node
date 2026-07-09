@@ -11,6 +11,7 @@ import { useResize } from "../hooks/useResize.js";
 import { ResizeHandle } from "./ResizeHandle.js";
 import { LazyJsonCodeField } from "./LazyJsonCodeField.js";
 import { LazyJsCodeField } from "./LazyJsCodeField.js";
+import { Checkbox } from "./Checkbox.js";
 
 
 function ConfigFieldInput({
@@ -45,8 +46,7 @@ function ConfigFieldInput({
       );
     case "boolean":
       return (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(value ?? field.default ?? false)}
           onChange={(e) => onChange(e.target.checked)}
         />
@@ -381,8 +381,7 @@ function FunctionNodeConfig({
       </label>
 
       <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(node.data?.isAsync ?? false)}
           onChange={(e) => updateNodeConfig(node.id, "isAsync", e.target.checked)}
         />
@@ -514,8 +513,7 @@ function HandlerFunctionNodeConfig({
       </div>
 
       <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(node.data?.isAsync ?? false)}
           onChange={(e) => updateNodeConfig(node.id, "isAsync", e.target.checked)}
         />

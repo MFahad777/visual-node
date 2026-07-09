@@ -32,7 +32,7 @@ export function buildApp(config: AppConfig): Express {
       // editor-ui's dev server (vite.config.ts) only proxies "/api" to editor-server, and
       // its browser Connect client (src/api/client.ts) is configured with `baseUrl: "/api"`
       // to match — without this prefix, Connect requests would land at the Express app
-      // root (e.g. "/flowserver.v1.EditorService/GetNodeRegistry") and never reach this
+      // root (e.g. "/visual_node.v1.EditorService/GetNodeRegistry") and never reach this
       // middleware through the dev proxy.
       requestPathPrefix: "/api",
       routes: (router) => {

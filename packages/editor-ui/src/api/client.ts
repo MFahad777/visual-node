@@ -331,6 +331,27 @@ export async function writeProjectToDisk(): Promise<WriteProjectResult> {
   };
 }
 
+export type WriteFilesResult =
+  | { written: boolean; files: WrittenFile[]; errors: ProjectFileError[] }
+  | { valid: false; errors: ProjectFileError[] };
+
+// Recompiles/revalidates the whole project (same as writeProjectToDisk — a subset can't
+// be validated in isolation because of cross-file requires) but persists only the
+// checked subset of files. A path not found in the compiled result set (e.g. a stale
+// selection referencing a since-renamed file) is reported per-file in `errors` rather
+// than failing the whole call — other requested files still get written.
+export async function writeFilesToDisk(relativePaths: string[]): Promise<WriteFilesResult> {
+  const res = await client.writeCompiledFiles({ relativePaths });
+  if (!res.valid) {
+    return { valid: false, errors: res.errors.map(fromProtoProjectFileError) };
+  }
+  return {
+    written: res.written,
+    files: res.files.map((f) => ({ relativePath: f.relativePath, outputPath: f.outputPath })),
+    errors: res.errors.map(fromProtoProjectFileError),
+  };
+}
+
 export interface FunctionGraphPreviewSuccess {
   ok: true;
   body: string;

@@ -16,7 +16,7 @@ import { registerNodeRegistryFlowRoutes } from "../../src/connect/node-registry-
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-connect-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-connect-test-"));
 });
 
 afterEach(() => {

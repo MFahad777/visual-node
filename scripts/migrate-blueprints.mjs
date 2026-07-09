@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-time migration: converts every `.blueprint` file in a FlowServer project directory
+// One-time migration: converts every `.blueprint` file in a Visual Node project directory
 // from its pre-Phase-8 plain-JSON on-disk format to the new FlatBuffers/FlexBuffers binary
 // format (see docs/phase8-backend-grpc-flatbuffers-plan.md). The `.blueprint` extension
 // itself is unchanged — only the bytes inside each file change — so this is a content

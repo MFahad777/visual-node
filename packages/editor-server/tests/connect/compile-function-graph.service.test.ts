@@ -10,7 +10,7 @@ import { registerCompileFunctionGraphRoutes } from "../../src/connect/compile-fu
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-connect-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-connect-test-"));
 });
 
 afterEach(() => {
@@ -207,6 +207,82 @@ describe("WriteCompiledProject RPC", () => {
     expect(pkg.scripts).toEqual({ start: "node src/server.js" });
     expect(pkg.dependencies.axios).toBe("^0.27.0");
     expect(pkg.dependencies.express).toBe("^4.19.2");
+  });
+});
+
+describe("WriteCompiledFiles RPC", () => {
+  it("refuses to write when the project is invalid, even though only one file was requested", async () => {
+    writeBlueprint("src/server.blueprint", serverFlow(3920, "../helpers/nonexistent"));
+
+    const res = await client().writeCompiledFiles({ relativePaths: ["src/server.js"] });
+
+    expect(res.valid).toBe(false);
+    expect(res.written).toBe(false);
+    expect(existsSync(path.join(projectDir, "src", "server.js"))).toBe(false);
+  });
+
+  it("writes only the checked subset, leaving other compiled files untouched on disk", async () => {
+    writeBlueprint("helpers/dateFormater.blueprint", dateFormaterFlow);
+    writeBlueprint("src/server.blueprint", serverFlow(3921));
+
+    const res = await client().writeCompiledFiles({ relativePaths: ["src/server.js"] });
+
+    expect(res.valid).toBe(true);
+    expect(res.written).toBe(true);
+    expect(res.files.map((f) => f.relativePath)).toEqual(["src/server.js"]);
+    expect(res.files[0]?.outputPath).toBe("src/server.js");
+
+    const serverOnDisk = readFileSync(path.join(projectDir, "src", "server.js"), "utf8");
+    expect(serverOnDisk).toContain("dateHelper");
+    expect(existsSync(path.join(projectDir, "helpers", "dateFormater.js"))).toBe(false);
+
+    const pkg = JSON.parse(readFileSync(path.join(projectDir, "package.json"), "utf8"));
+    expect(pkg.dependencies).toEqual({ express: expect.any(String) });
+  });
+
+  it("writes every checked file when more than one is requested", async () => {
+    writeBlueprint("helpers/dateFormater.blueprint", dateFormaterFlow);
+    writeBlueprint("src/server.blueprint", serverFlow(3922));
+
+    const res = await client().writeCompiledFiles({
+      relativePaths: ["src/server.js", "helpers/dateFormater.js"],
+    });
+
+    expect(res.valid).toBe(true);
+    expect(res.written).toBe(true);
+    expect(res.files.map((f) => f.relativePath).sort()).toEqual(["helpers/dateFormater.js", "src/server.js"]);
+    expect(existsSync(path.join(projectDir, "src", "server.js"))).toBe(true);
+    expect(existsSync(path.join(projectDir, "helpers", "dateFormater.js"))).toBe(true);
+  });
+
+  it("reports a per-file error for a requested path not in the compiled result set, without blocking the rest", async () => {
+    writeBlueprint("helpers/dateFormater.blueprint", dateFormaterFlow);
+    writeBlueprint("src/server.blueprint", serverFlow(3923));
+
+    const res = await client().writeCompiledFiles({
+      relativePaths: ["src/server.js", "src/does-not-exist.js"],
+    });
+
+    expect(res.valid).toBe(true);
+    expect(res.written).toBe(true);
+    expect(res.files.map((f) => f.relativePath)).toEqual(["src/server.js"]);
+    expect(res.errors.some((e) => e.relativePath === "src/does-not-exist.js" && e.message.includes("not found"))).toBe(
+      true,
+    );
+    expect(existsSync(path.join(projectDir, "src", "server.js"))).toBe(true);
+    expect(existsSync(path.join(projectDir, "src", "does-not-exist.js"))).toBe(false);
+  });
+
+  it("reports written:false and no errors for an empty selection", async () => {
+    writeBlueprint("helpers/dateFormater.blueprint", dateFormaterFlow);
+    writeBlueprint("src/server.blueprint", serverFlow(3924));
+
+    const res = await client().writeCompiledFiles({ relativePaths: [] });
+
+    expect(res.valid).toBe(true);
+    expect(res.written).toBe(false);
+    expect(res.files).toEqual([]);
+    expect(res.errors).toEqual([]);
   });
 });
 

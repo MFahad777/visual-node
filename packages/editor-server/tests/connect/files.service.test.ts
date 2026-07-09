@@ -16,7 +16,7 @@ import { registerFilesRoutes } from "../../src/connect/files.service.js";
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-connect-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-connect-test-"));
 });
 
 afterEach(() => {
@@ -110,7 +110,7 @@ describe("CreateBlueprint", () => {
 
   it("rejects with InvalidArgument on an absolute path attempt", async () => {
     const client = makeClient(projectDir);
-    const absoluteEvil = path.join(os.tmpdir(), "flowserver-connect-evil.blueprint");
+    const absoluteEvil = path.join(os.tmpdir(), "visual-node-connect-evil.blueprint");
 
     await expectCode(client.createBlueprint({ path: absoluteEvil }), Code.InvalidArgument);
     expect(existsSync(absoluteEvil)).toBe(false);
@@ -141,7 +141,7 @@ describe("GetBlueprint", () => {
   it("rejects with InvalidArgument on an absolute path attempt", async () => {
     const client = makeClient(projectDir);
     await expectCode(
-      client.getBlueprint({ path: path.join(os.tmpdir(), "flowserver-connect-evil.blueprint") }),
+      client.getBlueprint({ path: path.join(os.tmpdir(), "visual-node-connect-evil.blueprint") }),
       Code.InvalidArgument,
     );
   });

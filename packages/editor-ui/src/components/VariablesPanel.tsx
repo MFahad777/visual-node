@@ -15,6 +15,10 @@ export interface VariablesPanelProps {
   onSetDataType: (id: string, dataType: VariableDataType) => void;
   onSetDefault: (id: string, value: string) => void;
   onRemove: (id: string) => void;
+  /** Phase 25: lets a second instance (module-level variables inside a function graph) render under its own heading. */
+  title?: string;
+  /** Phase 25: embedded into the drag payload so a drop handler serving two variable pools (local + module-level) knows which one a dragged row came from. */
+  dragScope?: "local" | "module";
 }
 
 /**
@@ -33,6 +37,8 @@ export function VariablesPanel({
   onSetDataType,
   onSetDefault,
   onRemove,
+  title = "Variables",
+  dragScope = "local",
 }: VariablesPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
@@ -50,7 +56,7 @@ export function VariablesPanel({
           title={collapsed ? "Expand" : "Collapse"}
         >
           <span className="inline-block w-2.5 text-neutral-400">{collapsed ? "▸" : "▾"}</span>
-          Variables
+          {title}
           <span className="rounded-full bg-neutral-700 px-1.5 py-0.5 text-[10px] font-normal normal-case text-neutral-300">
             {variables.length}
           </span>
@@ -83,6 +89,7 @@ export function VariablesPanel({
               key={variable.id}
               variable={variable}
               allVariables={variables}
+              dragScope={dragScope}
               onRename={onRename}
               onSetKeyword={onSetKeyword}
               onSetDataType={onSetDataType}
@@ -99,6 +106,7 @@ export function VariablesPanel({
 function VariableRow({
   variable,
   allVariables,
+  dragScope,
   onRename,
   onSetKeyword,
   onSetDataType,
@@ -107,6 +115,7 @@ function VariableRow({
 }: {
   variable: VariableDeclaration;
   allVariables: VariableDeclaration[];
+  dragScope: "local" | "module";
   onRename: (id: string, name: string) => void;
   onSetKeyword: (id: string, keyword: VariableDeclaration["keyword"]) => void;
   onSetDataType: (id: string, dataType: VariableDataType) => void;
@@ -184,7 +193,10 @@ function VariableRow({
         <span
           draggable
           onDragStart={(event) => {
-            event.dataTransfer.setData("application/flowserver-variable", JSON.stringify({ variableId: variable.id }));
+            event.dataTransfer.setData(
+              "application/visual-node-variable",
+              JSON.stringify({ variableId: variable.id, scope: dragScope }),
+            );
             event.dataTransfer.effectAllowed = "move";
           }}
           title="Drag onto the canvas to add a Get/Set node"

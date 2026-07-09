@@ -36,7 +36,7 @@ function flowWithNpmRequire(port: number): Flow {
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-connect-run-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-connect-run-test-"));
 });
 
 afterEach(async () => {

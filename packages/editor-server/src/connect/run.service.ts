@@ -114,7 +114,7 @@ export function registerRunRoutes(router: ConnectRouter, config: AppConfig): Con
       await writeGeneratedFile(path.join(config.projectDir, file.relativePath), file.code);
     }
     const { dependencies } = collectProjectDependencies(sourceFiles);
-    await ensureCommonJsPackageJson(config.projectDir, path.basename(config.projectDir) || "flowserver-app", {
+    await ensureCommonJsPackageJson(config.projectDir, path.basename(config.projectDir) || "visual-node-app", {
       dependencies,
     });
 

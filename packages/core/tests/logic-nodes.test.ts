@@ -446,6 +446,60 @@ describe("variable.get / variable.set", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("a local (function-graph) variable wins over an outer module-level variable on id collision", () => {
+    // Deliberately colliding ids (impossible in practice with real UUIDs) to exercise
+    // buildGraphEmitContext()'s merge order: [...(graph.variables ?? []), ...outerVariables] —
+    // the LOCAL entry must be found first by resultIdentifierFor()'s lookup, matching which
+    // list actually gets a declaration statement emitted inside the function body.
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "5" } } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+              variables: [{ id: "v1", name: "localCounter", keyword: "let", dataType: "number", defaultValue: "10" }],
+            },
+          },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+    // Same id "v1" as the local graph variable above, but a different name — the collision.
+    flow.variables = [{ id: "v1", name: "outerCounter", keyword: "let", dataType: "number", defaultValue: "0" }];
+
+    const { code } = emitExpress(flow);
+    expect(code).toContain("let localCounter = 10;");
+    expect(code).toContain("localCounter = (5);");
+    // The outer "v1" variable still gets its own unconditional top-level `let outerCounter = 0;`
+    // declaration (every let/var in `flow.variables` always does, independent of whether
+    // anything references it) — that alone doesn't prove the fix. The real regression check is
+    // that "outerCounter" is never the Set node's assignment target and appears exactly once
+    // (its own declaration), not twice (declaration + a wrongly-resolved assignment inside the
+    // handler body, which is what the pre-fix `.find()` order produced).
+    expect(code).not.toContain("outerCounter = (5)");
+    expect(code.match(/outerCounter/g)).toHaveLength(1);
+  });
+
   describe("Set Variable literal formatting is per-dataType, not raw JS source", () => {
     function flowWithTypedVariable(dataType: VariableDataType, literalValue: unknown): Flow {
       const flow = makeFlow(

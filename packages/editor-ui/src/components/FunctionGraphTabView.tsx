@@ -16,6 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import { useEditorTabsStore } from "../store/editorTabsStore.js";
+import { useFlowStore } from "../store/flowStore.js";
 import type { FunctionGraphStore } from "../store/functionGraphStore.js";
 import { nodeTypes } from "../canvas/nodeTypes.js";
 import { CustomEdge } from "../canvas/CustomEdge.js";
@@ -42,6 +43,8 @@ interface VariableDropState {
   screenY: number;
   flowPosition: XYPosition;
   variableId: string;
+  /** Phase 25: which pool `variableId` came from — the drag payload carries this so the drop handler resolves it against the right list. */
+  scope: "local" | "module";
 }
 
 /**
@@ -84,6 +87,10 @@ export function FunctionGraphTabView({
   const removeCallbackArg = tabStore((s) => s.removeCallbackArg);
   const variables = tabStore((s) => s.variables);
   const selectNode = tabStore((s) => s.selectNode);
+  // Phase 25: the outer/main-canvas module-level variable list, read straight off the global
+  // flowStore singleton — no prop threading needed, same store any other component in this app
+  // reads directly. Kept separate from the tab's own local `variables` above.
+  const moduleVariables = useFlowStore((s) => s.variables);
 
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [variableDrop, setVariableDrop] = useState<VariableDropState | null>(null);
@@ -125,6 +132,7 @@ export function FunctionGraphTabView({
       addCallbackArg,
       removeCallbackArg,
       variables,
+      moduleVariables,
     }),
     [
       edges,
@@ -143,6 +151,7 @@ export function FunctionGraphTabView({
       addCallbackArg,
       removeCallbackArg,
       variables,
+      moduleVariables,
     ]
   );
 
@@ -172,6 +181,7 @@ export function FunctionGraphTabView({
             variableDrop={variableDrop}
             setVariableDrop={setVariableDrop}
             variables={variables}
+            moduleVariables={moduleVariables}
             localNodes={nodes}
             onAddNode={(type, position, data) => tabStore.getState().addNode(type, position, data)}
             onSelectNode={selectNode}
@@ -199,6 +209,7 @@ function GraphCanvas({
   variableDrop,
   setVariableDrop,
   variables,
+  moduleVariables,
   localNodes,
   onAddNode,
   onSelectNode,
@@ -215,6 +226,7 @@ function GraphCanvas({
   variableDrop: VariableDropState | null;
   setVariableDrop: (v: VariableDropState | null) => void;
   variables: VariableDeclaration[];
+  moduleVariables: VariableDeclaration[];
   localNodes: Array<{ type?: string; data?: Record<string, unknown> }>;
   onAddNode: (type: string, position: XYPosition, data: Record<string, unknown>) => void;
   onSelectNode: (nodeId: string | null) => void;
@@ -252,11 +264,14 @@ function GraphCanvas({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const variablePayload = event.dataTransfer.getData("application/flowserver-variable");
+      const variablePayload = event.dataTransfer.getData("application/visual-node-variable");
       if (!variablePayload) return;
-      const { variableId } = JSON.parse(variablePayload) as { variableId: string };
+      const { variableId, scope } = JSON.parse(variablePayload) as {
+        variableId: string;
+        scope?: "local" | "module";
+      };
       const flowPosition = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      setVariableDrop({ screenX: event.clientX, screenY: event.clientY, flowPosition, variableId });
+      setVariableDrop({ screenX: event.clientX, screenY: event.clientY, flowPosition, variableId, scope: scope ?? "local" });
     },
     [screenToFlowPosition, setVariableDrop],
   );
@@ -303,7 +318,8 @@ function GraphCanvas({
       )}
       {variableDrop &&
         (() => {
-          const variable = variables.find((v) => v.id === variableDrop.variableId);
+          const pool = variableDrop.scope === "module" ? moduleVariables : variables;
+          const variable = pool.find((v) => v.id === variableDrop.variableId);
           if (!variable) return null;
           return (
             <VariableDropMenu

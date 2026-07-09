@@ -15,6 +15,13 @@ export interface FunctionGraphEdgeContextValue {
   // name inside a Function's blueprint sub-canvas, where the main canvas's `flowStore`
   // variables would be the wrong (and namespace-unrelated) list to look up against.
   variables?: VariableDeclaration[];
+  // Phase 25: the outer/main-canvas module-level variable list, kept separate from `variables`
+  // above (rather than pre-merged) so a lookup can check local first and fall back to module —
+  // the same local-wins-on-id-collision precedence `emit-function-graph.ts`'s
+  // `buildGraphEmitContext()` uses at the codegen layer. Lets `GenericNode.tsx` resolve a
+  // `variable.get`/`variable.set` node bound to a module-level variable (Phase 24 already
+  // allows this at the codegen level; before this field existed the UI had no way to find it).
+  moduleVariables?: VariableDeclaration[];
   // Present only inside a Function node's blueprint sub-canvas (FunctionGraphTabView wires
   // these to the scoped functionGraphStore instance) — GenericNode.tsx prefers these over
   // the global flowStore's equivalents when this context is provided, mirroring how it

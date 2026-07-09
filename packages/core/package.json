@@ -1,10 +1,10 @@
 {
   "name": "@visual-node/core",
-  "version": "0.5.2",
+  "version": "1.0.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "Framework-agnostic codegen engine: compiles a FlowServer flow graph into real Express.js source code",
+  "description": "Framework-agnostic codegen engine: compiles a Visual Node flow graph into real Express.js source code",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

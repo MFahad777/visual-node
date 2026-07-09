@@ -26,7 +26,7 @@ import { resolveSafePath } from "../path-safety.js";
  * than the `ConnectError`-throwing pattern connect/files.service.ts uses for its CRUD RPCs.
  *
  * On success, the validated spec is written to
- * `<projectDir>/.flowserver/plugins/<sanitized-type>.node.json` (the leading dot directory
+ * `<projectDir>/.visualnode/plugins/<sanitized-type>.node.json` (the leading dot directory
  * means file-tree.ts's existing dotfile filter already hides it from the file explorer with
  * zero changes there) and immediately `registerNode()`-ed — live for the very next
  * `GetNodeRegistry` call, no restart needed. Re-uploading a `type` that's already registered
@@ -65,7 +65,7 @@ export function registerPluginsRoutes(router: ConnectRouter, config: AppConfig):
     }
 
     const filename = `${spec.type.replace(/[^A-Za-z0-9_.-]/g, "_")}.node.json`;
-    const relativePath = `.flowserver/plugins/${filename}`;
+    const relativePath = `.visualnode/plugins/${filename}`;
     const target = resolveSafePath(config.projectDir, relativePath);
     if (!target) {
       return {

@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const projectDir = path.resolve(rootDir, process.argv[2] ?? process.env.FLOWSERVER_PROJECT_DIR ?? "./playground");
+const projectDir = path.resolve(rootDir, process.argv[2] ?? process.env.VISUAL_NODE_PROJECT_DIR ?? "./playground");
 
 console.log(`[dev] Project directory: ${projectDir}`);
 
@@ -23,7 +23,7 @@ const children = [
     cwd: rootDir,
     stdio: "inherit",
     shell: isWindows,
-    env: { ...process.env, FLOWSERVER_PROJECT_DIR: projectDir },
+    env: { ...process.env, VISUAL_NODE_PROJECT_DIR: projectDir },
   }),
   spawn(pnpmCmd, ["--filter", "@visual-node/editor-ui", "run", "dev"], {
     cwd: rootDir,

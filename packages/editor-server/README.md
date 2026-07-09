@@ -28,7 +28,7 @@ and hit it right there, or just read the generated files yourself.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `4000` | Port the editor listens on |
-| `FLOWSERVER_PROJECT_DIR` | current directory | Project directory (overridden by a CLI arg) |
+| `VISUAL_NODE_PROJECT_DIR` | current directory | Project directory (overridden by a CLI arg) |
 
 ## Examples
 

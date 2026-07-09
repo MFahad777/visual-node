@@ -92,7 +92,7 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
         def.type !== "logic.functionCall" &&
         def.type !== "variable.get" &&
         def.type !== "variable.set" &&
-        (def.label.toLowerCase().includes(q) || def.description.toLowerCase().includes(q)),
+        (def.label.toLowerCase().startsWith(q) || def.description.toLowerCase().startsWith(q)),
     );
     const byCategory = new Map<NodeCategory, NodeDefinition[]>();
     for (const def of filtered) {
@@ -109,7 +109,7 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
     return all.filter((fn) => {
       const label = `${fn.functionName}(${fn.params})`;
       const description = `Call via ${fn.variableName} (${fn.requirePath})`;
-      return label.toLowerCase().includes(q) || description.toLowerCase().includes(q);
+      return label.toLowerCase().startsWith(q) || description.toLowerCase().startsWith(q);
     });
   }, [requiredModules, query]);
 
@@ -220,7 +220,7 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
   return (
     <div
       ref={containerRef}
-      style={{ position: "fixed", left, top, width: MENU_WIDTH, maxHeight: MENU_MAX_HEIGHT }}
+      style={{ position: "fixed", left, top, width: MENU_WIDTH, height: MENU_MAX_HEIGHT }}
       className="z-50 flex flex-col overflow-hidden rounded-lg border border-black/60 bg-[#1f1f1f] shadow-2xl shadow-black/60"
     >
       <div className="border-b border-black/60 p-2">
@@ -235,11 +235,13 @@ export function NodePickerMenu({ screenX, screenY, flowPosition, onClose }: Node
       {virtualItems.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-2 py-2 text-xs text-neutral-400">No matching nodes</div>
       ) : (
-        <VirtualizedNodeList
-          items={virtualItems}
-          onSelect={handleSelectItem}
-          disabled={false}
-        />
+        <div className="min-h-0 flex-1">
+          <VirtualizedNodeList
+            items={virtualItems}
+            onSelect={handleSelectItem}
+            disabled={false}
+          />
+        </div>
       )}
     </div>
   );

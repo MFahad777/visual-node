@@ -44,7 +44,7 @@ async function main() {
 
   const written = [];
   for (const [filename, content] of Object.entries(files)) {
-    // flatc emits paths like "flow-server/fbs/flow-node.ts" (namespace-derived dirs) —
+    // flatc emits paths like "visual-node/fbs/flow-node.ts" (namespace-derived dirs) —
     // preserve the relative structure under outDir.
     const outPath = path.join(outDir, filename);
     mkdirSync(path.dirname(outPath), { recursive: true });

@@ -34,7 +34,7 @@ export function NodeBrowserModal() {
         def.type !== "logic.functionCall" &&
         def.type !== "variable.get" &&
         def.type !== "variable.set" &&
-        (def.label.toLowerCase().includes(q) || def.description.toLowerCase().includes(q)),
+        (def.label.toLowerCase().startsWith(q) || def.description.toLowerCase().startsWith(q)),
     );
     const byCategory = new Map<NodeCategory, NodeDefinition[]>();
     for (const def of filtered) {
@@ -79,7 +79,7 @@ export function NodeBrowserModal() {
     return all.filter((fn) => {
       const label = `${fn.functionName}(${fn.params})`.toLowerCase();
       const description = `Call via ${fn.variableName} (${fn.requirePath})`.toLowerCase();
-      return label.includes(q) || description.includes(q);
+      return label.startsWith(q) || description.startsWith(q);
     });
   }, [resolvedModules, query]);
 
@@ -194,7 +194,7 @@ export function NodeBrowserModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[80vh] w-[640px] flex-col rounded-lg border border-black/60 bg-[#242424] shadow-2xl shadow-black/60"
+        className="flex h-[80vh] w-[640px] flex-col rounded-lg border border-black/60 bg-[#242424] shadow-2xl shadow-black/60"
       >
         <div className="flex items-center justify-between border-b border-black/60 px-4 py-2">
           <h2 className="text-sm font-semibold text-neutral-100">Built-in Nodes</h2>
@@ -219,7 +219,7 @@ export function NodeBrowserModal() {
           )}
         </div>
 
-        <div className="flex-1 border-t border-black/60">
+        <div className="min-h-0 flex-1 border-t border-black/60">
           {virtualItems.length === 0 ? (
             <div className="flex items-center justify-center p-3 text-xs text-neutral-400">No matching nodes</div>
           ) : (

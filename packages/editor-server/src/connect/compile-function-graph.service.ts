@@ -65,7 +65,7 @@ export function registerCompileFunctionGraphRoutes(router: ConnectRouter, config
       await writeGeneratedFile(path.join(config.projectDir, file.relativePath), file.code);
     }
     const { dependencies } = collectProjectDependencies(sourceFiles);
-    await ensureCommonJsPackageJson(config.projectDir, path.basename(config.projectDir) || "flowserver-app", {
+    await ensureCommonJsPackageJson(config.projectDir, path.basename(config.projectDir) || "visual-node-app", {
       dependencies,
     });
 
@@ -74,6 +74,45 @@ export function registerCompileFunctionGraphRoutes(router: ConnectRouter, config
       written: true,
       files: result.files.map((file) => ({ relativePath: file.relativePath, outputPath: file.relativePath })),
       errors: [],
+    };
+  });
+
+  // POST /api/compile/write-files -> WriteCompiledFiles. Same recompile-and-revalidate
+  // pipeline as WriteCompiledProject (a subset can't be validated in isolation — cross-file
+  // requires need the whole project's graph), but persists only the checked subset of
+  // files rather than every compiled file. A requested path not present in the compiled
+  // result set is reported as its own error rather than failing every other requested
+  // file — e.g. a stale checkbox selection referencing a since-renamed file shouldn't
+  // block writing the rest of the selection.
+  router.rpc(EditorService.method.writeCompiledFiles, async (req) => {
+    const { sourceFiles, result } = await compileProjectFromDisk(config.projectDir);
+    if (!result.valid) {
+      return { valid: false, written: false, files: [], errors: result.errors.map(toValidationErrorInit) };
+    }
+
+    const requested = new Set(req.relativePaths);
+    const matched = result.files.filter((f) => requested.has(f.relativePath));
+    const matchedPaths = new Set(matched.map((f) => f.relativePath));
+    const missing = req.relativePaths.filter((p) => !matchedPaths.has(p));
+
+    for (const file of matched) {
+      await writeGeneratedFile(path.join(config.projectDir, file.relativePath), file.code);
+    }
+    const { dependencies } = collectProjectDependencies(sourceFiles);
+    await ensureCommonJsPackageJson(config.projectDir, path.basename(config.projectDir) || "visual-node-app", {
+      dependencies,
+    });
+
+    return {
+      valid: true,
+      written: matched.length > 0,
+      files: matched.map((file) => ({ relativePath: file.relativePath, outputPath: file.relativePath })),
+      errors: missing.map((p) => ({
+        nodeId: "",
+        blueprintNodeId: "",
+        relativePath: p,
+        message: `File not found in compiled project: ${p}`,
+      })),
     };
   });
 

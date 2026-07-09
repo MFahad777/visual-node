@@ -8,6 +8,7 @@ import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
 import { VariablesPanel } from "./VariablesPanel.js";
 import { LazyCodeEditor } from "./LazyCodeEditor.js";
+import { Checkbox } from "./Checkbox.js";
 
 /**
  * Sidebar half of the active function-graph tab (Phase 21) — the `w-72` column
@@ -62,6 +63,17 @@ function FunctionGraphSidePanelContent({
   const setVariableDataType = useGraphStore((s) => s.setVariableDataType);
   const setVariableDefault = useGraphStore((s) => s.setVariableDefault);
   const removeVariable = useGraphStore((s) => s.removeVariable);
+  // Phase 25: the outer/main-canvas module-level variable list + its actions, read straight off
+  // the global flowStore singleton — edits here write directly into flowStore, so they're
+  // visible immediately on the main canvas and every other open tab, same as the local
+  // variables above are visible across this one tab's own state.
+  const moduleVariables = useFlowStore((s) => s.variables);
+  const addModuleVariable = useFlowStore((s) => s.addVariable);
+  const renameModuleVariable = useFlowStore((s) => s.renameVariable);
+  const setModuleVariableKeyword = useFlowStore((s) => s.setVariableKeyword);
+  const setModuleVariableDataType = useFlowStore((s) => s.setVariableDataType);
+  const setModuleVariableDefault = useFlowStore((s) => s.setVariableDefault);
+  const removeModuleVariable = useFlowStore((s) => s.removeVariable);
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   // Live parameter list, read from the graph's single Inputs entry node — this is what the
@@ -105,6 +117,13 @@ function FunctionGraphSidePanelContent({
         onSetVariableDataType={setVariableDataType}
         onSetVariableDefault={setVariableDefault}
         onRemoveVariable={removeVariable}
+        moduleVariables={moduleVariables}
+        onAddModuleVariable={addModuleVariable}
+        onRenameModuleVariable={renameModuleVariable}
+        onSetModuleVariableKeyword={setModuleVariableKeyword}
+        onSetModuleVariableDataType={setModuleVariableDataType}
+        onSetModuleVariableDefault={setModuleVariableDefault}
+        onRemoveModuleVariable={removeModuleVariable}
       />
 
       <div className="my-3 border-t border-black/60" />
@@ -130,6 +149,7 @@ function FunctionGraphSidePanelContent({
           removeSwitchCasePin={removeSwitchCasePin}
           updateSwitchCaseValue={updateSwitchCaseValue}
           variables={variables}
+          moduleVariables={moduleVariables}
         />
       ) : (
         <p className="text-xs text-neutral-400">Select a node to configure it.</p>
@@ -157,6 +177,7 @@ function SubCanvasNodeConfig({
   removeSwitchCasePin,
   updateSwitchCaseValue,
   variables,
+  moduleVariables,
 }: {
   node: Node;
   definition: NodeDefinition | null;
@@ -166,11 +187,17 @@ function SubCanvasNodeConfig({
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
   variables: VariableDeclaration[];
+  moduleVariables: VariableDeclaration[];
 }) {
   if (!definition) return <p className="text-xs text-neutral-400">Loading…</p>;
 
   if (node.type === "variable.get" || node.type === "variable.set") {
-    const variable = variables.find((v) => v.id === node.data?.variableId);
+    // Phase 25: a Get/Set node in here can be bound to either this graph's own local variable
+    // or an outer module-level one (Phase 24 already resolves either at the codegen layer) —
+    // check local first, matching the local-wins-on-id-collision precedence used elsewhere.
+    const variable =
+      variables.find((v) => v.id === node.data?.variableId) ??
+      moduleVariables.find((v) => v.id === node.data?.variableId);
     if (!variable) {
       return (
         <div className="rounded border border-red-500/60 bg-red-900/20 px-2 py-1.5 text-xs text-red-400">
@@ -180,7 +207,8 @@ function SubCanvasNodeConfig({
     }
     return (
       <div className="rounded border border-neutral-700 bg-black/30 px-2 py-1.5 text-xs text-neutral-300">
-        Bound to variable &quot;{variable.name}&quot; ({variable.keyword}) — edit it in the Variables panel above.
+        Bound to variable &quot;{variable.name}&quot; ({variable.keyword}) — edit it in the Variables or Module
+        Variables panel above.
       </div>
     );
   }
@@ -279,8 +307,7 @@ function SubCanvasNodeConfig({
               height="100px"
             />
           ) : field.type === "boolean" ? (
-            <input
-              type="checkbox"
+            <Checkbox
               checked={Boolean(node.data?.[field.key] ?? field.default ?? false)}
               onChange={(e) => updateNodeData(node.id, field.key, e.target.checked)}
             />
@@ -321,6 +348,13 @@ function FunctionDetailsPanel({
   onSetVariableDataType,
   onSetVariableDefault,
   onRemoveVariable,
+  moduleVariables,
+  onAddModuleVariable,
+  onRenameModuleVariable,
+  onSetModuleVariableKeyword,
+  onSetModuleVariableDataType,
+  onSetModuleVariableDefault,
+  onRemoveModuleVariable,
 }: {
   functionName: string;
   onRenameFunction: (name: string) => void;
@@ -337,6 +371,14 @@ function FunctionDetailsPanel({
   onSetVariableDataType: (id: string, dataType: VariableDeclaration["dataType"]) => void;
   onSetVariableDefault: (id: string, value: string) => void;
   onRemoveVariable: (id: string) => void;
+  /** Phase 25: the outer/main-canvas module-level variable list, editable from here too — writes go straight into flowStore. */
+  moduleVariables: VariableDeclaration[];
+  onAddModuleVariable: () => void;
+  onRenameModuleVariable: (id: string, name: string) => void;
+  onSetModuleVariableKeyword: (id: string, keyword: VariableDeclaration["keyword"]) => void;
+  onSetModuleVariableDataType: (id: string, dataType: VariableDeclaration["dataType"]) => void;
+  onSetModuleVariableDefault: (id: string, value: string) => void;
+  onRemoveModuleVariable: (id: string) => void;
 }) {
   function handleAddParam() {
     let name = "param";
@@ -424,6 +466,22 @@ function FunctionDetailsPanel({
         onSetDataType={onSetVariableDataType}
         onSetDefault={onSetVariableDefault}
         onRemove={onRemoveVariable}
+      />
+
+      {/* Phase 25: module-level variables declared on the Main Graph — same Get/Set
+          drag-and-drop and full add/rename/remove editing as the local Variables panel
+          above, writing straight into the outer flowStore so edits here are visible
+          immediately on the main canvas and every other open tab. */}
+      <VariablesPanel
+        title="Module Variables"
+        variables={moduleVariables}
+        onAdd={onAddModuleVariable}
+        onRename={onRenameModuleVariable}
+        onSetKeyword={onSetModuleVariableKeyword}
+        onSetDataType={onSetModuleVariableDataType}
+        onSetDefault={onSetModuleVariableDefault}
+        onRemove={onRemoveModuleVariable}
+        dragScope="module"
       />
     </div>
   );

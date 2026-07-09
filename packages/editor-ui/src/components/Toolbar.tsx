@@ -26,14 +26,12 @@ export function Toolbar() {
   const isSaving = useFlowStore((s) => s.isSaving);
   const isCompiling = useFlowStore((s) => s.isCompiling);
   const validationErrors = useFlowStore((s) => s.validationErrors);
-  const compiledResults = useFlowStore((s) => s.compiledResults);
   const currentFilePath = useFlowStore((s) => s.currentFilePath);
   const projectSettings = useFlowStore((s) => s.projectSettings);
   const projectDir = useFlowStore((s) => s.projectDir);
   const lastError = useFlowStore((s) => s.lastError);
   const saveFlow = useFlowStore((s) => s.saveFlow);
   const compileProject = useFlowStore((s) => s.compileProject);
-  const openPreview = useFlowStore((s) => s.openPreview);
   const openNodeBrowser = useFlowStore((s) => s.openNodeBrowser);
   const compileErrors = useFlowStore((s) => s.compileErrors);
   const toggleErrorLog = useFlowStore((s) => s.toggleErrorLog);
@@ -84,7 +82,7 @@ export function Toolbar() {
 
   return (
     <div className="flex h-12 items-center gap-2 border-b border-black/60 bg-[#242424] px-3">
-      <span className="mr-1 text-sm font-bold tracking-wide text-neutral-100">FlowServer</span>
+      <span className="mr-1 text-sm font-bold tracking-wide text-neutral-100">Visual Node</span>
       <span title={projectDir ?? undefined} className="mr-2 text-xs text-neutral-400">
         {displayProjectDir(projectDir)}
       </span>
@@ -143,14 +141,6 @@ export function Toolbar() {
         className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isCompiling ? "Compiling…" : "Compile"}
-      </button>
-
-      <button
-        onClick={openPreview}
-        disabled={compiledResults === null}
-        className="rounded border border-neutral-600 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
-      >
-        Preview
       </button>
 
       {isServerRunning ? (

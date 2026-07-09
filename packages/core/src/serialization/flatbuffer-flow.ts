@@ -20,12 +20,12 @@ import * as flatbuffers from "flatbuffers";
 import * as flexbuffers from "flatbuffers/js/flexbuffers.js";
 
 import type { Flow, FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
-import { Flow as FbsFlow } from "../schema/generated/flow-server/fbs/flow.js";
-import { FlowNode as FbsFlowNode } from "../schema/generated/flow-server/fbs/flow-node.js";
-import { FlowEdge as FbsFlowEdge } from "../schema/generated/flow-server/fbs/flow-edge.js";
-import { Meta as FbsMeta } from "../schema/generated/flow-server/fbs/meta.js";
-import { Position as FbsPosition } from "../schema/generated/flow-server/fbs/position.js";
-import { Variable as FbsVariable } from "../schema/generated/flow-server/fbs/variable.js";
+import { Flow as FbsFlow } from "../schema/generated/visual-node/fbs/flow.js";
+import { FlowNode as FbsFlowNode } from "../schema/generated/visual-node/fbs/flow-node.js";
+import { FlowEdge as FbsFlowEdge } from "../schema/generated/visual-node/fbs/flow-edge.js";
+import { Meta as FbsMeta } from "../schema/generated/visual-node/fbs/meta.js";
+import { Position as FbsPosition } from "../schema/generated/visual-node/fbs/position.js";
+import { Variable as FbsVariable } from "../schema/generated/visual-node/fbs/variable.js";
 
 const FILE_IDENTIFIER = "FSFL";
 
@@ -159,12 +159,12 @@ export function decodeFlow(bytes: Uint8Array): Flow {
   // once callers write the result back to disk. Checking the file identifier up front turns
   // that into a clear, immediate error instead.
   if (bytes.length < 8) {
-    throw new Error(`not a valid FlowServer FlatBuffers file: only ${bytes.length} bytes (too short)`);
+    throw new Error(`not a valid VisualNode FlatBuffers file: only ${bytes.length} bytes (too short)`);
   }
   const bb = new flatbuffers.ByteBuffer(bytes);
   if (!bb.__has_identifier(FILE_IDENTIFIER)) {
     throw new Error(
-      `not a valid FlowServer FlatBuffers file: missing or mismatched file identifier ` +
+      `not a valid VisualNode FlatBuffers file: missing or mismatched file identifier ` +
         `(expected "${FILE_IDENTIFIER}") — this file may still be in the old JSON format ` +
         `and need migration (see scripts/migrate-blueprints.mjs)`,
     );

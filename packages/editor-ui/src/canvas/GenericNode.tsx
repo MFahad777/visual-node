@@ -18,6 +18,7 @@ import {
   VARIADIC_BOOLEAN_TYPES,
 } from "./effectivePorts.js";
 import { isExecPort } from "./execPorts.js";
+import { Checkbox } from "../components/Checkbox.js";
 
 
 function literalPreview(data: Record<string, unknown>, pinId: string): string {
@@ -26,7 +27,12 @@ function literalPreview(data: Record<string, unknown>, pinId: string): string {
   return typeof literal === "string" ? literal : "";
 }
 
-function summarize(type: string, data: Record<string, unknown>, variables: VariableDeclaration[]): string | null {
+function summarize(
+  type: string,
+  data: Record<string, unknown>,
+  variables: VariableDeclaration[],
+  moduleVariables?: VariableDeclaration[],
+): string | null {
   switch (type) {
     case "express.listen":
       return `port: ${data.port ?? 3000}`;
@@ -68,11 +74,13 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
     // node, which only ever stores the opaque `variableId`) so a rename in the Variables
     // panel is reflected on every referencing canvas node instantly.
     case "variable.get": {
-      const variable = variables.find((v) => v.id === data.variableId);
+      const variable = variables.find((v) => v.id === data.variableId)
+        ?? moduleVariables?.find((v) => v.id === data.variableId);
       return variable ? `Get ${variable.name}` : "Get (missing variable)";
     }
     case "variable.set": {
-      const variable = variables.find((v) => v.id === data.variableId);
+      const variable = variables.find((v) => v.id === data.variableId)
+        ?? moduleVariables?.find((v) => v.id === data.variableId);
       return variable ? `Set ${variable.name}` : "Set (missing variable)";
     }
     case "operators.equal":
@@ -187,7 +195,12 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   }
 
   const hasError = errors.length > 0;
-  const summary = summarize(type ?? "", (data ?? {}) as Record<string, unknown>, variables);
+  const summary = summarize(
+    type ?? "",
+    (data ?? {}) as Record<string, unknown>,
+    variables,
+    scopedEdgeContext?.moduleVariables,
+  );
   const theme = CATEGORY_THEME[definition.category];
   const accentHex = theme.accentHex;
 
@@ -200,6 +213,9 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const boundVariable =
     type === "variable.get" || type === "variable.set"
       ? variables.find((v) => v.id === (data as Record<string, unknown> | undefined)?.variableId)
+        ?? scopedEdgeContext?.moduleVariables?.find(
+          (v) => v.id === (data as Record<string, unknown> | undefined)?.variableId,
+        )
       : undefined;
   const valuePinColor = (port: PortDefinition): string =>
     boundVariable && port.id === "value" ? getVariableTypeColor(boundVariable.dataType) : accentHex;
@@ -380,8 +396,7 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
                       />
                     )}
                     {showLiteral && portLiteralKind === "boolean" && (
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         className="nodrag nopan"
                         checked={Boolean(literals[port.id] ?? false)}
                         onChange={(e) => setLiteral(port.id, e.target.checked)}

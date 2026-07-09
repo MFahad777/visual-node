@@ -27,7 +27,7 @@ Environment variables:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `4000` | Port the editor itself listens on |
-| `FLOWSERVER_PROJECT_DIR` | current directory | Project directory (overridden by a CLI arg) |
+| `VISUAL_NODE_PROJECT_DIR` | current directory | Project directory (overridden by a CLI arg) |
 
 ## How it works
 

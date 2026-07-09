@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package flowserver.v1;
+package visual_node.v1;
 
 import "google/protobuf/struct.proto";
 
@@ -9,7 +9,7 @@ import "google/protobuf/struct.proto";
 // Buf Connect. See docs/phase8-backend-grpc-flatbuffers-plan.md for the full migration
 // rationale.
 //
-// Wherever a request/response currently carries a FlowServer `Flow` object
+// Wherever a request/response currently carries a Visual Node `Flow` object
 // (nodes/edges/meta, packages/core/src/schema/node.types.ts), the field below is
 // `bytes flatbuffer_flow` — an opaque FlatBuffers-encoded `Flow` (see
 // packages/core/src/schema/flow.fbs), encoded/decoded by code owned elsewhere. This
@@ -63,12 +63,17 @@ service EditorService {
   rpc CompileProject(CompileProjectRequest) returns (CompileProjectResponse);
   // POST /api/compile/write (confirm + persist)
   rpc WriteCompiledProject(WriteCompiledProjectRequest) returns (WriteCompiledProjectResponse);
+  // POST /api/compile/write-files (confirm + persist a checked subset of compiled
+  // files, not the whole project — still recompiles/revalidates the whole project first,
+  // same as WriteCompiledProject, since cross-file requires mean a subset can't be
+  // validated in isolation).
+  rpc WriteCompiledFiles(WriteCompiledFilesRequest) returns (WriteCompiledFilesResponse);
 
   // POST /api/function-graph/preview
   rpc PreviewFunctionGraph(PreviewFunctionGraphRequest) returns (PreviewFunctionGraphResponse);
 
   // POST /api/plugins/install (Phase 9 Part B — JSON-based plugin node system). Validates,
-  // persists to <projectDir>/.flowserver/plugins/, and registers a PluginNodeSpec immediately
+  // persists to <projectDir>/.visualnode/plugins/, and registers a PluginNodeSpec immediately
   // (see packages/core/src/plugins/plugin-schema.ts, packages/editor-server/src/connect/plugins.service.ts).
   rpc InstallPlugin(InstallPluginRequest) returns (InstallPluginResponse);
 }
@@ -409,6 +414,21 @@ message WriteCompiledProjectResponse {
   repeated ValidationError errors = 4;
 }
 
+message WriteCompiledFilesRequest {
+  // Relative paths (matching CompiledProjectFile.relative_path) of the checked files to
+  // persist. A path not found in the recompiled project's result set is reported as an
+  // error (relative_path set, no node_id) rather than failing the whole request — every
+  // other requested path that *does* match is still written.
+  repeated string relative_paths = 1;
+}
+
+message WriteCompiledFilesResponse {
+  bool valid = 1;
+  bool written = 2;
+  repeated WrittenProjectFile files = 3;
+  repeated ValidationError errors = 4;
+}
+
 // ---------------------------------------------------------------------------
 // PreviewFunctionGraph
 // ---------------------------------------------------------------------------
@@ -454,7 +474,7 @@ message InstallPluginResponse {
   // The plugin's `type` (e.g. "plugin.httpRequest"). Only meaningful when `ok` is true.
   string type = 2;
   // Project-relative path the spec was written to, e.g.
-  // ".flowserver/plugins/plugin.httpRequest.node.json". Only meaningful when `ok` is true.
+  // ".visualnode/plugins/plugin.httpRequest.node.json". Only meaningful when `ok` is true.
   string relative_path = 3;
   repeated string errors = 4;
 }

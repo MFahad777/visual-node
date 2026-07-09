@@ -97,7 +97,7 @@ export function FlowCanvas() {
       event.preventDefault();
       const flowPosition = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-      const functionCallPayload = event.dataTransfer.getData("application/flowserver-function-call");
+      const functionCallPayload = event.dataTransfer.getData("application/visual-node-function-call");
       if (functionCallPayload) {
         const entry = JSON.parse(functionCallPayload) as ResolvedFunction;
         addFunctionCallNode(entry, flowPosition);
@@ -107,14 +107,14 @@ export function FlowCanvas() {
       // Variables (Phase 10): rather than placing a node immediately, open a small
       // Get/Set choice menu at the drop point — VariableDropMenu's onChoose is what
       // actually calls addVariableNode with the precomputed flow position above.
-      const variablePayload = event.dataTransfer.getData("application/flowserver-variable");
+      const variablePayload = event.dataTransfer.getData("application/visual-node-variable");
       if (variablePayload) {
         const { variableId } = JSON.parse(variablePayload) as { variableId: string };
         setVariableDrop({ screenX: event.clientX, screenY: event.clientY, flowPosition, variableId });
         return;
       }
 
-      const nodeType = event.dataTransfer.getData("application/flowserver-node-type");
+      const nodeType = event.dataTransfer.getData("application/visual-node-node-type");
       if (nodeType) {
         // logic.function needs an extra Callback/Standalone choice — see
         // FunctionUsageMenu's doc comment — so it's routed through the same

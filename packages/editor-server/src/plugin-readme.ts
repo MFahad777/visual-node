@@ -10,9 +10,9 @@ async function pathExists(target: string): Promise<boolean> {
   }
 }
 
-const PLUGIN_README_CONTENT = `# Creating Custom Plugin Nodes for FlowServer
+const PLUGIN_README_CONTENT = `# Creating Custom Plugin Nodes for Visual Node
 
-FlowServer's node picker isn't limited to the built-in nodes — you can write a single JSON
+Visual Node's node picker isn't limited to the built-in nodes — you can write a single JSON
 file describing a new node (its ports, its config fields, and how it generates code) and
 install it directly from the editor. No TypeScript, no rebuild, no restart.
 
@@ -25,7 +25,7 @@ install it directly from the editor. No TypeScript, no rebuild, no restart.
    is listed at once, not just the first) and, if valid, registered live — it shows up in
    **"Browse Nodes"** right away with an amber "Plugin" badge, no restart needed.
 
-Installed plugins are saved into \`.flowserver/plugins/\` inside this project directory and
+Installed plugins are saved into \`.visualnode/plugins/\` inside this project directory and
 are automatically reloaded every time this project is opened — you only need to install
 once per project.
 
@@ -207,7 +207,7 @@ HTTP-style nodes.
 - **No update-in-place.** Re-installing a \`type\` that's already registered (built-in or a
   previously installed plugin) is rejected. While iterating on a plugin, just bump the
   \`type\` (e.g. \`plugin.myCustomNode2\`) until you're happy, then clean up the old
-  \`.flowserver/plugins/*.node.json\` file if you want.
+  \`.visualnode/plugins/*.node.json\` file if you want.
 - **No multi-arm branching.** A plugin can't create new Branch/Switch-style forks — that
   requires codegen capabilities not exposed to the plugin format. Use the built-in Branch/
   Switch nodes for conditional flow, and plugins for everything else.

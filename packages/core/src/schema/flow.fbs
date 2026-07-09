@@ -1,4 +1,4 @@
-namespace FlowServer.Fbs;
+namespace VisualNode.Fbs;
 
 table Position { x: float64; y: float64; }
 

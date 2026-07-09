@@ -7,7 +7,7 @@ import { ensurePluginReadme } from "../src/plugin-readme.js";
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-plugin-readme-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-plugin-readme-test-"));
 });
 
 afterEach(() => {
@@ -20,7 +20,7 @@ describe("ensurePluginReadme", () => {
     await ensurePluginReadme(projectDir);
 
     const content = readFileSync(readmePath, "utf8");
-    expect(content).toContain("# Creating Custom Plugin Nodes for FlowServer");
+    expect(content).toContain("# Creating Custom Plugin Nodes for Visual Node");
     // Covers the field reference, both worked examples, and the limitations section —
     // spot-check a few load-bearing facts rather than snapshotting the whole doc, so
     // future prose edits don't need to touch this test.

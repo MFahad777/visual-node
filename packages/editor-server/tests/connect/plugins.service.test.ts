@@ -20,7 +20,7 @@ import { loadInstalledPlugins } from "../../src/plugin-loading.js";
 let projectDir: string;
 
 beforeEach(() => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-plugins-test-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-plugins-test-"));
   // The node registry is a module-level singleton shared across every test in this file
   // (vitest isolates *files*, not individual `it()`s) — reset + re-seed with the builtins
   // before each test so cross-test plugin registrations never leak into an unrelated test's
@@ -79,10 +79,10 @@ describe("InstallPlugin", () => {
 
     expect(res.ok).toBe(true);
     expect(res.type).toBe("plugin.httpRequestTest");
-    expect(res.relativePath).toBe(".flowserver/plugins/plugin.httpRequestTest.node.json");
+    expect(res.relativePath).toBe(".visualnode/plugins/plugin.httpRequestTest.node.json");
     expect(res.errors).toEqual([]);
 
-    const onDiskPath = path.join(projectDir, ".flowserver", "plugins", "plugin.httpRequestTest.node.json");
+    const onDiskPath = path.join(projectDir, ".visualnode", "plugins", "plugin.httpRequestTest.node.json");
     expect(existsSync(onDiskPath)).toBe(true);
     expect(JSON.parse(readFileSync(onDiskPath, "utf8"))).toEqual(spec);
 
@@ -158,14 +158,14 @@ describe("InstallPlugin", () => {
 });
 
 describe("loadInstalledPlugins", () => {
-  it("returns empty result when .flowserver/plugins doesn't exist", async () => {
+  it("returns empty result when .visualnode/plugins doesn't exist", async () => {
     const result = await loadInstalledPlugins(projectDir);
     expect(result).toEqual({ loaded: [], failed: [] });
   });
 
-  it("re-registers a plugin from a pre-seeded .flowserver/plugins/*.node.json file (simulating a restart)", async () => {
+  it("re-registers a plugin from a pre-seeded .visualnode/plugins/*.node.json file (simulating a restart)", async () => {
     const spec = baseSpec("plugin.restartTest");
-    const pluginsDir = path.join(projectDir, ".flowserver", "plugins");
+    const pluginsDir = path.join(projectDir, ".visualnode", "plugins");
     mkdirSync(pluginsDir, { recursive: true });
     writeFileSync(path.join(pluginsDir, "plugin.restartTest.node.json"), JSON.stringify(spec, null, 2), "utf8");
 
@@ -180,7 +180,7 @@ describe("loadInstalledPlugins", () => {
 
   it("records a failure for an invalid file without aborting the rest of the scan", async () => {
     const goodSpec = baseSpec("plugin.goodOne");
-    const pluginsDir = path.join(projectDir, ".flowserver", "plugins");
+    const pluginsDir = path.join(projectDir, ".visualnode", "plugins");
     mkdirSync(pluginsDir, { recursive: true });
     writeFileSync(path.join(pluginsDir, "plugin.goodOne.node.json"), JSON.stringify(goodSpec, null, 2), "utf8");
     writeFileSync(path.join(pluginsDir, "plugin.badOne.node.json"), "{ not valid json", "utf8");

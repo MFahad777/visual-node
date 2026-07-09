@@ -27,7 +27,7 @@ await ensurePluginReadme(projectDir);
 const app = buildApp({ projectDir });
 
 app.listen(port, () => {
-  console.log(`FlowServer editor running at http://localhost:${port}`);
+  console.log(`Visual Node editor running at http://localhost:${port}`);
   console.log(`Project directory: ${projectDir}`);
 
   // Bundled worked examples (see scripts/copy-examples.mjs) — copied into dist/examples

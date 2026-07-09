@@ -8,3 +8,35 @@ body,
   background-color: #1b1b1b;
   height: 100%;
 }
+
+/* Custom scrollbar — matches the dark canvas theme instead of the OS default. Applied
+   globally (Firefox via `scrollbar-color`, WebKit/Chromium via `::-webkit-scrollbar`)
+   since every scrollable surface in the app (canvas modals, config panels, node pickers,
+   file explorer, code editors) should look consistent. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f3f #1a1a1a;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #3f3f3f;
+  border-radius: 6px;
+  border: 2px solid #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #0ea5e9;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #1a1a1a;
+}

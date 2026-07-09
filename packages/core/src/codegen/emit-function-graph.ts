@@ -75,7 +75,7 @@ function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDec
   // variables. The outer variables are NOT re-declared here — `emit-express.ts` already emits
   // their module-level `const`/`let`/`var` statement once; only THIS graph's own `variables`
   // get a declaration statement inside the compiled function body (see below).
-  const mergedVariables = [...outerVariables, ...(graph.variables ?? [])];
+  const mergedVariables = [...(graph.variables ?? []), ...outerVariables];
 
   const ctx: EmitContext = {
     // Function-graph nodes never reference the outer/top-level Flow — this stub satisfies

@@ -1,10 +1,10 @@
 {
   "name": "@visual-node/proto-gen",
-  "version": "0.5.2",
+  "version": "1.0.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "Generated Protobuf/Connect TypeScript code for FlowServer's editor-server EditorService, shared by editor-server and editor-ui",
+  "description": "Generated Protobuf/Connect TypeScript code for Visual Node's editor-server EditorService, shared by editor-server and editor-ui",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

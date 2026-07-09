@@ -63,7 +63,7 @@ function decodeFlowOrThrow(bytes: Uint8Array): Flow {
 
 function toProtoValidationError(e: CoreValidationError): ProtoValidationError {
   return {
-    $typeName: "flowserver.v1.ValidationError",
+    $typeName: "visual_node.v1.ValidationError",
     nodeId: e.nodeId ?? "",
     blueprintNodeId: e.blueprintNodeId ?? "",
     message: e.message,
@@ -75,7 +75,7 @@ async function validateFlowRpc(req: ValidateFlowRequest): Promise<ValidateFlowRe
   const flow = decodeFlowOrThrow(req.flatbufferFlow);
   const result = validateFlowCore(flow);
   return {
-    $typeName: "flowserver.v1.ValidateFlowResponse",
+    $typeName: "visual_node.v1.ValidateFlowResponse",
     valid: result.valid,
     errors: result.errors.map(toProtoValidationError),
   };
@@ -87,14 +87,14 @@ async function generateCodeRpc(req: GenerateCodeRequest): Promise<GenerateCodeRe
 
   if (!result.valid) {
     return {
-      $typeName: "flowserver.v1.GenerateCodeResponse",
+      $typeName: "visual_node.v1.GenerateCodeResponse",
       valid: false,
       code: "",
       errors: result.errors.map(toProtoValidationError),
     };
   }
   return {
-    $typeName: "flowserver.v1.GenerateCodeResponse",
+    $typeName: "visual_node.v1.GenerateCodeResponse",
     valid: true,
     code: result.code,
     errors: [],
@@ -110,7 +110,7 @@ async function writeGeneratedCodeRpc(
 
   if (!result.valid) {
     return {
-      $typeName: "flowserver.v1.WriteGeneratedCodeResponse",
+      $typeName: "visual_node.v1.WriteGeneratedCodeResponse",
       valid: false,
       written: false,
       path: "",
@@ -121,10 +121,10 @@ async function writeGeneratedCodeRpc(
   const serverPath = path.join(config.projectDir, "server.js");
   await writeGeneratedFile(serverPath, result.code);
   const { dependencies } = collectFlowDependencies(flow);
-  await ensureCommonJsPackageJson(config.projectDir, flow.meta?.name ?? "flowserver-app", { dependencies });
+  await ensureCommonJsPackageJson(config.projectDir, flow.meta?.name ?? "visual-node-app", { dependencies });
 
   return {
-    $typeName: "flowserver.v1.WriteGeneratedCodeResponse",
+    $typeName: "visual_node.v1.WriteGeneratedCodeResponse",
     valid: true,
     written: true,
     path: serverPath,

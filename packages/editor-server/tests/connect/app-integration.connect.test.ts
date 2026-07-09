@@ -33,7 +33,7 @@ let server: Server;
 let baseUrl: string;
 
 beforeEach(async () => {
-  projectDir = mkdtempSync(path.join(os.tmpdir(), "flowserver-connect-integration-"));
+  projectDir = mkdtempSync(path.join(os.tmpdir(), "visual-node-connect-integration-"));
   const app = buildApp({ projectDir });
   await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", resolve);

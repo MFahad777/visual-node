@@ -6,10 +6,10 @@ import * as flatbuffers from "flatbuffers";
 import { decodeFlow, encodeFlow } from "../src/serialization/flatbuffer-flow.js";
 import { registerBuiltinNodes } from "../src/nodes/index.js";
 import type { Flow } from "../src/schema/node.types.js";
-import { Flow as FbsFlow } from "../src/schema/generated/flow-server/fbs/flow.js";
-import { FlowNode as FbsFlowNode } from "../src/schema/generated/flow-server/fbs/flow-node.js";
-import { Meta as FbsMeta } from "../src/schema/generated/flow-server/fbs/meta.js";
-import { Position as FbsPosition } from "../src/schema/generated/flow-server/fbs/position.js";
+import { Flow as FbsFlow } from "../src/schema/generated/visual-node/fbs/flow.js";
+import { FlowNode as FbsFlowNode } from "../src/schema/generated/visual-node/fbs/flow-node.js";
+import { Meta as FbsMeta } from "../src/schema/generated/visual-node/fbs/meta.js";
+import { Position as FbsPosition } from "../src/schema/generated/visual-node/fbs/position.js";
 
 registerBuiltinNodes();
 
@@ -197,7 +197,7 @@ describe("flatbuffer-flow round-trip", () => {
 
   it("throws on JSON bytes instead of silently returning an empty-shaped Flow (pre-migration .blueprint files)", () => {
     const jsonBytes = new TextEncoder().encode(JSON.stringify(loadFixture(fixtureFiles[0])));
-    expect(() => decodeFlow(jsonBytes)).toThrow(/not a valid FlowServer FlatBuffers file/);
+    expect(() => decodeFlow(jsonBytes)).toThrow(/not a valid VisualNode FlatBuffers file/);
   });
 
   it("throws on empty/too-short input instead of crashing or silently succeeding", () => {
