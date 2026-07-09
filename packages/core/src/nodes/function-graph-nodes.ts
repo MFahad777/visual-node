@@ -3,7 +3,7 @@ import { logicGraphEntryNode } from "./logic/graph-entry.node.js";
 import { logicGraphReturnNode } from "./logic/graph-return.node.js";
 import { logicFunctionCallNode } from "./logic/function-call.node.js";
 import { consoleLogNode } from "./debug/console-log.node.js";
-import { customCodeNode } from "./handler/custom-code.node.js";
+import { sendJsonNode } from "./handler/send-json.node.js";
 import { addNode } from "./operators/add.node.js";
 import { subtractNode } from "./operators/subtract.node.js";
 import { multiplyNode } from "./operators/multiply.node.js";
@@ -45,25 +45,26 @@ import { pathExtractorNode } from "./logic/path-extractor.node.js";
 import { callbackNode } from "./logic/callback.node.js";
 
 /**
- * Node types offered inside a Function node's blueprint body sub-canvas — deliberately kept
+ * Node types offered inside a Function or Handler Function node's blueprint body sub-canvas — deliberately kept
  * separate from `BUILTIN_NODES`/the main registry list used by `NodeBrowserModal`/
  * `NodePickerMenu`, so top-level-only types (express.*, middleware.*, express.route,
- * handler.sendJson, logic.function/export/require — all app-wiring or file-level
+ * logic.function/logic.handlerFunction/export/require — all app-wiring or file-level
  * declarations, not body statements) never show up as addable inside a function body.
- * `consoleLogNode`/`customCodeNode` are also valid on the main canvas's handler chains, but
- * their emitted bodies are just a statement (`console.log(...)`, raw code respectively) with
- * no hard dependency on Express's `req`/`res` being in scope, so they double as generic
- * escape-hatch statements inside a blueprint graph too — `FunctionGraphNodePicker.tsx` offers
- * every type here generically except `logicGraphEntryNode`/`logicGraphReturnNode` (managed
- * exclusively via the Details panel's Inputs/Outputs sections) and `logicFunctionCallNode`
- * (only ever added pre-filled from a resolved Require'd function, never blank).
- * `variableGetNode`/`variableSetNode` are excluded from the picker for the same reason as
- * `logicFunctionCallNode` — they need a bound `data.variableId`, only ever set by dragging a
- * row out of the Details panel's Variables section — but still need to be listed here so
- * `GenericNode` can resolve their ports when rendering an already-placed instance. All types
- * here are still registered in the shared node-registry (via `registerBuiltinNodes()`), since
- * `emit-function-graph.ts` resolves them by type through the normal
- * `requireNodeDefinition()` lookup — this list only controls what editor-ui *offers* to add.
+ * `consoleLogNode`/`sendJsonNode` are valid inside both `logic.function` and `logic.handlerFunction`
+ * blueprint graphs (sendJsonNode specifically emits `res.json(...)`, making it useful in handler
+ * bodies where a `res` identifier is in scope). Their emitted bodies are just a statement
+ * (`console.log(...)`, response-sending code respectively) with no hard dependency on Express's
+ * req/res beyond what the specific node declares, so they work as both top-level-wiring and
+ * generic-statement escape-hatches — `FunctionGraphNodePicker.tsx` offers every type here
+ * generically except `logicGraphEntryNode`/`logicGraphReturnNode` (managed exclusively via the
+ * Details panel's Inputs/Outputs sections) and `logicFunctionCallNode` (only ever added
+ * pre-filled from a resolved Require'd function, never blank). `variableGetNode`/`variableSetNode`
+ * are excluded from the picker for the same reason as `logicFunctionCallNode` — they need a bound
+ * `data.variableId`, only ever set by dragging a row out of the Details panel's Variables section
+ * — but still need to be listed here so `GenericNode` can resolve their ports when rendering an
+ * already-placed instance. All types here are still registered in the shared node-registry (via
+ * `registerBuiltinNodes()`), since `emit-function-graph.ts` resolves them by type through the
+ * normal `requireNodeDefinition()` lookup — this list only controls what editor-ui *offers* to add.
  */
 export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   logicGraphEntryNode,
@@ -72,7 +73,9 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   variableGetNode,
   variableSetNode,
   consoleLogNode,
-  customCodeNode,
+  // Phase 24: sendJsonNode is now the way to respond with JSON inside a Handler Function's
+  // blueprint graph (replaces the deleted custom-code escape hatch for handlers).
+  sendJsonNode,
   // Phase 7: operators and control-flow (Branch/Switch) are full main-canvas/Function-Graph
   // parity types, not function-graph-only — computing a value or branching inside a
   // function's body is as ordinary as doing either at the top level.

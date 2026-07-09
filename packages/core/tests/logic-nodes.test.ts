@@ -285,26 +285,48 @@ describe("duplicate top-level bindings", () => {
 });
 
 describe("variable.get / variable.set", () => {
+  // Route can only attach a Handler Function (Phase 24) — variable.set/handler.sendJson now
+  // live inside the Handler Function's own blueprint graph. Phase 24 also widened
+  // variable.get/variable.set's variable resolution to include the OUTER module-level
+  // `flow.variables` (not just the Handler Function's own local ones), so these nested-graph
+  // Set nodes still correctly target the module-level "counter" declared below.
   function flowWithVariable(
     keyword: "const" | "let" | "var",
-    extraNodes: Flow["nodes"] = [],
-    extraEdges: Flow["edges"] = [],
+    extraGraphNodes: Flow["nodes"] = [],
+    extraGraphEdges: Flow["edges"] = [],
   ): Flow {
     const flow = makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+                ...extraGraphNodes,
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+                ...extraGraphEdges,
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
-        ...extraNodes,
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "var_set", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
-        ...extraEdges,
       ],
     );
     flow.variables = [{ id: "v1", name: "counter", keyword, dataType: "number", defaultValue: "0" }];
@@ -342,12 +364,12 @@ describe("variable.get / variable.set", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: { name: "handler", mode: "code", body: "res.json({});" } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -361,14 +383,14 @@ describe("variable.get / variable.set", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: { name: "handler", mode: "code", body: "res.json({});" } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
         // Freshly dropped from the Variables panel's "Set" option, not connected to anything.
         { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -383,7 +405,7 @@ describe("variable.get / variable.set", () => {
     const flow = flowWithVariable("let", [{ id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "does-not-exist" } }]);
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.nodeId === "var_get" && e.message.includes("references unknown variable"))).toBe(true);
+    expect(result.errors.some((e) => e.blueprintNodeId === "var_get" && e.message.includes("references unknown variable"))).toBe(true);
   });
 
   it("rejects a Set Variable node with a dangling/unknown variableId", () => {
@@ -430,14 +452,31 @@ describe("variable.get / variable.set", () => {
         [
           { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
           { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-          { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: literalValue } } },
-          { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+          {
+            id: "hf1",
+            type: "logic.handlerFunction",
+            position: { x: 0, y: 0 },
+            data: {
+              name: "handler",
+              mode: "blueprint",
+              graph: {
+                nodes: [
+                  { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                  { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: literalValue } } },
+                  { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+                ],
+                edges: [
+                  { id: "ge1", source: "entry1", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+                  { id: "ge2", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+                ],
+              },
+            },
+          },
           { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
         ],
         [
           { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-          { id: "e2", source: "route", target: "var_set", sourceHandle: "out", targetHandle: "in" },
-          { id: "e3", source: "var_set", target: "handler", sourceHandle: "out", targetHandle: "in" },
+          { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
           { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
         ],
       );
@@ -518,13 +557,13 @@ describe("logic.begin", () => {
         { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "1" } } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: { name: "handler", mode: "code", body: "res.json({});" } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
         { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -547,17 +586,34 @@ describe("logic.begin", () => {
         { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "/srv/app" } } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
-        { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+                { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "log", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_get", target: "log", sourceHandle: "value", targetHandle: "value" },
+                { id: "ge3", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
         { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "route", target: "log", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "var_get", target: "log", sourceHandle: "value", targetHandle: "value" },
-        { id: "e5", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -578,15 +634,32 @@ describe("logic.begin", () => {
         { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1", literals: { value: "5" } } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_get", target: "handler", sourceHandle: "value", targetHandle: "body" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
         { id: "e2", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_get", target: "handler", sourceHandle: "value", targetHandle: "body" },
-        { id: "e4", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e5", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -641,19 +714,36 @@ describe("logic.begin", () => {
 });
 
 describe("debug.consoleLog", () => {
-  it("can sit directly after a Route (broadened handler-chain-entry category)", () => {
+  it("can sit inside a Handler Function's blueprint graph, ahead of Send JSON", () => {
     const flow = makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"hit"' } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"hit"' } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "log", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "log", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -674,21 +764,38 @@ describe("debug.consoleLog", () => {
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "add",
-          type: "operators.add",
+          id: "handlerFn",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
-          data: { literals: { a: 2, b: 3 } },
+          data: {
+            name: "consoleLogHandler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "add",
+                  type: "operators.add",
+                  position: { x: 0, y: 0 },
+                  data: { literals: { a: 2, b: 3 } },
+                },
+                // The typed Expression must be ignored once "value" is wired.
+                { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"should not appear"' } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "log", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "add", target: "log", sourceHandle: "result", targetHandle: "value" },
+                { id: "ge3", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
         },
-        // The typed Expression must be ignored once "value" is wired.
-        { id: "log", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"should not appear"' } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "log", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "add", target: "log", sourceHandle: "result", targetHandle: "value" },
-        { id: "e4", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
         { id: "e5", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );

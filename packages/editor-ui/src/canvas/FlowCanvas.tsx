@@ -143,7 +143,7 @@ export function FlowCanvas() {
         isValidConnection={isValidConnection}
         onNodeClick={(_, node) => selectNode(node.id)}
         onNodeDoubleClick={(_, node) => {
-          if (node.type === "logic.function" && node.data?.mode === "blueprint") {
+          if ((node.type === "logic.function" || node.type === "logic.handlerFunction") && node.data?.mode === "blueprint") {
             openFunctionGraphTab(node);
           }
         }}

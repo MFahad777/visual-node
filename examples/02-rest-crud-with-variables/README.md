@@ -1,23 +1,22 @@
 # REST CRUD with Variables
 
-An in-memory `items` REST API demonstrating the **Variables** system alongside the
-**Custom Code** escape hatch.
+An in-memory `items` REST API demonstrating the **Variables** system alongside
+**Handler Function**'s code/blueprint dual authoring mode.
 
 **Nodes involved:** `variable.set`, `variable.get`, `debug.consoleLog`,
-`handler.customCode`, `handler.sendJson`, plus the standard `express.*` wiring.
+`logic.handlerFunction`, `handler.sendJson`, plus the standard `express.*` wiring.
 
 A file-scoped `let items = []` (declared once, in the flow's **Variables** panel) backs
-four routes:
+four routes, each attached to its own Handler Function:
 
-- `GET /items` — reads `items` directly (a Custom Code node can reference any file-scoped
-  variable by name, no wiring needed).
-- `POST /items` — pushes a new item built from `req.body`.
-- `DELETE /items/:id` — reassigns `items` via a wired **Set Variable** node (its literal
-  value field holds `items.filter(...)`), then responds with a static `Send JSON` node.
-- `GET /items/count` — wires a **Get Variable** node's output into a **Console Log**
-  node (logging the current array server-side) before a Custom Code node responds with
-  the count — the one route here that actually wires a value pin end to end, rather than
-  referencing the variable by bare identifier.
+- `GET /items` — a code-mode Handler Function reads `items` directly (code mode can
+  reference any file-scoped variable by name, no wiring needed).
+- `POST /items` — a code-mode Handler Function pushes a new item built from `req.body`.
+- `DELETE /items/:id` — a blueprint-mode Handler Function reassigns `items` via a wired
+  **Set Variable** node (its literal value field holds `items.filter(...)`), then
+  responds with a static `Send JSON` node.
+- `GET /items/count` — a code-mode Handler Function logs the current array server-side
+  and responds with its live length.
 
 ## Run it
 

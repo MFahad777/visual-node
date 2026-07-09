@@ -1,10 +1,11 @@
 # npm Package Require
 
 Demonstrates requiring an installed npm package (not just another local `.blueprint`
-file) and the **Async Handler** checkbox for `await`-ing inside a route.
+file) and the **Async Handler** checkbox on a Handler Function for `await`-ing inside a
+route.
 
 **Nodes involved:** `logic.require` (Source: npm, Package: `uuid`, Version: `^9.0.0`),
-`express.route` with **Async Handler** enabled, `handler.customCode`.
+`express.route`, `logic.handlerFunction` with **Async Handler** enabled (code mode).
 
 The Require node emits `const uuid = require("uuid");` at the top of the file and
 declares `uuid` as a dependency — compiling this flow (or the whole project) collects it
@@ -13,10 +14,10 @@ everything the flow needs. **Note the pinned `^9.0.0`**: newer `uuid` majors shi
 ESM-only and can't be `require()`'d from CommonJS output — this pin is load-bearing, not
 arbitrary.
 
-The route itself has **Async Handler** checked, so its generated handler is
-`async (req, res) => { ... }`, letting the Custom Code node `await` a promise (here just
-a small `setTimeout` delay, standing in for any real async work like a database call or
-network request) before responding.
+The Handler Function attached to the route has **Async Handler** checked, so its
+generated function is `async function handler(req, res, next) { ... }`, letting its
+code-mode body `await` a promise (here just a small `setTimeout` delay, standing in for
+any real async work like a database call or network request) before responding.
 
 ## Run it
 

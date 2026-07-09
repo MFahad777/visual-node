@@ -160,6 +160,14 @@ describe("end-to-end: Phase 20 Callback — function-as-value through a \"functi
     const flow: Flow = {
       version: "1",
       meta: { name: "callback-api", target: "express" },
+      // Phase 24: `handler.customCode` is gone, and there's no way to splice a dynamic identifier
+      // (like the Callback node's `_cbresult_cb1` result) into a JSON response from inside a nested
+      // Handler Function blueprint graph (`handler.sendJson`'s body is a static JSON literal only).
+      // Instead, run the whole "assign the function, then call it" chain once at module load
+      // (Begin -> Set myCallback -> Get myCallback -> Callback -> Set RESULT), then have the
+      // Handler Function (code mode) read RESULT by its bare name — still proves the function
+      // reference survives a real variable.set/variable.get round-trip through a real spawned
+      // process, just driven by Begin instead of the route's own request-time chain.
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         {
@@ -170,7 +178,6 @@ describe("end-to-end: Phase 20 Callback — function-as-value through a \"functi
         },
         { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "setFn", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
-        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/call" } },
         { id: "getFn", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
         {
           id: "cb1",
@@ -178,25 +185,31 @@ describe("end-to-end: Phase 20 Callback — function-as-value through a \"functi
           position: { x: 0, y: 0 },
           data: { args: [{ id: "0" }], literals: { "arg-0": "21" } },
         },
+        { id: "setResult", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v2" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/call" } },
         {
-          id: "handler",
-          type: "handler.customCode",
+          id: "handlerFn",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
-          data: { code: "res.status(200).json({ result: _cbresult_cb1 });" },
+          data: { name: "callbackHandler", mode: "code", body: "res.status(200).json({ result: RESULT });" },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PORT } },
       ],
       edges: [
-        { id: "e1", source: "init", target: "begin", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "begin", target: "setFn", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "double", target: "setFn", sourceHandle: "value", targetHandle: "value" },
-        { id: "e4", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e5", source: "route", target: "cb1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e6", source: "getFn", target: "cb1", sourceHandle: "value", targetHandle: "function" },
-        { id: "e7", source: "cb1", target: "handler", sourceHandle: "out", targetHandle: "in" },
-        { id: "e8", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e1", source: "begin", target: "setFn", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "double", target: "setFn", sourceHandle: "value", targetHandle: "value" },
+        { id: "e3", source: "setFn", target: "cb1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "getFn", target: "cb1", sourceHandle: "value", targetHandle: "function" },
+        { id: "e5", source: "cb1", target: "setResult", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "cb1", target: "setResult", sourceHandle: "result", targetHandle: "value" },
+        { id: "e7", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e8", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
+        { id: "e9", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
-      variables: [{ id: "v1", name: "myCallback", keyword: "let", dataType: "function" }],
+      variables: [
+        { id: "v1", name: "myCallback", keyword: "let", dataType: "function" },
+        { id: "v2", name: "RESULT", keyword: "let", dataType: "number", defaultValue: "0" },
+      ],
     };
 
     const validation = validateFlow(flow);

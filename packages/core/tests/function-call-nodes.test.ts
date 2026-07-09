@@ -7,8 +7,8 @@ import { emitExpress } from "../src/codegen/emit-express.js";
 import { validateFlow } from "../src/schema/validate.js";
 import { compileProject } from "../src/project/compile-project.js";
 import { writeGeneratedFile } from "../src/codegen/file-writer.js";
-import type { Flow } from "../src/schema/node.types.js";
 import { registerBuiltinNodes } from "../src/nodes/index.js";
+import type { Flow } from "../src/schema/node.types.js";
 
 registerBuiltinNodes();
 
@@ -41,23 +41,38 @@ describe("logic.functionCall — emit", () => {
         { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "call1",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/printer",
-            variableName: "printerFunctions",
-            functionName: "printer",
-            params: "data",
-            "arg-0": '"hello"',
-            resultVariable: "printerResult",
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "call1",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/printer",
+                    variableName: "printerFunctions",
+                    functionName: "printer",
+                    params: "data",
+                    "arg-0": '"hello"',
+                    resultVariable: "printerResult",
+                  },
+                },
+              ],
+              edges: [{ id: "ge1", source: "entry1", target: "call1", sourceHandle: "out", targetHandle: "in" }],
+            },
           },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -78,28 +93,45 @@ describe("logic.functionCall — emit", () => {
         { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "call1",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/printer",
-            variableName: "printerFunctions",
-            functionName: "printer",
-            params: "data",
-            "arg-0": '"hello"',
-            resultVariable: "printerResult",
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "call1",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/printer",
+                    variableName: "printerFunctions",
+                    functionName: "printer",
+                    params: "data",
+                    "arg-0": '"hello"',
+                    resultVariable: "printerResult",
+                  },
+                },
+                { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "call1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge3", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+                { id: "ge4", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
           },
         },
-        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       edges: [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
-        { id: "e5", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
@@ -121,33 +153,50 @@ describe("logic.functionCall — emit", () => {
         { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "call1",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/printer",
-            variableName: "printerFunctions",
-            functionName: "printer",
-            params: "data",
-            "arg-0": '"hello"',
-            resultVariable: "printerResult",
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "call1",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/printer",
+                    variableName: "printerFunctions",
+                    functionName: "printer",
+                    params: "data",
+                    "arg-0": '"hello"',
+                    resultVariable: "printerResult",
+                  },
+                },
+                { id: "log1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+                { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "call1", sourceHandle: "out", targetHandle: "in" },
+                // call1's exec successor is log1, NOT set1 — set1 is still call1's Result's sole
+                // consumer, but it isn't the immediate next node, so inlining would fire the call
+                // later than wired (after log1 runs) and must not happen.
+                { id: "ge2", source: "call1", target: "log1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge3", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
+                { id: "ge4", source: "log1", target: "set1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge5", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
           },
         },
-        { id: "log1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
-        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       edges: [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
-        // call1's exec successor is log1, NOT set1 — set1 is still call1's Result's sole
-        // consumer, but it isn't the immediate next node, so inlining would fire the call later
-        // than wired (after log1 runs) and must not happen.
-        { id: "e3", source: "call1", target: "log1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
-        { id: "e5", source: "log1", target: "set1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e6", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e7", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
@@ -164,40 +213,57 @@ describe("logic.functionCall — emit", () => {
         { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/math", variableName: "mathHelpers" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "callA",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/math",
-            variableName: "mathHelpers",
-            functionName: "double",
-            params: "n",
-            "arg-0": "21",
-            resultVariable: "doubled",
-          },
-        },
-        {
-          id: "callB",
-          type: "logic.functionCall",
-          position: { x: 0, y: 0 },
-          data: {
-            requirePath: "../helpers/math",
-            variableName: "mathHelpers",
-            functionName: "increment",
-            params: "n",
-            resultVariable: "incremented",
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "callA",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/math",
+                    variableName: "mathHelpers",
+                    functionName: "double",
+                    params: "n",
+                    "arg-0": "21",
+                    resultVariable: "doubled",
+                  },
+                },
+                {
+                  id: "callB",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/math",
+                    variableName: "mathHelpers",
+                    functionName: "increment",
+                    params: "n",
+                    resultVariable: "incremented",
+                  },
+                },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "callA", sourceHandle: "out", targetHandle: "in" },
+                // Chain-continuation edge (control flow: callA runs, then callB runs).
+                { id: "ge2", source: "callA", target: "callB", sourceHandle: "out", targetHandle: "in" },
+                // Param-wiring edge (value flow: callB's arg 0 comes from callA's result), distinct
+                // from the chain-continuation edge above — this is the pairing the whole feature hinges on.
+                { id: "ge3", source: "callA", target: "callB", sourceHandle: "result", targetHandle: "param-0" },
+              ],
+            },
           },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "callA", sourceHandle: "out", targetHandle: "in" },
-        // Chain-continuation edge (control flow: callA runs, then callB runs).
-        { id: "e3", source: "callA", target: "callB", sourceHandle: "out", targetHandle: "in" },
-        // Param-wiring edge (value flow: callB's arg 0 comes from callA's result), distinct
-        // from the chain-continuation edge above — this is the pairing the whole feature hinges on.
-        { id: "e4", source: "callA", target: "callB", sourceHandle: "result", targetHandle: "param-0" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e5", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -349,32 +415,49 @@ describe("logic.functionCall — validation", () => {
     expect(result.errors.some((e) => e.message.includes("can only be connected to another Function Call node"))).toBe(true);
   });
 
-  it("allows a Function Call node directly after a Route (handler-chain-entry extension)", () => {
+  it("allows a Function Call node inside a Handler Function's blueprint graph", () => {
     const flow = makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "req1", type: "logic.require", position: { x: 0, y: 0 }, data: { path: "../helpers/printer", variableName: "printerFunctions" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
         {
-          id: "call1",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/printer",
-            variableName: "printerFunctions",
-            functionName: "printer",
-            params: "data",
-            "arg-0": '"hi"',
-            resultVariable: "printResult",
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "call1",
+                  type: "logic.functionCall",
+                  position: { x: 0, y: 0 },
+                  data: {
+                    requirePath: "../helpers/printer",
+                    variableName: "printerFunctions",
+                    functionName: "printer",
+                    params: "data",
+                    "arg-0": '"hi"',
+                    resultVariable: "printResult",
+                  },
+                },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "call1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "call1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
           },
         },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "call1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -399,10 +482,6 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
     return {
       version: "1",
       meta: { name: "server", target: "express" },
-      // Function Call's Result output is only assigned when wired (see function-call.node.ts) —
-      // a `variable.set` node is how the call's return value is kept under a stable name for
-      // later reference from Custom Code, same pattern as the Phase 10/11 variables tests.
-      variables: [{ id: "var1", name: "squared", keyword: "let", dataType: "number" }],
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         {
@@ -413,40 +492,27 @@ describe("logic.functionCall — real end-to-end compile + spawn + curl", () => 
         },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/square" } },
         {
-          id: "call1",
-          type: "logic.functionCall",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
           data: {
-            requirePath: "../helpers/mathHelper",
-            variableName: "mathHelper",
-            functionName: "square",
-            params: "n",
-            "arg-0": "7",
-            resultVariable: "squaredResult",
+            name: "handler",
+            mode: "code",
+            body: "const squared = mathHelper.square(7);\nres.json({ squared });",
           },
-        },
-        { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
-        {
-          id: "handler",
-          type: "handler.customCode",
-          position: { x: 0, y: 0 },
-          data: { code: "res.json({ squared });" },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
       ],
       edges: [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "call1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
-        { id: "e5", source: "set1", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
   }
 
   it(
-    "compiles a helper + server file with a chain-entry Function Call, spawns the real server, and returns the actual function's return value over HTTP",
+    "compiles a helper + server file with a Handler Function calling into a cross-file require()'d helper, spawns the real server, and returns the actual function's return value over HTTP",
     async () => {
       const result = await compileProject([
         { relativePath: "helpers/mathHelper.blueprint", flow: mathHelperFlow },
@@ -522,7 +588,12 @@ describe("logic.functionCall — Begin-driven inlined Set, real end-to-end compi
         },
         { id: "set1", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/total" } },
-        { id: "handler", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.status(200).json({ total });" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: { name: "handler", mode: "code", body: "res.status(200).json({ total });" },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
       ],
       edges: [
@@ -532,7 +603,7 @@ describe("logic.functionCall — Begin-driven inlined Set, real end-to-end compi
         { id: "e2", source: "call1", target: "set1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "call1", target: "set1", sourceHandle: "result", targetHandle: "value" },
         { id: "e4", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e5", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };

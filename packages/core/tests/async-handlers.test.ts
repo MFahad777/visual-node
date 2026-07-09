@@ -37,7 +37,13 @@ function listenNode(): FlowNode {
   return { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } };
 }
 
-describe("Route node — isAsync", () => {
+describe("Handler Function node — isAsync", () => {
+  function flowWithHandler(handlerData: Record<string, unknown>): Flow {
+    return makeFlow([initNode(), { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: handlerData }, listenNode()], [
+      { id: "e1", source: "init", target: "listen" },
+    ]);
+  }
+
   function flowWithRoute(routeData: Record<string, unknown>, handler: FlowNode): Flow {
     return makeFlow(
       [initNode(), { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: routeData }, handler, listenNode()],
@@ -50,40 +56,20 @@ describe("Route node — isAsync", () => {
   }
 
   it("defaults to a non-async handler (isAsync absent) — identical output to before this feature", () => {
-    const handler: FlowNode = { id: "h1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ ok: true });" } };
+    const handler: FlowNode = { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: { name: "myHandler", body: "res.json({ ok: true });", mode: "code" } };
     const flow = flowWithRoute({ method: "GET", path: "/x" }, handler);
     const { code } = emitExpress(flow);
-    expect(code).toContain('app.get("/x", (req, res) => {');
-    expect(code).not.toContain("async (req, res)");
+    expect(code).toContain("function myHandler(req, res, next) {");
+    expect(code).toContain('app.get("/x", myHandler);');
+    expect(code).not.toContain("async function");
   });
 
-  it("isAsync: false explicitly also emits no async prefix", () => {
-    const handler: FlowNode = { id: "h1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ ok: true });" } };
-    const flow = flowWithRoute({ method: "GET", path: "/x", isAsync: false }, handler);
+  it("isAsync: true emits an async handler function", () => {
+    const handler: FlowNode = { id: "hf1", type: "logic.handlerFunction", position: { x: 0, y: 0 }, data: { name: "myHandler", body: "res.json({ ok: true });", mode: "code", isAsync: true } };
+    const flow = flowWithRoute({ method: "GET", path: "/x" }, handler);
     const { code } = emitExpress(flow);
-    expect(code).toContain('app.get("/x", (req, res) => {');
-    expect(code).not.toContain("async (req, res)");
-  });
-
-  it("isAsync: true emits an async handler", () => {
-    const handler: FlowNode = { id: "h1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ ok: true });" } };
-    const flow = flowWithRoute({ method: "GET", path: "/x", isAsync: true }, handler);
-    const { code } = emitExpress(flow);
-    expect(code).toContain('app.get("/x", async (req, res) => {');
-  });
-
-  it("throws a descriptive error when a downstream node requires async but isAsync is false", () => {
-    const handler: FlowNode = { id: "h1", type: "test.asyncRequiring", position: { x: 0, y: 0 }, data: {} };
-    const flow = flowWithRoute({ method: "GET", path: "/x", isAsync: false }, handler);
-    expect(() => emitExpress(flow)).toThrow(/requires "await".*Async Handler/);
-  });
-
-  it("does not throw when isAsync: true matches a downstream node that requires async", () => {
-    const handler: FlowNode = { id: "h1", type: "test.asyncRequiring", position: { x: 0, y: 0 }, data: {} };
-    const flow = flowWithRoute({ method: "GET", path: "/x", isAsync: true }, handler);
-    const { code } = emitExpress(flow);
-    expect(code).toContain('app.get("/x", async (req, res) => {');
-    expect(code).toContain("await Promise.resolve();");
+    expect(code).toContain("async function myHandler(req, res, next) {");
+    expect(code).toContain('app.get("/x", myHandler);');
   });
 });
 
@@ -163,7 +149,7 @@ describe("exec-chain.ts — requiresAsync bubbling through Branch/Switch forks",
     const nodes: FlowNode[] = [
       { id: "b1", type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { literals: { condition: "true" } } },
       { id: "asyncArm", type: "test.asyncRequiring", position: { x: 0, y: 0 }, data: {} },
-      { id: "plainArm", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ ok: true });" } },
+      { id: "plainArm", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "b1", target: "asyncArm", sourceHandle: "true", targetHandle: "in" },
@@ -177,8 +163,8 @@ describe("exec-chain.ts — requiresAsync bubbling through Branch/Switch forks",
   it("does not report requiresAsync when neither Branch arm requires it", () => {
     const nodes: FlowNode[] = [
       { id: "b1", type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { literals: { condition: "true" } } },
-      { id: "t1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ t: true });" } },
-      { id: "f1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ f: true });" } },
+      { id: "t1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { t: true } } },
+      { id: "f1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { f: true } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "b1", target: "t1", sourceHandle: "true", targetHandle: "in" },
@@ -198,7 +184,7 @@ describe("exec-chain.ts — requiresAsync bubbling through Branch/Switch forks",
         data: { literals: { selection: "1" }, cases: [{ id: "c1", value: 1 }] },
       },
       { id: "asyncCase", type: "test.asyncRequiring", position: { x: 0, y: 0 }, data: {} },
-      { id: "defaultArm", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ d: true });" } },
+      { id: "defaultArm", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { d: true } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "s1", target: "asyncCase", sourceHandle: "case-c1", targetHandle: "in" },

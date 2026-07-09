@@ -80,11 +80,19 @@ export function topologicalSortStructuralNodes(flow: Flow): FlowNode[] {
  * exec-entry pin (including `variable.set`'s, and every plugin exec-entry pin — `plugin-schema.ts`
  * requires plugins to declare `kind` explicitly) sets `kind: "exec"`, so requiring an explicit
  * match here is strictly correct without reintroducing a category allow-list.
+ *
+ * Exception (Phase 24): a "logic" node with `alwaysCollect: true` (today, only
+ * `logic.handlerFunction`) must be unconditionally collected like `logic.function` even
+ * though it declares an exec-entry pin — the node needs to be wired INTO from a Route, but
+ * should still be emitted as a standalone top-level declaration regardless of whether any
+ * Route is currently wired to it. The Rule applies only if the node explicitly opts in via
+ * the `alwaysCollect` flag.
  */
 export function collectLogicNodes(flow: Flow): FlowNode[] {
   return flow.nodes.filter((n) => {
     const def = requireNodeDefinition(n.type);
     if (def.category !== "logic") return false;
+    if (def.alwaysCollect) return true;
     return execEntryPort(def)?.kind !== "exec";
   });
 }

@@ -43,18 +43,29 @@ function dedupeConsecutive(ids: string[]): string[] {
 
 function persistTabToOuterNode(functionNodeId: string, store: FunctionGraphStore): void {
   const state = store.getState();
-  const entry = state.nodes.find((n) => n.type === "logic.graphEntry");
-  const params: string[] = Array.isArray(entry?.data?.params) ? (entry!.data!.params as string[]) : [];
-  const { nodes, updateNodeConfig: updateFromState } = useFlowStore.getState();
+  const { nodes } = useFlowStore.getState();
   const nodeIndex = nodes.findIndex((n) => n.id === functionNodeId);
   if (nodeIndex < 0) return;
 
+  const outerNode = nodes[nodeIndex];
   const updatedNodes = [...nodes];
+  // Handler Function has no `data.params` field — its parameters are the fixed req/res/next
+  // triple declared by the node type itself, not user-editable, so writing a `params` key
+  // back would just pollute persisted `.blueprint` JSON with a field the node never reads.
+  const paramsPatch =
+    outerNode.type === "logic.handlerFunction"
+      ? {}
+      : (() => {
+          const entry = state.nodes.find((n) => n.type === "logic.graphEntry");
+          const params: string[] = Array.isArray(entry?.data?.params) ? (entry!.data!.params as string[]) : [];
+          return { params: params.join(", ") };
+        })();
+
   updatedNodes[nodeIndex] = {
-    ...updatedNodes[nodeIndex],
+    ...outerNode,
     data: {
-      ...updatedNodes[nodeIndex].data,
-      params: params.join(", "),
+      ...outerNode.data,
+      ...paramsPatch,
       graph: state.exportGraph(),
     },
   };
@@ -76,10 +87,16 @@ export const useEditorTabsStore = create<EditorTabsState>((set, get) => ({
       return;
     }
 
-    const paramNames = String(functionNode.data?.params ?? "")
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
+    // Handler Function's parameters are the fixed req/res/next triple declared by the node
+    // type itself (see HANDLER_FUNCTION_PARAMS in packages/core), not a user-editable
+    // `data.params` field like logic.function has.
+    const paramNames =
+      functionNode.type === "logic.handlerFunction"
+        ? ["req", "res", "next"]
+        : String(functionNode.data?.params ?? "")
+            .split(",")
+            .map((p) => p.trim())
+            .filter(Boolean);
     const initialVariables =
       (functionNode.data?.graph as { variables?: VariableDeclaration[] } | undefined)?.variables ?? [];
     const graph =

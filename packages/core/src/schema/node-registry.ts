@@ -106,6 +106,16 @@ export interface NodeDefinition {
    * function scope. Optional; no builtin node currently sets this to true.
    */
   requiresAsync?: boolean;
+  /**
+   * True if this "logic"-category node must be unconditionally top-level-collected by
+   * `graph-walker.ts`'s collectLogicNodes() even though it declares an exec-entry input
+   * port — the opposite of the default rule for an exec-bearing logic node (variable.set,
+   * logic.graphReturn: collected only if reachable from some exec chain). Sole use case:
+   * logic.handlerFunction, which needs a real exec-entry pin so express.route can wire an
+   * edge into it, but — like logic.function — must stay a standalone declaration even
+   * before any Route references it.
+   */
+  alwaysCollect?: boolean;
 }
 
 const registry = new Map<string, NodeDefinition>();

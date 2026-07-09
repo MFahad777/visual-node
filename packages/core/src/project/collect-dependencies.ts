@@ -39,9 +39,10 @@ interface RawFinding {
 
 /**
  * Node types (besides npm-mode `logic.require`) that carry a comma-separated
- * `npmDependencies` config field. `logic.function` only contributes this way when authored
- * in "code" mode — a blueprint-mode Function's own `npmDependencies` field (if it even has
- * one on canvas) is irrelevant since its nested graph is walked node-by-node instead.
+ * `npmDependencies` config field. `logic.function` and `logic.handlerFunction` only
+ * contribute this way when authored in "code" mode — a blueprint-mode Function's own
+ * `npmDependencies` field (if it even has one on canvas) is irrelevant since its nested
+ * graph is walked node-by-node instead (see the blueprint-mode handling below).
  */
 function collectFromNode(node: FlowNode, relativePath: string | undefined, out: RawFinding[]): void {
   // Type-level dependencies (e.g. a plugin node's `npmDependencies`, declared once per node
@@ -68,7 +69,7 @@ function collectFromNode(node: FlowNode, relativePath: string | undefined, out: 
     return;
   }
 
-  if (node.type === "logic.function" && node.data?.mode === "blueprint") {
+  if ((node.type === "logic.function" || node.type === "logic.handlerFunction") && node.data?.mode === "blueprint") {
     const graphNodes: FlowNode[] = Array.isArray(node.data?.graph?.nodes) ? node.data.graph.nodes : [];
     for (const inner of graphNodes) {
       collectFromNode(inner, relativePath, out);
@@ -77,9 +78,9 @@ function collectFromNode(node: FlowNode, relativePath: string | undefined, out: 
   }
 
   if (
-    node.type === "handler.customCode" ||
     node.type === "middleware.customCode" ||
-    (node.type === "logic.function" && node.data?.mode !== "blueprint")
+    node.type === "logic.function" ||
+    node.type === "logic.handlerFunction"
   ) {
     const raw = String(node.data?.npmDependencies ?? "");
     for (const entry of raw.split(",")) {

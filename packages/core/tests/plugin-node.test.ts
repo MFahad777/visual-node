@@ -498,12 +498,29 @@ describe("a chain-position plugin node wired into a real Route — full pipeline
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/plugin-test" } },
-        { id: "plug1", type: CHAIN_PLUGIN_SPEC.type, position: { x: 0, y: 0 }, data: {} },
+        {
+          id: "handlerFn1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "pluginTestHandler1",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "plug1", type: CHAIN_PLUGIN_SPEC.type, position: { x: 0, y: 0 }, data: {} },
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "plug1", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 0 } },
       ],
       edges: [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "plug1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handlerFn1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
@@ -523,12 +540,29 @@ describe("a chain-position plugin node wired into a real Route — full pipeline
       nodes: [
         { id: "init2", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route2", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/plugin-test-2" } },
-        { id: "plug2", type: CHAIN_PLUGIN_SPEC.type, position: { x: 0, y: 0 }, data: {} },
+        {
+          id: "handlerFn2",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "pluginTestHandler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "plug2", type: CHAIN_PLUGIN_SPEC.type, position: { x: 0, y: 0 }, data: {} },
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "plug2", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen2", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 0 } },
       ],
       edges: [
         { id: "e1", source: "init2", target: "route2", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route2", target: "plug2", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route2", target: "handlerFn2", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init2", target: "listen2", sourceHandle: "out", targetHandle: "in" },
       ],
     };

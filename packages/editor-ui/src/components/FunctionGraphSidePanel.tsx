@@ -83,12 +83,18 @@ function FunctionGraphSidePanelContent({
     };
   }, []);
 
+  // Handler Function's req/res/next parameters are fixed by the node type — Express's
+  // handler signature is invariant — so the Inputs list renders read-only here instead of
+  // the normal add/rename/remove controls `logic.function` gets.
+  const isFixedParams = functionNode.type === "logic.handlerFunction";
+
   return (
     <div className="w-72 shrink-0 overflow-auto border-l border-black/60 bg-[#1f1f1f] p-3">
       <FunctionDetailsPanel
         functionName={String(functionNode.data?.name ?? "")}
         onRenameFunction={(name) => updateNodeConfig(functionNode.id, "name", name)}
         paramNames={paramNames}
+        isFixedParams={isFixedParams}
         onAddParam={addParam}
         onRemoveParam={removeParam}
         onRenameParam={renameParam}
@@ -137,7 +143,7 @@ function FunctionGraphSidePanelContent({
  * (the main app's equivalent) is bound to the global flowStore and can't reach nodes living in
  * a local `functionGraphStore` instance, so this is a small, purpose-built sibling: generic
  * text/code field rendering driven by whatever `configSchema` the `?scope=function-graph`
- * definitions declare (covers `debug.consoleLog`, `handler.customCode` alike), and a minimal
+ * definitions declare (covers `debug.consoleLog`, `handler.sendJson` alike), and a minimal
  * read-only-plus-resultVariable view for `logic.functionCall` (mirroring
  * `FunctionCallConfig`'s precedent in `NodeConfigPanel.tsx`). `logic.graphEntry`/
  * `logic.graphReturn` have empty `configSchema`s and need no fields at all.
@@ -304,6 +310,7 @@ function FunctionDetailsPanel({
   functionName,
   onRenameFunction,
   paramNames,
+  isFixedParams = false,
   onAddParam,
   onRemoveParam,
   onRenameParam,
@@ -318,6 +325,8 @@ function FunctionDetailsPanel({
   functionName: string;
   onRenameFunction: (name: string) => void;
   paramNames: string[];
+  /** True for a Handler Function's fixed req/res/next — renders Inputs read-only, no add/rename/remove. */
+  isFixedParams?: boolean;
   onAddParam: (name: string) => void;
   onRemoveParam: (name: string) => void;
   onRenameParam: (oldName: string, newName: string) => void;
@@ -355,40 +364,56 @@ function FunctionDetailsPanel({
       <div>
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs font-medium text-neutral-400">Inputs</span>
-          <button
-            onClick={handleAddParam}
-            title="Add input"
-            className="flex h-5 w-5 items-center justify-center rounded border border-neutral-600 text-xs text-neutral-300 hover:border-sky-500 hover:text-sky-400"
-          >
-            +
-          </button>
+          {!isFixedParams && (
+            <button
+              onClick={handleAddParam}
+              title="Add input"
+              className="flex h-5 w-5 items-center justify-center rounded border border-neutral-600 text-xs text-neutral-300 hover:border-sky-500 hover:text-sky-400"
+            >
+              +
+            </button>
+          )}
         </div>
-        <div className="flex flex-col gap-1">
-          {paramNames.length === 0 && <p className="text-[11px] text-neutral-400">No inputs.</p>}
-          {paramNames.map((name, index) => (
-            // Keyed by index, not name: renaming changes `name` every keystroke, and a
-            // name-based key would remount the input on every character typed, kicking
-            // focus out mid-edit.
-            <div key={index} className="flex items-center gap-1">
-              <input
-                type="text"
-                className="w-full rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1 text-xs text-neutral-100"
-                value={name}
-                onChange={(e) => {
-                  const next = e.target.value.trim();
-                  if (next && next !== name) onRenameParam(name, next);
-                }}
-              />
-              <button
-                onClick={() => onRemoveParam(name)}
-                title="Remove input"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-neutral-600 text-xs text-red-400 hover:border-red-500 hover:bg-red-500/10"
+        {isFixedParams ? (
+          <div className="flex flex-col gap-1">
+            <p className="mb-1 text-[11px] text-neutral-400">Fixed by Express's handler signature.</p>
+            {paramNames.map((name, index) => (
+              <div
+                key={index}
+                className="rounded border border-neutral-800 bg-black/30 px-2 py-1 font-mono text-xs text-neutral-300"
               >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
+                {name}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {paramNames.length === 0 && <p className="text-[11px] text-neutral-400">No inputs.</p>}
+            {paramNames.map((name, index) => (
+              // Keyed by index, not name: renaming changes `name` every keystroke, and a
+              // name-based key would remount the input on every character typed, kicking
+              // focus out mid-edit.
+              <div key={index} className="flex items-center gap-1">
+                <input
+                  type="text"
+                  className="w-full rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1 text-xs text-neutral-100"
+                  value={name}
+                  onChange={(e) => {
+                    const next = e.target.value.trim();
+                    if (next && next !== name) onRenameParam(name, next);
+                  }}
+                />
+                <button
+                  onClick={() => onRemoveParam(name)}
+                  title="Remove input"
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-neutral-600 text-xs text-red-400 hover:border-red-500 hover:bg-red-500/10"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <VariablesPanel

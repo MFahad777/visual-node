@@ -4,11 +4,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as flatbuffers from "flatbuffers";
 import { decodeFlow, encodeFlow } from "../src/serialization/flatbuffer-flow.js";
+import { registerBuiltinNodes } from "../src/nodes/index.js";
 import type { Flow } from "../src/schema/node.types.js";
 import { Flow as FbsFlow } from "../src/schema/generated/flow-server/fbs/flow.js";
 import { FlowNode as FbsFlowNode } from "../src/schema/generated/flow-server/fbs/flow-node.js";
 import { Meta as FbsMeta } from "../src/schema/generated/flow-server/fbs/meta.js";
 import { Position as FbsPosition } from "../src/schema/generated/flow-server/fbs/position.js";
+
+registerBuiltinNodes();
 
 /**
  * Builds FlatBuffers bytes the way pre-Phase-10 `encodeFlow` did: never calls
@@ -104,7 +107,7 @@ describe("flatbuffer-flow round-trip", () => {
     expect(decoded).toEqual(flow);
   });
 
-  it("round-trips a node whose data has a nested object and a raw JS-source string (like handler.customCode)", () => {
+  it("round-trips a node whose data has a nested object and a raw JS-source string (like logic.handlerFunction's code mode)", () => {
     const flow: Flow = {
       version: "1",
       meta: { name: "custom-code-test", target: "express" },
@@ -117,7 +120,7 @@ describe("flatbuffer-flow round-trip", () => {
         },
         {
           id: "custom_1",
-          type: "handler.customCode",
+          type: "logic.handlerFunction",
           position: { x: 100, y: 50 },
           data: {
             code: "res.status(200).json({ ok: true, nested: { deep: [1, 2, 3] } });\n// a comment with \"quotes\" and 'apostrophes'",

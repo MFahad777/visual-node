@@ -5,7 +5,7 @@ const CodeExpandModalContent = lazy(() => import("./CodeExpandModalImpl.js"));
 
 /**
  * Full-screen "expand" editor for `"code"`-type config fields (logic.function's `body`,
- * handler.customCode's `code`, middleware.customCode's `code`) — the embedded 140px
+ * logic.handlerFunction's `body`, middleware.customCode's `code`) — the embedded 140px
  * CodeMirror box in NodeConfigPanel is cramped for anything beyond a couple of lines.
  *
  * Store-driven singleton, mounted unconditionally in App.tsx (same pattern as

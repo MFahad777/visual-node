@@ -1,25 +1,18 @@
 import type { NodeDefinition } from "../../schema/node-registry.js";
-import { emitExecChain } from "../../codegen/exec-chain.js";
 
 const VALID_METHODS = new Set(["get", "post", "put", "delete", "patch"]);
+const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 export const routeNode: NodeDefinition = {
   type: "express.route",
   category: "routing",
   label: "Route",
-  description: "Defines an HTTP route and wires it to a handler chain.",
+  description: "Defines an HTTP route and attaches a Handler Function to it.",
   inputs: [{ id: "in", label: "App" }],
-  outputs: [{ id: "out", label: "Handler" }],
+  outputs: [{ id: "out", label: "Handler", kind: "exec" }],
   configSchema: [
     { key: "method", label: "Method", type: "select", options: ["GET", "POST", "PUT", "DELETE", "PATCH"], default: "GET" },
     { key: "path", label: "Path", type: "text", default: "/" },
-    {
-      key: "isAsync",
-      label: "Async Handler",
-      type: "boolean",
-      default: false,
-      hint: "Enable to use await inside this handler (e.g. for async plugin nodes).",
-    },
   ],
   emit: (node, ctx) => {
     const method = String(node.data?.method ?? "GET").toLowerCase();
@@ -27,32 +20,49 @@ export const routeNode: NodeDefinition = {
       throw new Error(`Route node "${node.id}" has invalid method "${node.data?.method}"`);
     }
     const path = String(node.data?.path ?? "/");
-    const isAsync = node.data?.isAsync === true;
 
     const outgoing = ctx.getOutgoing(node.id);
     if (outgoing.length === 0) {
-      throw new Error(`Route node "${node.id}" (${method.toUpperCase()} ${path}) has no handler attached`);
+      throw new Error(`Route node "${node.id}" (${method.toUpperCase()} ${path}) has no Handler Function attached`);
     }
 
-    const result = emitExecChain(outgoing[0].target, ctx);
-    if (result.requiresAsync && !isAsync) {
-      throw new Error(
-        `Route node "${node.id}" (${method.toUpperCase()} ${path}) uses a node that requires "await" — enable the "Async Handler" checkbox on this Route node.`,
-      );
-    }
-    const body = result.code;
+    // Collect handler names by walking the handler chain from the first outgoing edge
+    const handlerNames: string[] = [];
+    let currentId: string | undefined = outgoing[0].target;
+    const visitedIds = new Set<string>();
 
+    while (currentId) {
+      if (visitedIds.has(currentId)) {
+        throw new Error(`Route node "${node.id}" (${method.toUpperCase()} ${path}) has a cycle in the handler chain`);
+      }
+      visitedIds.add(currentId);
+
+      const targetNode = ctx.getNode(currentId);
+      if (!targetNode || targetNode.type !== "logic.handlerFunction") {
+        throw new Error(
+          `Route node "${node.id}" (${method.toUpperCase()} ${path}) handler chain must contain only Handler Function nodes, got "${targetNode?.type ?? "unknown"}"`,
+        );
+      }
+
+      const handlerName = String(targetNode.data?.name ?? "").trim();
+      if (!IDENTIFIER_RE.test(handlerName)) {
+        throw new Error(`Handler Function node "${targetNode.id}" has an invalid function name "${targetNode.data?.name}"`);
+      }
+      handlerNames.push(handlerName);
+
+      // Continue to the next handler in the chain (if wired)
+      const nextOutgoing = ctx.getOutgoing(currentId);
+      currentId = nextOutgoing.length > 0 ? nextOutgoing[0].target : undefined;
+    }
+
+    if (handlerNames.length === 0) {
+      throw new Error(`Route node "${node.id}" (${method.toUpperCase()} ${path}) has no Handler Function in the chain`);
+    }
+
+    const handlerArgs = handlerNames.join(", ");
     return {
-      imports: result.imports.length > 0 ? result.imports : undefined,
-      setup: `app.${method}(${JSON.stringify(path)}, ${isAsync ? "async " : ""}(req, res) => {\n${indent(body)}\n});`,
+      setup: `app.${method}(${JSON.stringify(path)}, ${handlerArgs});`,
       order: 20,
     };
   },
 };
-
-function indent(code: string): string {
-  return code
-    .split("\n")
-    .map((line) => (line.length > 0 ? `  ${line}` : line))
-    .join("\n");
-}

@@ -4,7 +4,7 @@ import { resolveValuePin } from "../../codegen/value-pins.js";
 /**
  * Ends one path through the owning Function's blueprint body graph. Any number may exist in
  * one graph — each is an independent execution-chain participant with its own "In" (exec)
- * and "Value" pins, exactly like `handler.customCode`. Wiring a Return's "In" pin from inside
+ * and "Value" pins. Wiring a Return's "In" pin from inside
  * a Branch/Switch arm emits `return <expr>;` right there (a real early return); wiring it
  * from the trunk emits it as the trunk's own terminal statement.
  *

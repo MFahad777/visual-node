@@ -16,10 +16,27 @@
       "data": { "method": "GET", "path": "/hello" }
     },
     {
-      "id": "send_json_1",
-      "type": "handler.sendJson",
+      "id": "handler_1",
+      "type": "logic.handlerFunction",
       "position": { "x": 600, "y": 0 },
-      "data": { "statusCode": 200, "body": { "message": "Hello World" } }
+      "data": {
+        "name": "handler",
+        "mode": "blueprint",
+        "graph": {
+          "nodes": [
+            { "id": "entry", "type": "logic.graphEntry", "position": { "x": 0, "y": 0 }, "data": {} },
+            {
+              "id": "send_json_1",
+              "type": "handler.sendJson",
+              "position": { "x": 200, "y": 0 },
+              "data": { "statusCode": 200, "body": { "message": "Hello World" } }
+            }
+          ],
+          "edges": [
+            { "id": "ge1", "source": "entry", "target": "send_json_1", "sourceHandle": "out", "targetHandle": "in" }
+          ]
+        }
+      }
     },
     {
       "id": "listen_1",
@@ -31,7 +48,7 @@
   "edges": [
     { "id": "e1", "source": "init_1", "target": "json_parser_1", "sourceHandle": "out", "targetHandle": "in" },
     { "id": "e2", "source": "json_parser_1", "target": "route_1", "sourceHandle": "out", "targetHandle": "in" },
-    { "id": "e3", "source": "route_1", "target": "send_json_1", "sourceHandle": "out", "targetHandle": "in" },
+    { "id": "e3", "source": "route_1", "target": "handler_1", "sourceHandle": "out", "targetHandle": "in" },
     { "id": "e4", "source": "init_1", "target": "listen_1", "sourceHandle": "out", "targetHandle": "in" }
   ],
   "variables": []

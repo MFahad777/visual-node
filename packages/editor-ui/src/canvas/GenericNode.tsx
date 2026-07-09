@@ -34,13 +34,13 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
       return `${data.method ?? "GET"} ${data.path ?? "/"}`;
     case "handler.sendJson":
       return `status ${data.statusCode ?? 200}`;
-    case "handler.customCode": {
-      const code = String(data.code ?? "");
-      return code.length > 0 ? `${code.slice(0, 24)}${code.length > 24 ? "…" : ""}` : "(empty)";
-    }
     case "logic.function": {
       const name = String(data.name ?? "");
       return name.length > 0 ? `${name}(${data.params ?? ""})` : "(unnamed)";
+    }
+    case "logic.handlerFunction": {
+      const name = String(data.name ?? "");
+      return name.length > 0 ? `${name}(req, res, next)` : "(unnamed)";
     }
     case "logic.require":
       return `${data.variableName ?? "?"} = require(${JSON.stringify(data.path ?? "")})`;
@@ -126,9 +126,6 @@ function summarize(type: string, data: Record<string, unknown>, variables: Varia
   }
 }
 
-function isLongForm(type: string): boolean {
-  return type === "handler.customCode";
-}
 
 export type GenericNodeProps = NodeProps;
 
@@ -257,8 +254,7 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     return staticLiteralPinIds(type, definition).includes(portId) ? literalKind : null;
   };
 
-  const showSubtitle = !!summary && !isLongForm(type ?? "");
-  const showBodyChip = !!summary && isLongForm(type ?? "");
+  const showSubtitle = !!summary;
 
   const isInputConnected = (portId: string) =>
     edges.some((e) => e.target === id && e.targetHandle === portId);
@@ -506,10 +502,6 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
               )}
             </div>
           </div>
-        )}
-
-        {showBodyChip && (
-          <div className="mx-2.5 mb-2.5 rounded bg-black/40 px-2 py-1 font-mono text-[10px] text-neutral-200">{summary}</div>
         )}
       </div>
     </div>

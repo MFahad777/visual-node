@@ -362,23 +362,34 @@ describe("main canvas: pure operator nodes are hoisted and emitted (not silently
     const flow: Flow = {
       version: "1",
       meta: { name: "test", target: "express" },
+      // Phase 24: `handler.customCode` is gone, and there's no way to splice a dynamic identifier
+      // (like the Add node's `_op_add1` result) into a JSON response from inside a nested Handler
+      // Function blueprint graph (`handler.sendJson`'s body is a static JSON literal only). Instead,
+      // compute the Add node's value once at module load (Begin -> Add -> Set) into a module-level
+      // variable, then have the Handler Function (code mode) read that variable by its bare name —
+      // the Add node's declaration is still hoisted and emitted for real, proving the same thing
+      // this test always proved, just reached from Begin's exec chain instead of the route's.
+      variables: [{ id: "var1", name: "SUM", keyword: "let", dataType: "number", defaultValue: "0" }],
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
-        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/sum" } },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "add1", type: "operators.add", position: { x: 0, y: 0 }, data: { literals: { a: 5, b: 7 } } },
-        { id: "handler", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ sum: _op_add1 });" } },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/sum" } },
+        {
+          id: "handlerFn",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: { name: "sumHandler", mode: "code", body: "res.json({ sum: SUM });" },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PORT } },
       ],
       edges: [
-        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
-        // Not the handler's declared "in" exec pin — a distinct value-pin id. This is exactly
-        // the shape the "pure value nodes never emitted on the main canvas" gap fix targets:
-        // exec-chain.ts's hoistValueDeps decides "is this an exec predecessor?" by checking the
-        // edge's targetHandle against the node's *declared exec port*, not a fixed id allowlist,
-        // so a value edge landing on any other handle name gets hoisted instead of ignored.
-        { id: "e3", source: "add1", target: "handler", sourceHandle: "result", targetHandle: "value" },
-        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e1", source: "begin", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "add1", target: "var_set", sourceHandle: "result", targetHandle: "value" },
+        { id: "e3", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
 

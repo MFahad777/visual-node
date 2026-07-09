@@ -3,14 +3,16 @@ const uuid = require("uuid");
 
 const app = express();
 
-app.use(express.json());
-
-app.get("/id", async (req, res) => {
+async function handler(req, res, next) {
   await new Promise((resolve) => setTimeout(resolve, 5));
   res
     .status(200)
     .json({ id: uuid.v4(), generatedAt: new Date().toISOString() });
-});
+}
+
+app.use(express.json());
+
+app.get("/id", handler);
 
 app.listen(3005, () => {
   console.log("Server running on port 3005");

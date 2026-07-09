@@ -79,32 +79,33 @@ describe("end-to-end: Phase 10 variables — module-level state persists across 
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route_inc", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/increment" } },
         {
-          id: "var_set",
-          type: "variable.set",
+          id: "handler_inc",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
-          // No wiring on the "value" pin: falls back to the raw-JS literal, same
-          // "(counter + 1)" any hand-written increment would use.
-          data: { variableId: "var1", literals: { value: "counter + 1" } },
+          data: {
+            name: "incrementHandler",
+            mode: "code",
+            body: "counter += 1;\nres.status(200).json({ ok: true });",
+          },
         },
-        { id: "handler_inc", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } },
         { id: "route_get", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/counter" } },
-        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
-        // Exercises variable.get's resultIdentifier by wiring it into a value-consuming node
-        // (same "Get -> Console Log" pattern proven in logic-nodes.test.ts) before responding
-        // with the module-level variable directly (handler.sendJson can't reference a dynamic
-        // value, only a static JSON literal).
-        { id: "log_get", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
-        { id: "handler_get", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.status(200).json({ counter });" } },
+        {
+          id: "handler_get",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "getCounterHandler",
+            mode: "code",
+            body: "res.status(200).json({ counter });",
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: VARIABLES_PORT } },
       ],
       edges: [
         { id: "e1", source: "init", target: "route_inc", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route_inc", target: "var_set", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_set", target: "handler_inc", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route_inc", target: "handler_inc", sourceHandle: "out", targetHandle: "in" },
         { id: "e4", source: "init", target: "route_get", sourceHandle: "out", targetHandle: "in" },
-        { id: "e5", source: "route_get", target: "log_get", sourceHandle: "out", targetHandle: "in" },
-        { id: "e6", source: "var_get", target: "log_get", sourceHandle: "value", targetHandle: "value" },
-        { id: "e7", source: "log_get", target: "handler_get", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "route_get", target: "handler_get", sourceHandle: "out", targetHandle: "in" },
         { id: "e8", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
@@ -161,7 +162,12 @@ describe("end-to-end: Phase 11 Begin — module-scope setup runs once at load", 
           data: { variableId: "var1", literals: { value: "/srv/app" } },
         },
         { id: "route_config", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/config" } },
-        { id: "handler_config", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.status(200).json({ dir: DIR });" } },
+        {
+          id: "handler_config",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: { name: "configHandler", mode: "code", body: "res.status(200).json({ dir: DIR });" },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: BEGIN_PORT } },
       ],
       edges: [
@@ -202,9 +208,15 @@ describe("end-to-end: Phase 18 Path Extractor — real lodash.get resolution + m
     const flow: Flow = {
       version: "1",
       meta: { name: "path-extractor-api", target: "express" },
+      // Phase 24: `handler.customCode` is gone, and nested Handler Function blueprint graphs have
+      // no raw-code escape hatch — the Path Extractor's dynamic result (`_pathval_extract1`) can't
+      // be spliced into a JSON response via `handler.sendJson` (static-literal body only). Instead,
+      // resolve it once at module load (Begin -> Path Extractor -> Set) into a module-level
+      // variable, then have the Handler Function (code mode) read that variable by its bare name.
+      variables: [{ id: "var1", name: "TOTAL", keyword: "const", dataType: "number" }],
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
-        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/invoice" } },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         {
           id: "extract1",
           type: "logic.pathExtractor",
@@ -225,22 +237,23 @@ describe("end-to-end: Phase 18 Path Extractor — real lodash.get resolution + m
             },
           },
         },
-        // References the pathExtractor node's own emitted `_pathval_extract1` const by name —
-        // valid because both nodes' emitted code lands as sequential statements in the SAME
-        // route handler function scope (see route.node.ts/exec-chain.ts's shared assembly).
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "var1" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/invoice" } },
         {
-          id: "handler",
-          type: "handler.customCode",
+          id: "handlerFn",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
-          data: { code: "res.status(200).json({ total: _pathval_extract1 });" },
+          data: { name: "pathExtractorHandler", mode: "code", body: "res.status(200).json({ total: TOTAL });" },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PATH_EXTRACTOR_PORT } },
       ],
       edges: [
-        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "extract1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "extract1", target: "handler", sourceHandle: "out", targetHandle: "in" },
-        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e1", source: "begin", target: "extract1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "extract1", target: "var_set", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "extract1", target: "var_set", sourceHandle: "data_value", targetHandle: "value" },
+        { id: "e4", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e5", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
+        { id: "e6", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
 

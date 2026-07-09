@@ -36,21 +36,38 @@ describe("wired loop body: array.map", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
-        { id: "map1", type: "array.map", position: { x: 0, y: 0 }, data: {} },
-        { id: "mul1", type: "operators.multiply", position: { x: 0, y: 0 }, data: { literals: { b: "2" } } },
-        { id: "ret1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+                { id: "map1", type: "array.map", position: { x: 0, y: 0 }, data: {} },
+                { id: "mul1", type: "operators.multiply", position: { x: 0, y: 0 }, data: { literals: { b: "2" } } },
+                { id: "ret1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "map1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_get", target: "map1", sourceHandle: "value", targetHandle: "array" },
+                { id: "ge3", source: "map1", target: "ret1", sourceHandle: "loopBody", targetHandle: "in" },
+                { id: "ge4", source: "map1", target: "mul1", sourceHandle: "element", targetHandle: "a" },
+                { id: "ge5", source: "mul1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
+                { id: "ge6", source: "map1", target: "handler", sourceHandle: "completed", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "map1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_get", target: "map1", sourceHandle: "value", targetHandle: "array" },
-        { id: "e4", source: "map1", target: "ret1", sourceHandle: "loopBody", targetHandle: "in" },
-        { id: "e5", source: "map1", target: "mul1", sourceHandle: "element", targetHandle: "a" },
-        { id: "e6", source: "mul1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
-        { id: "e7", source: "map1", target: "handler", sourceHandle: "completed", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e8", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -74,22 +91,39 @@ describe("wired loop body: array.reduce", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
-        { id: "red1", type: "array.reduce", position: { x: 0, y: 0 }, data: { initialValue: "10" } },
-        { id: "add1", type: "operators.add", position: { x: 0, y: 0 }, data: {} },
-        { id: "ret1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
-        { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
+                { id: "red1", type: "array.reduce", position: { x: 0, y: 0 }, data: { initialValue: "10" } },
+                { id: "add1", type: "operators.add", position: { x: 0, y: 0 }, data: {} },
+                { id: "ret1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "red1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "var_get", target: "red1", sourceHandle: "value", targetHandle: "array" },
+                { id: "ge3", source: "red1", target: "ret1", sourceHandle: "loopBody", targetHandle: "in" },
+                { id: "ge4", source: "red1", target: "add1", sourceHandle: "accumulator", targetHandle: "a" },
+                { id: "ge5", source: "red1", target: "add1", sourceHandle: "element", targetHandle: "b" },
+                { id: "ge6", source: "add1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
+                { id: "ge7", source: "red1", target: "handler", sourceHandle: "completed", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "red1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_get", target: "red1", sourceHandle: "value", targetHandle: "array" },
-        { id: "e4", source: "red1", target: "ret1", sourceHandle: "loopBody", targetHandle: "in" },
-        { id: "e5", source: "red1", target: "add1", sourceHandle: "accumulator", targetHandle: "a" },
-        { id: "e6", source: "red1", target: "add1", sourceHandle: "element", targetHandle: "b" },
-        { id: "e7", source: "add1", target: "ret1", sourceHandle: "result", targetHandle: "value" },
-        { id: "e8", source: "red1", target: "handler", sourceHandle: "completed", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e9", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -141,13 +175,21 @@ describe("cross-arm violation: reading a context pin from outside the loop body"
 
 describe("end-to-end: fully wired loop bodies (no callback text) compile and run over real HTTP", () => {
   it("filters and maps an array via wired Return/operator chains, responding with the transformed result", async () => {
+    // The filter/map/operator chain is wired from `logic.begin` (runs once at module load) into
+    // a module-level `doubledEvens` variable via `variable.set` — the loop-container nodes'
+    // internal result identifiers (e.g. `_arr_map1`) are a codegen implementation detail with
+    // no visual pin exposing them into an HTTP response directly; a module-level variable is
+    // the bridge. The Handler Function (code mode) just reads that finished variable.
     const flow: Flow = {
       version: "1",
       meta: { name: "array-loop-nodes-api", target: "express" },
-      variables: [{ id: "v1", name: "items", keyword: "let", dataType: "array", defaultValue: "[1, 2, 3, 4, 5]" }],
+      variables: [
+        { id: "v1", name: "items", keyword: "let", dataType: "array", defaultValue: "[1, 2, 3, 4, 5]" },
+        { id: "v2", name: "doubledEvens", keyword: "let", dataType: "array", defaultValue: "[]" },
+      ],
       nodes: [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
-        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/doubled-evens" } },
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
         { id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "v1" } },
         { id: "filter1", type: "array.filter", position: { x: 0, y: 0 }, data: {} },
         { id: "mod1", type: "operators.modulo", position: { x: 0, y: 0 }, data: { literals: { b: "2" } } },
@@ -156,29 +198,33 @@ describe("end-to-end: fully wired loop bodies (no callback text) compile and run
         { id: "map1", type: "array.map", position: { x: 0, y: 0 }, data: {} },
         { id: "mul1", type: "operators.multiply", position: { x: 0, y: 0 }, data: { literals: { b: "2" } } },
         { id: "retM", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
+        { id: "var_set", type: "variable.set", position: { x: 0, y: 0 }, data: { variableId: "v2" } },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/doubled-evens" } },
         {
-          id: "handler",
-          type: "handler.customCode",
+          id: "hf1",
+          type: "logic.handlerFunction",
           position: { x: 0, y: 0 },
-          data: { code: "res.status(200).json({ result: _arr_map1 });" },
+          data: { name: "handler", mode: "code", body: "res.status(200).json({ result: doubledEvens });" },
         },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PORT } },
       ],
       edges: [
-        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "filter1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "var_get", target: "filter1", sourceHandle: "value", targetHandle: "array" },
-        { id: "e4", source: "filter1", target: "mod1", sourceHandle: "element", targetHandle: "a" },
-        { id: "e5", source: "mod1", target: "eq1", sourceHandle: "result", targetHandle: "a" },
-        { id: "e6", source: "eq1", target: "retF", sourceHandle: "result", targetHandle: "value" },
-        { id: "e7", source: "filter1", target: "retF", sourceHandle: "loopBody", targetHandle: "in" },
-        { id: "e8", source: "filter1", target: "map1", sourceHandle: "completed", targetHandle: "in" },
-        { id: "e9", source: "filter1", target: "map1", sourceHandle: "result", targetHandle: "array" },
-        { id: "e10", source: "map1", target: "mul1", sourceHandle: "element", targetHandle: "a" },
-        { id: "e11", source: "mul1", target: "retM", sourceHandle: "result", targetHandle: "value" },
-        { id: "e12", source: "map1", target: "retM", sourceHandle: "loopBody", targetHandle: "in" },
-        { id: "e13", source: "map1", target: "handler", sourceHandle: "completed", targetHandle: "in" },
-        { id: "e14", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+        { id: "e1", source: "begin", target: "filter1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "var_get", target: "filter1", sourceHandle: "value", targetHandle: "array" },
+        { id: "e3", source: "filter1", target: "mod1", sourceHandle: "element", targetHandle: "a" },
+        { id: "e4", source: "mod1", target: "eq1", sourceHandle: "result", targetHandle: "a" },
+        { id: "e5", source: "eq1", target: "retF", sourceHandle: "result", targetHandle: "value" },
+        { id: "e6", source: "filter1", target: "retF", sourceHandle: "loopBody", targetHandle: "in" },
+        { id: "e7", source: "filter1", target: "map1", sourceHandle: "completed", targetHandle: "in" },
+        { id: "e8", source: "filter1", target: "map1", sourceHandle: "result", targetHandle: "array" },
+        { id: "e9", source: "map1", target: "mul1", sourceHandle: "element", targetHandle: "a" },
+        { id: "e10", source: "mul1", target: "retM", sourceHandle: "result", targetHandle: "value" },
+        { id: "e11", source: "map1", target: "retM", sourceHandle: "loopBody", targetHandle: "in" },
+        { id: "e12", source: "map1", target: "var_set", sourceHandle: "completed", targetHandle: "in" },
+        { id: "e13", source: "map1", target: "var_set", sourceHandle: "result", targetHandle: "value" },
+        { id: "e14", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e15", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e16", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     };
 

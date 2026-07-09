@@ -4,27 +4,35 @@ const app = express();
 
 let items = [];
 
-app.use(express.json());
-
-app.get("/items", (req, res) => {
+function listItems(req, res, next) {
   res.status(200).json(items);
-});
+}
 
-app.post("/items", (req, res) => {
+function createItem(req, res, next) {
   const item = { id: String(items.length + 1), ...req.body };
   items.push(item);
   res.status(201).json(item);
-});
+}
 
-app.delete("/items/:id", (req, res) => {
+function deleteItem(req, res, next) {
   items = items.filter((item) => item.id !== req.params.id);
   res.status(200).json({ success: true });
-});
+}
 
-app.get("/items/count", (req, res) => {
-  console.log(items);
+function countItems(req, res, next) {
+  console.log("items snapshot:", items);
   res.status(200).json({ count: items.length });
-});
+}
+
+app.use(express.json());
+
+app.get("/items", listItems);
+
+app.post("/items", createItem);
+
+app.delete("/items/:id", deleteItem);
+
+app.get("/items/count", countItems);
 
 app.listen(3002, () => {
   console.log("Server running on port 3002");

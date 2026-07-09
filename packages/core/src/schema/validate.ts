@@ -176,20 +176,14 @@ export function validateFlow(flow: Flow): ValidationResult {
       continue;
     }
     if (outgoing.length > 1) {
-      errors.push({ nodeId: route.id, message: "Route has more than one outgoing connection; only a single handler chain is supported" });
+      errors.push({ nodeId: route.id, message: "Route has more than one outgoing connection; only a single handler is supported" });
     }
     const target = nodesById.get(outgoing[0].target);
-    if (target) {
-      const targetDef = requireNodeDefinition(target.type);
-      // Whether a node can be the first node in a Route's handler chain is a question about
-      // its declared ports (does it have an exec-entry pin?), not its category — a category
-      // allow-list here would need updating for every new category (as it did for Phase 7's
-      // "controlFlow", and would again for a Phase 9 plugin node declaring any of the 8
-      // categories). `execEntryPort` is the same check `exec-chain.ts` uses to walk the
-      // chain itself, so this can never disagree with what actually gets emitted.
-      if (!execEntryPort(targetDef)) {
-        errors.push({ nodeId: route.id, message: `Route must connect to a handler node, got "${target.type}"` });
-      }
+    if (target?.type !== "logic.handlerFunction") {
+      errors.push({
+        nodeId: route.id,
+        message: `Route must be wired to a Handler Function node, got "${target?.type ?? "unknown"}"`,
+      });
     }
   }
 
@@ -201,7 +195,7 @@ export function validateFlow(flow: Flow): ValidationResult {
   const cycleError = detectCycle(flow);
   if (cycleError) errors.push(cycleError);
 
-  for (const fn of flow.nodes.filter((n) => n.type === "logic.function" && n.data?.mode === "blueprint")) {
+  for (const fn of flow.nodes.filter((n) => (n.type === "logic.function" || n.type === "logic.handlerFunction") && n.data?.mode === "blueprint")) {
     errors.push(...validateFunctionGraph(flow, fn));
   }
 
@@ -209,10 +203,28 @@ export function validateFlow(flow: Flow): ValidationResult {
 }
 
 /**
- * Validates a `mode: "blueprint"` Function node's nested body graph. Mirrors the shape of
- * several top-level checks above (Return arity, Function Call's Require binding, cycles) but
- * scoped to `functionNode.data.graph` instead of `flow.nodes` — that graph is never part of
- * `flow.nodes` itself, so none of the checks above ever see it.
+ * Returns the parameter names available in a Function's nested blueprint graph. For
+ * `logic.function`, this is parsed from `data.params`; for `logic.handlerFunction`, these
+ * are the fixed `["req", "res", "next"]` names declared by the node type itself.
+ */
+function getFunctionGraphParamNames(functionNode: FlowNode): Set<string> {
+  if (functionNode.type === "logic.handlerFunction") {
+    return new Set(["req", "res", "next"]);
+  }
+  const paramStr = String(functionNode.data?.params ?? "");
+  return new Set(
+    paramStr
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0),
+  );
+}
+
+/**
+ * Validates a `mode: "blueprint"` Function or Handler Function node's nested body graph.
+ * Mirrors the shape of several top-level checks above (Return arity, Function Call's Require
+ * binding, cycles) but scoped to `functionNode.data.graph` instead of `flow.nodes` — that
+ * graph is never part of `flow.nodes` itself, so none of the checks above ever see it.
  */
 function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -238,12 +250,7 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
     }
   }
 
-  const paramNames = new Set(
-    String(functionNode.data?.params ?? "")
-      .split(",")
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0),
-  );
+  const paramNames = getFunctionGraphParamNames(functionNode);
   const entryNodes = graphNodes.filter((n) => n.type === "logic.graphEntry");
   if (entryNodes.length > 1) {
     for (const n of entryNodes) {
@@ -297,12 +304,16 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
         });
       }
     }
-    // Validate that all declared parameters are wired to a value source
-    // Parameter pins are indexed as "param-0", "param-1", etc., not by their names
+    // Each declared parameter must resolve to SOME value source — either a wired "param-N"
+    // edge, or (matching `buildFunctionCallExpression`'s own fallback at emit time, and the
+    // identical leniency the top-level Function Call check above already has) a non-empty
+    // `data["arg-N"]` literal. Parameter pins are indexed as "param-0", "param-1", etc., not
+    // by their names.
     const paramNames = String(call.data?.params ?? "").split(",").map((p) => p.trim()).filter((p) => p.length > 0);
     for (let i = 0; i < paramNames.length; i++) {
       const hasWiredInput = graphEdges.some((e) => e.target === call.id && e.targetHandle === `param-${i}`);
-      if (!hasWiredInput) {
+      const hasLiteral = String((call.data as Record<string, unknown> | undefined)?.[`arg-${i}`] ?? "").trim().length > 0;
+      if (!hasWiredInput && !hasLiteral) {
         errors.push({
           nodeId: functionNode.id,
           blueprintNodeId: call.id,
@@ -354,10 +365,12 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   errors.push(...validateOperatorsAndControlFlow(graphNodes, graphEdges, attribute));
   errors.push(...checkCrossArmValueReferences(graphNodes, graphEdges, attribute));
   errors.push(...validateExecOutputArity(graphNodes, graphEdges, attribute));
-  // Phase 10: this function's own variables are a completely independent namespace from the
-  // main canvas's `flow.variables` (see `validateVariables`'s doc comment) — never
-  // cross-checked against `flow.variables` here.
-  errors.push(...validateVariables(graphNodes, graphVariables, attribute));
+  // Phase 10: this function's own variables are declared independently from the main canvas's
+  // `flow.variables` — a same-named function-local and module-level variable never collide.
+  // Phase 24: `variable.get`/`variable.set` nodes inside this graph may ALSO resolve against
+  // the outer module-level variables (passed as `flow.variables` here), so a Function/Handler
+  // Function's blueprint graph can read/write module-level state, not just its own locals.
+  errors.push(...validateVariables(graphNodes, graphVariables, attribute, flow.variables ?? []));
 
   return errors;
 }
@@ -366,9 +379,9 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
  * Phase 10 checks for a `VariableDeclaration[]` list, shared by both `validateFlow` (scoped to
  * top-level `flow.variables`) and `validateFunctionGraph` (scoped to a single Function's own
  * `graph.variables`) — same "same checks, different attribution" pattern already used for
- * `validateOperatorsAndControlFlow` etc. The two scopes are completely independent namespaces:
- * a top-level variable and a same-named function-scoped variable never collide, and this
- * function is never called with both lists combined.
+ * `validateOperatorsAndControlFlow` etc. Declaration validation (checks 1-2 below) treats the
+ * two scopes as independent namespaces: a top-level variable and a same-named function-scoped
+ * variable never collide, and declarations are never validated across both lists combined.
  *
  * 1. Every variable's `name` must be a valid JS identifier, and its `defaultValue` (if any)
  *    must be well-formed for its declared `dataType` (`codegen/variable-declarations.ts`'s
@@ -377,9 +390,13 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
  * 2. No two variables in the same list may share a `name` (would emit a duplicate-declaration
  *    SyntaxError).
  * 3. Every `variable.get`/`variable.set` node's `data.variableId` must resolve to a real entry
- *    in this scope's variable list — catches a variable deleted out from under a still-wired
- *    node, consistent with this codebase's "refuse to compile rather than silently emit broken
- *    code" philosophy.
+ *    in this scope's variable list OR (Phase 24) `additionalLookupVariables` — the outer
+ *    module-level list, when validating a Function/Handler Function's nested graph. This lets
+ *    a blueprint-mode Function read/write module-level state via ordinary Get/Set Variable
+ *    nodes, not just its own function-local variables (mirrors `emit-function-graph.ts`'s
+ *    `buildGraphEmitContext` merging the same two lists for codegen). Catches a variable
+ *    deleted out from under a still-wired node, consistent with this codebase's "refuse to
+ *    compile rather than silently emit broken code" philosophy.
  *
  * Deliberately NOT checked here: a `variable.set` node targeting a `keyword: "const"`
  * variable. That used to be a hard block, but it broke the moment a variable's keyword
@@ -393,6 +410,7 @@ function validateVariables(
   nodes: FlowNode[],
   variables: VariableDeclaration[],
   makeError: (nodeId: string, message: string) => ValidationError,
+  additionalLookupVariables: VariableDeclaration[] = [],
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -410,7 +428,13 @@ function validateVariables(
     }
   }
 
-  const variablesById = new Map(variables.map((v) => [v.id, v]));
+  // `variable.get`/`variable.set` nodes resolve against this scope's OWN declarations plus
+  // (Phase 24) the outer flow's module-level declarations — a Handler Function/Function's
+  // blueprint graph can read/write module-level state, not just its own local variables. Only
+  // this lookup is widened; declaration validation (dup names, per-declaration validity) above
+  // stays scoped to `variables` alone, since the outer list is already validated once at the
+  // top-level `validateFlow` call.
+  const variablesById = new Map([...additionalLookupVariables, ...variables].map((v) => [v.id, v]));
   for (const node of nodes) {
     if (node.type !== "variable.get" && node.type !== "variable.set") continue;
     const variableId = (node.data as Record<string, unknown> | undefined)?.variableId;

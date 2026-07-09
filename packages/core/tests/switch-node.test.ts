@@ -50,10 +50,6 @@ function switchNode(id: string, cases: Array<{ id: string; value: string | numbe
   return { id, type: "controlFlow.switch", position: { x: 0, y: 0 }, data: { cases, ...data } };
 }
 
-function customCode(id: string, code: string): FlowNode {
-  return { id, type: "handler.customCode", position: { x: 0, y: 0 }, data: { code } };
-}
-
 function runGraph(nodes: FlowNode[], edges: FlowEdge[], args: unknown[] = [], paramNames: string[] = []): unknown {
   const { code: body } = emitFunctionGraphBody({ nodes, edges } as FunctionGraph);
   // eslint-disable-next-line no-new-func
@@ -66,10 +62,10 @@ describe("controlFlow.switch — emitFunctionGraphBody unit tests", () => {
     const nodes = [
       graphEntry("entry1"),
       switchNode("sw1", caseList(0, 1, 2)),
-      customCode("c0", 'return "zero";'),
-      customCode("c1", 'return "one";'),
-      customCode("c2", 'return "two";'),
-      customCode("cd", 'return "other";'),
+      { id: "c0", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"zero"' } } },
+      { id: "c1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"one"' } } },
+      { id: "c2", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"two"' } } },
+      { id: "cd", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"other"' } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "sw1", sourceHandle: "out", targetHandle: "in" },
@@ -96,8 +92,8 @@ describe("controlFlow.switch — emitFunctionGraphBody unit tests", () => {
     const nodes = [
       graphEntry("entry1"),
       switchNode("sw1", caseList(0, 1)),
-      customCode("c0", 'return "zero";'),
-      customCode("cd", 'return "fallback";'),
+      { id: "c0", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"zero"' } } },
+      { id: "cd", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"fallback"' } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "sw1", sourceHandle: "out", targetHandle: "in" },
@@ -129,15 +125,32 @@ describe("controlFlow.switch — validation", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        switchNode("sw1", cases, switchData),
-        ...extraNodes,
+        {
+          id: "handlerFn",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "switchTestHandler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                switchNode("sw1", cases, switchData),
+                ...extraNodes,
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "sw1", sourceHandle: "out", targetHandle: "in" },
+                ...extraEdges,
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "sw1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
-        ...extraEdges,
       ],
     );
   }
@@ -146,7 +159,7 @@ describe("controlFlow.switch — validation", () => {
     const flow = flowWithSwitch(
       caseList(1, 1, 2),
       { literals: { selection: 1 } },
-      [customCode("c1", "res.json({});")],
+      [{ id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } }],
       [{ id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" }],
     );
     const result = validateFlow(flow);
@@ -162,7 +175,11 @@ describe("controlFlow.switch — validation", () => {
         { id: "2", value: true },
       ],
       { literals: { selection: '"hello"' } },
-      [customCode("c0", "res.json({});"), customCode("c1", "res.json({});"), customCode("c2", "res.json({});")],
+      [
+        { id: "c0", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "c2", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+      ],
       [
         { id: "e4", source: "sw1", target: "c0", sourceHandle: "case-0", targetHandle: "in" },
         { id: "e5", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" },
@@ -181,7 +198,7 @@ describe("controlFlow.switch — validation", () => {
         { id: "1", value: { nested: true } },
       ],
       { literals: { selection: 1 } },
-      [customCode("c1", "res.json({});")],
+      [{ id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } }],
       [{ id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" }],
     );
     const result = validateFlow(flow);
@@ -193,7 +210,10 @@ describe("controlFlow.switch — validation", () => {
     const flow = flowWithSwitch(
       caseList(1, 2),
       { literals: { selection: 1 } },
-      [customCode("c1", "res.json({});"), customCode("cStale", "res.json({});")],
+      [
+        { id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+        { id: "cStale", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+      ],
       [
         { id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" },
         { id: "e5", source: "sw1", target: "cStale", sourceHandle: "case-3", targetHandle: "in" },
@@ -215,7 +235,7 @@ describe("controlFlow.switch — validation", () => {
     const flow = flowWithSwitch(
       caseList(1, 2),
       {},
-      [customCode("c1", "res.json({});")],
+      [{ id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } }],
       [{ id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" }],
     );
     const result = validateFlow(flow);
@@ -228,9 +248,9 @@ describe("controlFlow.switch — validation", () => {
       caseList(1, 2),
       {},
       [
-        { id: "src1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "" } },
-        { id: "src2", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "" } },
-        customCode("c1", "res.json({});"),
+        { id: "src1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "src2", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
       ],
       [
         { id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" },
@@ -247,7 +267,7 @@ describe("controlFlow.switch — validation", () => {
     const flow = flowWithSwitch(
       caseList(1, 2),
       { literals: { selection: 1 } },
-      [customCode("c1", "res.json({});")],
+      [{ id: "c1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } }],
       [{ id: "e4", source: "sw1", target: "c1", sourceHandle: "case-1", targetHandle: "in" }],
     );
     const result = validateFlow(flow);
@@ -261,7 +281,10 @@ describe("controlFlow.switch — validation", () => {
     const flow = flowWithSwitch(
       caseList(1, 2),
       { literals: { selection: 99 } },
-      [customCode("d1", "res.json({ path: 1 });"), customCode("d2", "res.json({ path: 2 });")],
+      [
+        { id: "d1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { path: 1 } } },
+        { id: "d2", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { path: 2 } } },
+      ],
       [
         { id: "e4", source: "sw1", target: "d1", sourceHandle: "default", targetHandle: "in" },
         { id: "e5", source: "sw1", target: "d2", sourceHandle: "default", targetHandle: "in" },
@@ -311,28 +334,44 @@ describe("controlFlow.switch — validation", () => {
 
 describe("controlFlow.switch — real end-to-end compile + spawn + curl", () => {
   function switchRoute(routeId: string, path: string, selectionLiteral: string, wiredCaseId: string | "default"): FlowNode[] {
+    const handlerFnId = `${routeId}-handler`;
     const switchId = `${routeId}-sw`;
     const targetId = `${routeId}-target`;
     const sourceHandle = wiredCaseId === "default" ? "default" : `case-${wiredCaseId}`;
     return [
       { id: routeId, type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path } },
       {
-        id: switchId,
-        type: "controlFlow.switch",
+        id: handlerFnId,
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { cases: caseList(0, 1, 2), literals: { selection: selectionLiteral } },
+        data: {
+          name: `switchHandler_${routeId}`,
+          mode: "blueprint",
+          graph: {
+            nodes: [
+              { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+              {
+                id: switchId,
+                type: "controlFlow.switch",
+                position: { x: 0, y: 0 },
+                data: { cases: caseList(0, 1, 2), literals: { selection: selectionLiteral } },
+              },
+              { id: targetId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { hit: sourceHandle } } },
+            ],
+            edges: [
+              { id: "e-entry", source: "entry", target: switchId, sourceHandle: "out", targetHandle: "in" },
+              { id: "e-switch", source: switchId, target: targetId, sourceHandle, targetHandle: "in" },
+            ],
+          },
+        },
       },
-      { id: targetId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { hit: sourceHandle } } },
     ];
   }
-  function switchRouteEdges(routeId: string, wiredCaseId: string | "default"): FlowEdge[] {
-    const switchId = `${routeId}-sw`;
-    const targetId = `${routeId}-target`;
-    const sourceHandle = wiredCaseId === "default" ? "default" : `case-${wiredCaseId}`;
+  function switchRouteEdges(routeId: string): FlowEdge[] {
+    const handlerFnId = `${routeId}-handler`;
     return [
       { id: `${routeId}-e1`, source: "init", target: routeId, sourceHandle: "out", targetHandle: "in" },
-      { id: `${routeId}-e2`, source: routeId, target: switchId, sourceHandle: "out", targetHandle: "in" },
-      { id: `${routeId}-e3`, source: switchId, target: targetId, sourceHandle, targetHandle: "in" },
+      { id: `${routeId}-e2`, source: routeId, target: handlerFnId, sourceHandle: "out", targetHandle: "in" },
     ];
   }
 
@@ -348,24 +387,41 @@ describe("controlFlow.switch — real end-to-end compile + spawn + curl", () => 
         ...switchRoute("r1", "/r1", "1", "1"),
         ...switchRoute("r2", "/r2", "2", "2"),
         ...switchRoute("rdefault", "/rdefault", "99", "default"),
-        {
-          id: "rstring-sw",
-          type: "controlFlow.switch",
-          position: { x: 0, y: 0 },
-          data: { cases: [{ id: "s", value: "hello" }], literals: { selection: '"hello"' } },
-        },
         { id: "rstring", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/rstring" } },
-        { id: "rstring-target", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { hit: "case-s" } } },
+        {
+          id: "rstring-handler",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "switchHandlerString",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "rstring-sw",
+                  type: "controlFlow.switch",
+                  position: { x: 0, y: 0 },
+                  data: { cases: [{ id: "s", value: "hello" }], literals: { selection: '"hello"' } },
+                },
+                { id: "rstring-target", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { hit: "case-s" } } },
+              ],
+              edges: [
+                { id: "e-entry", source: "entry", target: "rstring-sw", sourceHandle: "out", targetHandle: "in" },
+                { id: "e-switch", source: "rstring-sw", target: "rstring-target", sourceHandle: "case-s", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
       ],
       [
-        ...switchRouteEdges("r0", "0"),
-        ...switchRouteEdges("r1", "1"),
-        ...switchRouteEdges("r2", "2"),
-        ...switchRouteEdges("rdefault", "default"),
+        ...switchRouteEdges("r0"),
+        ...switchRouteEdges("r1"),
+        ...switchRouteEdges("r2"),
+        ...switchRouteEdges("rdefault"),
         { id: "e-rstring1", source: "init", target: "rstring", sourceHandle: "out", targetHandle: "in" },
-        { id: "e-rstring2", source: "rstring", target: "rstring-sw", sourceHandle: "out", targetHandle: "in" },
-        { id: "e-rstring3", source: "rstring-sw", target: "rstring-target", sourceHandle: "case-s", targetHandle: "in" },
+        { id: "e-rstring2", source: "rstring", target: "rstring-handler", sourceHandle: "out", targetHandle: "in" },
         { id: "e-listen", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );

@@ -42,10 +42,6 @@ function branchNode(id: string, data: Record<string, unknown> = {}): FlowNode {
   return { id, type: "controlFlow.branch", position: { x: 0, y: 0 }, data };
 }
 
-function customCode(id: string, code: string): FlowNode {
-  return { id, type: "handler.customCode", position: { x: 0, y: 0 }, data: { code } };
-}
-
 function graphReturn(id: string, literal: string): FlowNode {
   return { id, type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: literal } } };
 }
@@ -58,14 +54,12 @@ function runGraph(nodes: FlowNode[], edges: FlowEdge[], args: unknown[] = [], pa
 }
 
 describe("controlFlow.sequence — emitFunctionGraphBody unit tests", () => {
+  function pushNode(id: string, arrayParam: string, value: string): FlowNode {
+    return { id, type: "array.push", position: { x: 0, y: 0 }, data: { literals: { value } } };
+  }
+
   it("fires every wired pin unconditionally, in left-to-right pin order", () => {
-    const nodes = [
-      graphEntry("entry1"),
-      sequenceNode("seq1", ["p1", "p2"]),
-      customCode("a", "order.push('A');"),
-      customCode("b", "order.push('B');"),
-      customCode("c", "order.push('C');"),
-    ];
+    const nodes = [graphEntry("entry1"), sequenceNode("seq1", ["p1", "p2"]), pushNode("a", "order", "'A'"), pushNode("b", "order", "'B'"), pushNode("c", "order", "'C'")];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "seq1", sourceHandle: "out", targetHandle: "in" },
       // Wire pins out of declaration order in the fixture, to prove pin order (not fixture
@@ -73,8 +67,10 @@ describe("controlFlow.sequence — emitFunctionGraphBody unit tests", () => {
       { id: "e2", source: "seq1", target: "c", sourceHandle: "then-p2", targetHandle: "in" },
       { id: "e3", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
       { id: "e4", source: "seq1", target: "b", sourceHandle: "then-p1", targetHandle: "in" },
+      { id: "e5", source: "entry1", target: "a", sourceHandle: "order", targetHandle: "array" },
+      { id: "e6", source: "entry1", target: "b", sourceHandle: "order", targetHandle: "array" },
+      { id: "e7", source: "entry1", target: "c", sourceHandle: "order", targetHandle: "array" },
     ];
-    expect(runGraph(nodes, edges, [[]], ["order"])).toBeUndefined();
 
     const order: string[] = [];
     const { code: body } = emitFunctionGraphBody({ nodes, edges } as FunctionGraph);
@@ -84,11 +80,13 @@ describe("controlFlow.sequence — emitFunctionGraphBody unit tests", () => {
   });
 
   it("only some pins wired: unwired pin contributes nothing (no empty block)", () => {
-    const nodes = [graphEntry("entry1"), sequenceNode("seq1", ["p1", "p2"]), customCode("a", "order.push('A');"), customCode("c", "order.push('C');")];
+    const nodes = [graphEntry("entry1"), sequenceNode("seq1", ["p1", "p2"]), pushNode("a", "order", "'A'"), pushNode("c", "order", "'C'")];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "seq1", sourceHandle: "out", targetHandle: "in" },
       { id: "e2", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
       { id: "e3", source: "seq1", target: "c", sourceHandle: "then-p2", targetHandle: "in" },
+      { id: "e4", source: "entry1", target: "a", sourceHandle: "order", targetHandle: "array" },
+      { id: "e5", source: "entry1", target: "c", sourceHandle: "order", targetHandle: "array" },
     ];
     const order: string[] = [];
     const { code: body } = emitFunctionGraphBody({ nodes, edges } as FunctionGraph);
@@ -153,15 +151,32 @@ describe("controlFlow.sequence — validation", () => {
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        sequenceNode("seq1", pins),
-        ...extraNodes,
+        {
+          id: "handlerFn",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "sequenceTestHandler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                sequenceNode("seq1", pins),
+                ...extraNodes,
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "seq1", sourceHandle: "out", targetHandle: "in" },
+                ...extraEdges,
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "seq1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
-        ...extraEdges,
       ],
     );
   }
@@ -174,7 +189,7 @@ describe("controlFlow.sequence — validation", () => {
 
   it("accepts a Sequence with only then-0 wired", () => {
     const result = validateFlow(
-      flowWithSequence(["p1"], [customCode("a", "res.json({ ok: true });")], [
+      flowWithSequence(["p1"], [{ id: "a", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
         { id: "e4", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
       ]),
     );
@@ -183,7 +198,7 @@ describe("controlFlow.sequence — validation", () => {
 
   it("rejects a stale wire referencing a pin id that was removed", () => {
     const result = validateFlow(
-      flowWithSequence(["p1"], [customCode("a", "res.json({ ok: true });")], [
+      flowWithSequence(["p1"], [{ id: "a", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
         { id: "e4", source: "seq1", target: "a", sourceHandle: "then-p2", targetHandle: "in" },
       ]),
     );
@@ -192,20 +207,24 @@ describe("controlFlow.sequence — validation", () => {
   });
 
   it("accepts a freshly-created Sequence whose data.pins was never initialized (only then-0 wired)", () => {
-    const flow = flowWithSequence([], [customCode("a", "res.json({ ok: true });")], [
+    const flow = flowWithSequence([], [{ id: "a", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
       { id: "e4", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
     ]);
-    const seqNode = flow.nodes.find((n) => n.id === "seq1")!;
+    const handlerFn = flow.nodes.find((n) => n.id === "handlerFn")!;
+    const graphData = (handlerFn.data as any).graph;
+    const seqNode = graphData.nodes.find((n: any) => n.id === "seq1")!;
     seqNode.data = {};
     const result = validateFlow(flow);
     expect(result.valid).toBe(true);
   });
 
   it("rejects duplicate pin ids in data.pins", () => {
-    const flow = flowWithSequence([], [customCode("a", "res.json({ ok: true });")], [
+    const flow = flowWithSequence([], [{ id: "a", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
       { id: "e4", source: "seq1", target: "a", sourceHandle: "then-0", targetHandle: "in" },
     ]);
-    const seqNode = flow.nodes.find((n) => n.id === "seq1")!;
+    const handlerFn = flow.nodes.find((n) => n.id === "handlerFn")!;
+    const graphData = (handlerFn.data as any).graph;
+    const seqNode = graphData.nodes.find((n: any) => n.id === "seq1")!;
     seqNode.data = { pins: [{ id: "dup" }, { id: "dup" }] };
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
@@ -219,18 +238,35 @@ describe("controlFlow.sequence — real end-to-end compile + spawn + curl", () =
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/order" } },
-        sequenceNode("seq1", ["p1"]),
-        { id: "s0", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "req.hits = ['first'];" } },
-        { id: "s1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "req.hits.push('second');" } },
-        { id: "s2", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ hits: req.hits });" } },
+        {
+          id: "handlerFn",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "sequenceHandler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                sequenceNode("seq1", ["p1"]),
+                { id: "s0", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"SEQUENCE_ORDER: first"' } },
+                { id: "s1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: { expression: '"SEQUENCE_ORDER: second"' } },
+                { id: "s2", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry", target: "seq1", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "seq1", target: "s0", sourceHandle: "then-0", targetHandle: "in" },
+                { id: "ge3", source: "seq1", target: "s1", sourceHandle: "then-p1", targetHandle: "in" },
+                { id: "ge4", source: "s1", target: "s2", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "seq1", sourceHandle: "out", targetHandle: "in" },
-        { id: "e3", source: "seq1", target: "s0", sourceHandle: "then-0", targetHandle: "in" },
-        { id: "e4", source: "seq1", target: "s1", sourceHandle: "then-p1", targetHandle: "in" },
-        { id: "e5", source: "s1", target: "s2", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
         { id: "e-listen", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );
@@ -250,12 +286,22 @@ describe("controlFlow.sequence — real end-to-end compile + spawn + curl", () =
       writeFileSync(path.join(GENERATED_DIR, "package.json"), JSON.stringify({ name: "generated-sequence", private: true }));
 
       const child = spawn(process.execPath, [generatedPath], { stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
 
       try {
         await waitForOutput(child, `Server running on port ${PORT}`, 10_000);
         const res = await fetch(`http://localhost:${PORT}/order`);
         expect(res.status).toBe(200);
-        expect(await res.json()).toEqual({ hits: ["first", "second"] });
+        expect(await res.json()).toEqual({ ok: true });
+        // Real observable proof both Sequence arms actually ran, in pin order, inside a real
+        // spawned process — then-0's console.log line appears before then-p1's.
+        const firstIdx = stdout.indexOf("SEQUENCE_ORDER: first");
+        const secondIdx = stdout.indexOf("SEQUENCE_ORDER: second");
+        expect(firstIdx).toBeGreaterThan(-1);
+        expect(secondIdx).toBeGreaterThan(firstIdx);
       } finally {
         child.kill();
       }

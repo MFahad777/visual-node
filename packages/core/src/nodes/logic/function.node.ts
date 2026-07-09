@@ -121,7 +121,7 @@ export const logicFunctionNode: NodeDefinition = {
     if (mode === "blueprint") {
       const graph: FunctionGraph = node.data?.graph ?? { nodes: [], edges: [] };
       try {
-        const result = emitFunctionGraphBody(graph);
+        const result = emitFunctionGraphBody(graph, ctx.flow.variables ?? []);
         body = result.code;
         imports = result.imports;
       } catch (err) {

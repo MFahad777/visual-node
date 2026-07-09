@@ -629,12 +629,17 @@ describe("logic.function mode: blueprint — real end-to-end compile + spawn + c
             },
           },
           { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/double" } },
-          { id: "handler", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "res.json({ result: double(21) });" } },
+          {
+            id: "handlerFn",
+            type: "logic.handlerFunction",
+            position: { x: 0, y: 0 },
+            data: { name: "doubleHandler", mode: "code", body: 'res.json({ result: double(21) });' },
+          },
           { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: PORT } },
         ],
         [
           { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-          { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+          { id: "e2", source: "route", target: "handlerFn", sourceHandle: "out", targetHandle: "in" },
           { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
         ],
       );

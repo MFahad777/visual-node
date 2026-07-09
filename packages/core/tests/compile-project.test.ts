@@ -52,16 +52,20 @@ function serverFlow(port: number): Flow {
       },
       { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/today" } },
       {
-        id: "handler",
-        type: "handler.customCode",
+        id: "hf1",
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { code: "const today = dateHelper.formatDate(new Date());\nres.json({ today, version: dateHelper.appVersion });" },
+        data: {
+          name: "handler",
+          mode: "code",
+          body: "const today = dateHelper.formatDate(new Date());\nres.json({ today, version: dateHelper.appVersion });",
+        },
       },
       { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
     ],
     edges: [
       { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-      { id: "e2", source: "route", target: "handler", sourceHandle: "out", targetHandle: "in" },
+      { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
       { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
     ],
   };

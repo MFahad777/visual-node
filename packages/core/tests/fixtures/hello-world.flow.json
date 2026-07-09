@@ -24,10 +24,14 @@
       "data": { "method": "GET", "path": "/hello" }
     },
     {
-      "id": "send_json_1",
-      "type": "handler.sendJson",
+      "id": "handler_fn",
+      "type": "logic.handlerFunction",
       "position": { "x": 600, "y": 0 },
-      "data": { "statusCode": 200, "body": { "message": "Hello World" } }
+      "data": {
+        "name": "helloHandler",
+        "mode": "code",
+        "body": "res.status(200).json({ message: \"Hello World\" });"
+      }
     },
     {
       "id": "listen_1",
@@ -39,7 +43,7 @@
   "edges": [
     { "id": "e1", "source": "init_1", "target": "json_parser_1" },
     { "id": "e2", "source": "json_parser_1", "target": "route_1" },
-    { "id": "e3", "source": "route_1", "target": "send_json_1" },
+    { "id": "e3", "source": "route_1", "target": "handler_fn" },
     { "id": "e4", "source": "init_1", "target": "listen_1" }
   ],
   "variables": []

@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { emitExpress } from "../src/codegen/emit-express.js";
-import { emitFunctionGraphBody, sanitizeIdentifier, type FunctionGraph } from "../src/codegen/emit-function-graph.js";
+import { emitFunctionGraphBody, type FunctionGraph } from "../src/codegen/emit-function-graph.js";
 import { formatCode } from "../src/codegen/formatter.js";
 import { writeGeneratedFile } from "../src/codegen/file-writer.js";
 import { validateFlow } from "../src/schema/validate.js";
@@ -43,10 +43,6 @@ function branchNode(id: string, data: Record<string, unknown> = {}): FlowNode {
   return { id, type: "controlFlow.branch", position: { x: 0, y: 0 }, data };
 }
 
-function customCode(id: string, code: string): FlowNode {
-  return { id, type: "handler.customCode", position: { x: 0, y: 0 }, data: { code } };
-}
-
 function multiplyNode(id: string, literals: Record<string, string> = {}): FlowNode {
   return { id, type: "operators.multiply", position: { x: 0, y: 0 }, data: { literals } };
 }
@@ -60,7 +56,12 @@ function runGraph(nodes: FlowNode[], edges: FlowEdge[], args: unknown[] = [], pa
 
 describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
   it("both arms wired: emits if/else and executes the matching arm", () => {
-    const nodes = [graphEntry("entry1"), branchNode("b1"), customCode("t1", "return 'T';"), customCode("f1", "return 'F';")];
+    const nodes = [
+      graphEntry("entry1"),
+      branchNode("b1"),
+      { id: "t1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'T'" } } },
+      { id: "f1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'F'" } } },
+    ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
       { id: "e2", source: "entry1", target: "b1", sourceHandle: "flag", targetHandle: "condition" },
@@ -96,7 +97,11 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
   });
 
   it("true-only wired: no else clause; false condition falls through to no return", () => {
-    const nodes = [graphEntry("entry1"), branchNode("b1"), customCode("t1", "return 'T';")];
+    const nodes = [
+      graphEntry("entry1"),
+      branchNode("b1"),
+      { id: "t1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'T'" } } },
+    ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
       { id: "e2", source: "entry1", target: "b1", sourceHandle: "flag", targetHandle: "condition" },
@@ -110,7 +115,11 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
   });
 
   it("false-only wired: inverts the condition (if (!(...))) instead of an empty positive branch", () => {
-    const nodes = [graphEntry("entry1"), branchNode("b1"), customCode("f1", "return 'F';")];
+    const nodes = [
+      graphEntry("entry1"),
+      branchNode("b1"),
+      { id: "f1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'F'" } } },
+    ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
       { id: "e2", source: "entry1", target: "b1", sourceHandle: "flag", targetHandle: "condition" },
@@ -134,9 +143,9 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
       graphEntry("entry1"),
       branchNode("outer"),
       branchNode("inner"),
-      customCode("tt", 'return "AA";'),
-      customCode("tf", 'return "AB";'),
-      customCode("f", 'return "B";'),
+      { id: "tt", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"AA"' } } },
+      { id: "tf", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"AB"' } } },
+      { id: "f", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: '"B"' } } },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "outer", sourceHandle: "out", targetHandle: "in" },
@@ -160,17 +169,18 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
   });
 
   it("a shared upstream value node wired into BOTH arms' consumers is safely re-hoisted per arm and behaves correctly", () => {
-    // mul1 (a pure value node with no exec pins) is referenced from raw code in both the True
-    // and False arms via its documented result-identifier convention (`_op_<id>`) — exactly
-    // the "value node referenced from both arms" pattern exec-chain.ts's hoistValueDeps exists
-    // to support (each arm re-hoists its own independent copy; no leakage between the two).
-    const opId = sanitizeIdentifier("mul1");
+    // mul1 (a pure value node with no exec pins) is referenced from a real operator node in
+    // both the True and False arms — exactly the "value node referenced from both arms"
+    // pattern exec-chain.ts's hoistValueDeps exists to support (each arm re-hoists its own
+    // independent copy; no leakage between the two).
     const nodes = [
       graphEntry("entry1"),
       multiplyNode("mul1", { b: "10" }),
       branchNode("b1"),
-      customCode("t1", `return _op_${opId} + 1;`),
-      customCode("f1", `return _op_${opId} - 1;`),
+      { id: "add1", type: "operators.add", position: { x: 0, y: 0 }, data: { literals: { b: "1" } } },
+      { id: "sub1", type: "operators.subtract", position: { x: 0, y: 0 }, data: { literals: { b: "1" } } },
+      { id: "t1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
+      { id: "f1", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: {} },
     ];
     const edges: FlowEdge[] = [
       { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
@@ -178,13 +188,10 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
       { id: "e3", source: "entry1", target: "mul1", sourceHandle: "n", targetHandle: "a" },
       { id: "e4", source: "b1", target: "t1", sourceHandle: "true", targetHandle: "in" },
       { id: "e5", source: "b1", target: "f1", sourceHandle: "false", targetHandle: "in" },
-      // Arbitrary (undeclared-by-NodeDefinition) value-pin edges into each arm's Custom Code
-      // node — this is what actually *triggers* exec-chain.ts's hoisting of mul1 into each
-      // arm's own scope; Custom Code's raw text then references the resulting identifier
-      // directly. hoistValueDeps operates on raw edges, not on a NodeDefinition's declared
-      // pin list, so this is a legitimate (if low-level) way to force a hoist.
-      { id: "e6", source: "mul1", target: "t1", sourceHandle: "result", targetHandle: "value" },
-      { id: "e7", source: "mul1", target: "f1", sourceHandle: "result", targetHandle: "value" },
+      { id: "e6", source: "mul1", target: "add1", sourceHandle: "result", targetHandle: "a" },
+      { id: "e7", source: "mul1", target: "sub1", sourceHandle: "result", targetHandle: "a" },
+      { id: "e8", source: "add1", target: "t1", sourceHandle: "result", targetHandle: "value" },
+      { id: "e9", source: "sub1", target: "f1", sourceHandle: "result", targetHandle: "value" },
     ];
 
     expect(runGraph(nodes, edges, [true, 5], ["flag", "n"])).toBe(51); // (5*10) + 1
@@ -208,20 +215,39 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
 });
 
 describe("controlFlow.branch — validation", () => {
+  // Route can only attach a Handler Function (Phase 24) — the Branch under test lives inside
+  // the Handler Function's own blueprint graph instead of directly off Route.
   function flowWithBranch(branchData: Record<string, unknown>, extraNodes: FlowNode[], extraEdges: FlowEdge[]): Flow {
     return makeFlow(
       [
         { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
         { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
-        branchNode("b1", branchData),
-        ...extraNodes,
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                branchNode("b1", branchData),
+                ...extraNodes,
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
+                ...extraEdges,
+              ],
+            },
+          },
+        },
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
       ],
       [
         { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
-        { id: "e2", source: "route", target: "b1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
         { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
-        ...extraEdges,
       ],
     );
   }
@@ -234,7 +260,7 @@ describe("controlFlow.branch — validation", () => {
   });
 
   it("accepts a Branch with only True wired", () => {
-    const flow = flowWithBranch({ literals: { condition: true } }, [customCode("t1", "res.json({ ok: true });")], [
+    const flow = flowWithBranch({ literals: { condition: true } }, [{ id: "t1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
       { id: "e4", source: "b1", target: "t1", sourceHandle: "true", targetHandle: "in" },
     ]);
     const result = validateFlow(flow);
@@ -242,7 +268,7 @@ describe("controlFlow.branch — validation", () => {
   });
 
   it("rejects a Branch whose condition is unwired and has no literal", () => {
-    const flow = flowWithBranch({}, [customCode("t1", "res.json({ ok: true });")], [
+    const flow = flowWithBranch({}, [{ id: "t1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } }], [
       { id: "e4", source: "b1", target: "t1", sourceHandle: "true", targetHandle: "in" },
     ]);
     const result = validateFlow(flow);
@@ -254,9 +280,9 @@ describe("controlFlow.branch — validation", () => {
     const flow = flowWithBranch(
       {},
       [
-        { id: "src1", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "" } },
-        { id: "src2", type: "handler.customCode", position: { x: 0, y: 0 }, data: { code: "" } },
-        customCode("t1", "res.json({ ok: true });"),
+        { id: "src1", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "src2", type: "debug.consoleLog", position: { x: 0, y: 0 }, data: {} },
+        { id: "t1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { ok: true } } },
       ],
       [
         { id: "e4", source: "b1", target: "t1", sourceHandle: "true", targetHandle: "in" },
@@ -275,7 +301,10 @@ describe("controlFlow.branch — validation", () => {
   it('rejects a Branch whose "False" output has more than one outgoing connection', () => {
     const flow = flowWithBranch(
       { literals: { condition: true } },
-      [customCode("f1", "res.json({ path: 1 });"), customCode("f2", "res.json({ path: 2 });")],
+      [
+        { id: "f1", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { path: 1 } } },
+        { id: "f2", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { path: 2 } } },
+      ],
       [
         { id: "e4", source: "b1", target: "f1", sourceHandle: "false", targetHandle: "in" },
         { id: "e5", source: "b1", target: "f2", sourceHandle: "false", targetHandle: "in" },
@@ -290,19 +319,38 @@ describe("controlFlow.branch — validation", () => {
 describe("controlFlow.branch — real end-to-end compile + spawn + curl", () => {
   function serverFlow(port: number): Flow {
     function route(id: string, path: string, conditionLiteral: boolean, branchId: string, trueId: string, falseId: string): FlowNode[] {
+      const handlerFnId = `${id}-handler`;
       return [
         { id, type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path } },
-        { id: branchId, type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { literals: { condition: conditionLiteral } } },
-        { id: trueId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { from: `${branchId}-true` } } },
-        { id: falseId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { from: `${branchId}-false` } } },
+        {
+          id: handlerFnId,
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: `branchHandler_${id}`,
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: branchId, type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { literals: { condition: conditionLiteral } } },
+                { id: trueId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { from: `${branchId}-true` } } },
+                { id: falseId, type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { from: `${branchId}-false` } } },
+              ],
+              edges: [
+                { id: "e-entry", source: "entry", target: branchId, sourceHandle: "out", targetHandle: "in" },
+                { id: "e-true", source: branchId, target: trueId, sourceHandle: "true", targetHandle: "in" },
+                { id: "e-false", source: branchId, target: falseId, sourceHandle: "false", targetHandle: "in" },
+              ],
+            },
+          },
+        },
       ];
     }
-    function routeEdges(routeId: string, branchId: string, trueId: string, falseId: string): FlowEdge[] {
+    function routeEdges(routeId: string): FlowEdge[] {
+      const handlerFnId = `${routeId}-handler`;
       return [
         { id: `${routeId}-e1`, source: "init", target: routeId, sourceHandle: "out", targetHandle: "in" },
-        { id: `${routeId}-e2`, source: routeId, target: branchId, sourceHandle: "out", targetHandle: "in" },
-        { id: `${routeId}-e3`, source: branchId, target: trueId, sourceHandle: "true", targetHandle: "in" },
-        { id: `${routeId}-e4`, source: branchId, target: falseId, sourceHandle: "false", targetHandle: "in" },
+        { id: `${routeId}-e2`, source: routeId, target: handlerFnId, sourceHandle: "out", targetHandle: "in" },
       ];
     }
 
@@ -314,8 +362,8 @@ describe("controlFlow.branch — real end-to-end compile + spawn + curl", () => 
         { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
       ],
       [
-        ...routeEdges("routeA", "branchA", "trueA", "falseA"),
-        ...routeEdges("routeB", "branchB", "trueB", "falseB"),
+        ...routeEdges("routeA"),
+        ...routeEdges("routeB"),
         { id: "e-listen", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
       ],
     );

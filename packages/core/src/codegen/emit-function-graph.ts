@@ -9,10 +9,13 @@ const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 export interface FunctionGraph {
   nodes: FlowNode[];
   edges: FlowEdge[];
-  /** This Function's own module/scope-local variables — a completely independent namespace
-   * from the main canvas's `flow.variables`, never cross-checked against it (see
-   * docs/phase10-variables-plan.md). Optional for backward compatibility with graphs saved
-   * before Phase 10. */
+  /** This Function's own function-local variables, declared independently from the main
+   * canvas's `flow.variables` (a same-named local and module-level variable never collide —
+   * see docs/phase10-variables-plan.md). Optional for backward compatibility with graphs saved
+   * before Phase 10. Phase 24: `variable.get`/`variable.set` nodes inside this graph may ALSO
+   * resolve against the outer module-level variables (see `emitFunctionGraphBody`'s
+   * `outerVariables` parameter) — only declaration validation/emission stays scoped to this
+   * list alone. */
   variables?: VariableDeclaration[];
 }
 
@@ -57,17 +60,27 @@ export function resultIdentifierFor(node: FlowNode, handle?: string, ctx?: EmitC
   return identifier;
 }
 
-function buildGraphEmitContext(graph: FunctionGraph): EmitContext {
+function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): EmitContext {
   const nodesById = new Map(graph.nodes.map((n) => [n.id, n]));
   const cache = new Map<string, EmittedCode>();
 
   const matchesHandle = (edge: FlowEdge, side: "source" | "target", handle?: string) =>
     handle === undefined || (side === "source" ? edge.sourceHandle : edge.targetHandle) === handle;
 
+  // A `variable.get`/`variable.set` node's `resultIdentifier`/`emit()` look up `data.variableId`
+  // against `ctx.flow.variables` — merging this graph's own local variables with the outer
+  // module-level ones (local wins on id collision, though ids are UUIDs so collisions in
+  // practice never happen) lets a Handler Function's blueprint graph read/write module-level
+  // state declared via the main canvas's Variables panel, not just its own function-local
+  // variables. The outer variables are NOT re-declared here — `emit-express.ts` already emits
+  // their module-level `const`/`let`/`var` statement once; only THIS graph's own `variables`
+  // get a declaration statement inside the compiled function body (see below).
+  const mergedVariables = [...outerVariables, ...(graph.variables ?? [])];
+
   const ctx: EmitContext = {
     // Function-graph nodes never reference the outer/top-level Flow — this stub satisfies
     // EmitContext's shape without pretending the nested graph is a real top-level flow.
-    flow: { version: "1", meta: { name: "", target: "express" }, nodes: graph.nodes, edges: graph.edges, variables: graph.variables ?? [] },
+    flow: { version: "1", meta: { name: "", target: "express" }, nodes: graph.nodes, edges: graph.edges, variables: mergedVariables },
     getNode: (nodeId) => nodesById.get(nodeId),
     getIncoming: (nodeId, handle) => graph.edges.filter((e) => e.target === nodeId && matchesHandle(e, "target", handle)),
     getOutgoing: (nodeId, handle) => graph.edges.filter((e) => e.source === nodeId && matchesHandle(e, "source", handle)),
@@ -116,7 +129,7 @@ export interface FunctionGraphBodyResult {
  * "out" pin is wired to — this is what lets a Branch/Switch node placed inside a function's
  * blueprint graph compile into a real `if`/`switch` block instead of flat statement soup.
  */
-export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyResult {
+export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): FunctionGraphBodyResult {
   const returnNodes = graph.nodes.filter((n) => n.type === "logic.graphReturn");
 
   // A whole-graph cycle pre-flight, independent of the reachability-based walk below: since
@@ -139,7 +152,7 @@ export function emitFunctionGraphBody(graph: FunctionGraph): FunctionGraphBodyRe
     throw err;
   }
 
-  const ctx = buildGraphEmitContext(graph);
+  const ctx = buildGraphEmitContext(graph, outerVariables);
   const entry = graph.nodes.find((n) => n.type === "logic.graphEntry");
   const startNodeId = entry ? ctx.getOutgoing(entry.id, "out")[0]?.target : undefined;
 

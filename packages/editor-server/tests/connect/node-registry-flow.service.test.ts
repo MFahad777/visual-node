@@ -48,13 +48,14 @@ describe("GetNodeRegistry (Connect)", () => {
     // return value (see FUNCTION_GRAPH_ONLY_TYPES's doc comment in
     // nodes/function-graph-nodes.ts). Only `logic.graphEntry` remains function-graph-only.
     // Phase 18 added one more builtin, `logic.pathExtractor`. Phase 20 added `logic.callback`.
+    // Phase 24 replaced `handler.customCode` with `logic.handlerFunction` (net count unchanged).
     expect(res.definitions).toHaveLength(53);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
         "express.init",
         "express.listen",
-        "handler.customCode",
+        "logic.handlerFunction",
         "logic.function",
         "logic.graphReturn",
         "controlFlow.branch",
@@ -84,6 +85,8 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({ scope: "function-graph" });
 
+    // Net unchanged: Phase 24 removed `handler.customCode` (was function-graph-usable) and
+    // added `handler.sendJson` (now function-graph-usable too) — same count as before.
     expect(res.definitions).toHaveLength(44);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
@@ -94,9 +97,14 @@ describe("GetNodeRegistry (Connect)", () => {
         "variable.get",
         "variable.set",
         "array.map",
+        "handler.sendJson",
       ]),
     );
     expect(types).not.toContain("express.init");
+    // Handler Function is a standalone top-level declaration (like logic.function), never
+    // nestable inside another graph — locks in Phase 24's "not nestable" design decision as a
+    // wire-protocol regression test.
+    expect(types).not.toContain("logic.handlerFunction");
   });
 });
 

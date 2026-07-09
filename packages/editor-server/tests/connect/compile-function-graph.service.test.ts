@@ -61,9 +61,13 @@ function serverFlow(port: number, requirePath = "../helpers/dateFormater", sourc
       { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/today" } },
       {
         id: "handler",
-        type: "handler.customCode",
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { code: "const today = dateHelper.formatDate(new Date());\nres.json({ today });" },
+        data: {
+          name: "handler",
+          mode: "code",
+          body: "const today = dateHelper.formatDate(new Date());\nres.json({ today });",
+        },
       },
       { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port } },
     ],

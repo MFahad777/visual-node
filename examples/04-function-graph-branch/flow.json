@@ -70,9 +70,13 @@
     },
     {
       "id": "handler_1",
-      "type": "handler.customCode",
+      "type": "logic.handlerFunction",
       "position": { "x": 600, "y": 0 },
-      "data": { "code": "const n = Number(req.query.n ?? 0);\nres.status(200).json({ n, isEven: isEven(n) });" }
+      "data": {
+        "name": "handler",
+        "mode": "code",
+        "body": "const n = Number(req.query.n ?? 0);\nres.status(200).json({ n, isEven: isEven(n) });"
+      }
     }
   ],
   "edges": [

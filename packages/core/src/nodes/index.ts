@@ -5,8 +5,8 @@ import { jsonBodyParserNode } from "./middleware/json-body-parser.node.js";
 import { customMiddlewareNode } from "./middleware/custom-code.node.js";
 import { routeNode } from "./routing/route.node.js";
 import { sendJsonNode } from "./handler/send-json.node.js";
-import { customCodeNode } from "./handler/custom-code.node.js";
 import { logicFunctionNode } from "./logic/function.node.js";
+import { handlerFunctionNode } from "./logic/handler-function.node.js";
 import { logicExportNode } from "./logic/export.node.js";
 import { logicRequireNode } from "./logic/require.node.js";
 import { logicFunctionCallNode } from "./logic/function-call.node.js";
@@ -61,7 +61,9 @@ const BUILTIN_NODES = [
   customMiddlewareNode,
   routeNode,
   sendJsonNode,
-  customCodeNode,
+  // Phase 24: Handler Function — Express request handler with fixed req, res, next parameters,
+  // code/blueprint dual mode, wired from Route nodes.
+  handlerFunctionNode,
   logicFunctionNode,
   logicExportNode,
   logicRequireNode,
@@ -145,7 +147,7 @@ export {
   customMiddlewareNode,
   routeNode,
   sendJsonNode,
-  customCodeNode,
+  handlerFunctionNode,
   logicFunctionNode,
   logicExportNode,
   logicRequireNode,

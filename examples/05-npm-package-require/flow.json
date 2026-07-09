@@ -19,14 +19,17 @@
       "id": "route_1",
       "type": "express.route",
       "position": { "x": 400, "y": 0 },
-      "data": { "method": "GET", "path": "/id", "isAsync": true }
+      "data": { "method": "GET", "path": "/id" }
     },
     {
       "id": "handler_1",
-      "type": "handler.customCode",
+      "type": "logic.handlerFunction",
       "position": { "x": 600, "y": 0 },
       "data": {
-        "code": "await new Promise((resolve) => setTimeout(resolve, 5));\nres.status(200).json({ id: uuid.v4(), generatedAt: new Date().toISOString() });",
+        "name": "handler",
+        "mode": "code",
+        "isAsync": true,
+        "body": "await new Promise((resolve) => setTimeout(resolve, 5));\nres.status(200).json({ id: uuid.v4(), generatedAt: new Date().toISOString() });",
         "npmDependencies": ""
       }
     },

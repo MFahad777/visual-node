@@ -455,6 +455,139 @@ function FunctionNodeConfig({
 }
 
 /**
+ * `logic.handlerFunction` mirrors `logic.function`'s Code/Blueprint dual-mode UI exactly
+ * (see `FunctionNodeConfig` above), with two differences: its `req, res, next` parameters
+ * are fixed by the node type (Express's handler signature is invariant) and rendered as a
+ * read-only row instead of an editable Parameters field, and the checkbox reads "Async
+ * Handler" instead of "Async Function" to match its `configSchema` label.
+ */
+function HandlerFunctionNodeConfig({
+  node,
+  updateNodeConfig,
+  openCodeExpand,
+  onOpenBlueprintGraph,
+}: {
+  node: Node;
+  updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
+  openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
+  onOpenBlueprintGraph: () => void;
+}) {
+  const mode = node.data?.mode === "blueprint" ? "blueprint" : "code";
+  const graph = node.data?.graph as { nodes?: unknown[]; edges?: unknown[] } | undefined;
+  const graphNodeCount = graph?.nodes?.length ?? 0;
+  const graphEdgeCount = graph?.edges?.length ?? 0;
+
+  function switchMode(next: "code" | "blueprint") {
+    if (next === mode) return;
+    if (next === "blueprint") {
+      const hasBody = String(node.data?.body ?? "").trim().length > 0;
+      const hasGraph = graphNodeCount > 0;
+      if (hasBody && !hasGraph) {
+        const confirmed = window.confirm(
+          "Switching to Blueprint mode won't preserve your existing Function Body code. Continue?",
+        );
+        if (!confirmed) return;
+      }
+      updateNodeConfig(node.id, "mode", "blueprint");
+      return;
+    }
+    updateNodeConfig(node.id, "mode", "code");
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Function Name</span>
+        <input
+          type="text"
+          className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+          value={String(node.data?.name ?? "")}
+          onChange={(e) => updateNodeConfig(node.id, "name", e.target.value)}
+        />
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Parameters</span>
+        <div className="rounded border border-neutral-800 bg-black/30 px-2 py-1.5 font-mono text-[11px] text-neutral-400">
+          req, res, next
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={Boolean(node.data?.isAsync ?? false)}
+          onChange={(e) => updateNodeConfig(node.id, "isAsync", e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Async Handler</span>
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Authoring Mode</span>
+        <div className="flex overflow-hidden rounded border border-neutral-700">
+          <button
+            type="button"
+            onClick={() => switchMode("code")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "code" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Code
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("blueprint")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "blueprint" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Blueprint
+          </button>
+        </div>
+      </div>
+
+      {mode === "code" ? (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">Function Body</span>
+            <span className="text-[11px] text-neutral-400">
+              Available: req, res, next. Call res.json(...) or res.send(...) to respond, next() to continue.
+            </span>
+            <LazyJsCodeField
+              value={node.data?.body}
+              onChange={(value) => updateNodeConfig(node.id, "body", value)}
+              onExpand={() => openCodeExpand(node.id, "body", "Function Body")}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">npm Dependencies</span>
+            <span className="text-[11px] text-neutral-400">
+              Comma-separated package names this handler's code depends on, e.g. "lodash, dayjs".
+            </span>
+            <input
+              type="text"
+              className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+              value={String(node.data?.npmDependencies ?? "")}
+              onChange={(e) => updateNodeConfig(node.id, "npmDependencies", e.target.value)}
+            />
+          </label>
+        </>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="rounded bg-black/40 px-2 py-1.5 text-[11px] text-neutral-300">
+            {graphNodeCount} node{graphNodeCount === 1 ? "" : "s"}, {graphEdgeCount} edge{graphEdgeCount === 1 ? "" : "s"}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenBlueprintGraph}
+            className="rounded bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700"
+          >
+            Open Blueprint Graph
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * `debug.consoleLog`'s "Expression" field only takes effect when its "value" input pin is
  * unwired — once wired, the wired node's value is what actually gets logged (see
  * `console-log.node.ts`'s `emit()`), and the typed expression is ignored. The generic
@@ -606,6 +739,13 @@ export function NodeConfigPanel() {
         <FunctionCallConfig node={node} edges={edges} nodes={nodes} updateNodeConfig={updateNodeConfig} />
       ) : node.type === "logic.function" ? (
         <FunctionNodeConfig
+          node={node}
+          updateNodeConfig={updateNodeConfig}
+          openCodeExpand={openCodeExpand}
+          onOpenBlueprintGraph={() => openFunctionGraphTab(node)}
+        />
+      ) : node.type === "logic.handlerFunction" ? (
+        <HandlerFunctionNodeConfig
           node={node}
           updateNodeConfig={updateNodeConfig}
           openCodeExpand={openCodeExpand}

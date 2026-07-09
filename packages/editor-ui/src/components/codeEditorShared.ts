@@ -14,7 +14,7 @@ export const CODE_MIRROR_BASIC_SETUP = { lineNumbers: false, foldGutter: false }
 
 /**
  * The existing heuristic for which language a "code"-type field represents:
- * a string `default` means raw JS (e.g. handler.customCode's `code`, logic.function's
+ * a string `default` means raw JS (e.g. logic.handlerFunction's `body`, logic.function's
  * `body`); anything else (object/array/undefined) means JSON (e.g. handler.sendJson's
  * response body).
  */

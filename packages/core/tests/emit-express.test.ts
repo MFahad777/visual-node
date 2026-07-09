@@ -93,7 +93,7 @@ describe("emitExpress", () => {
 
   it("detects a cycle in the graph", () => {
     const flow = loadFixture("hello-world.flow.json");
-    flow.edges.push({ id: "e_cycle", source: "send_json_1", target: "route_1" });
+    flow.edges.push({ id: "e_cycle", source: "handler_fn", target: "route_1" });
 
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
@@ -105,7 +105,7 @@ describe("emitExpress", () => {
   // node it connects, and should be rejected the same as any other cycle.
   it("detects a self-loop (a node's own output wired back into its own input)", () => {
     const flow = loadFixture("hello-world.flow.json");
-    flow.edges.push({ id: "e_selfloop", source: "send_json_1", target: "send_json_1" });
+    flow.edges.push({ id: "e_selfloop", source: "handler_fn", target: "handler_fn" });
 
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);

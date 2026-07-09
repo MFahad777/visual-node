@@ -38,13 +38,13 @@ describe("collectFlowDependencies", () => {
     expect(dependencies).toEqual({});
   });
 
-  it("parses a comma-separated npmDependencies field on handler.customCode", () => {
+  it("parses a comma-separated npmDependencies field on a code-mode logic.handlerFunction", () => {
     const flow = makeFlow([
       {
         id: "h1",
-        type: "handler.customCode",
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { code: "res.json({});", npmDependencies: "axios, lodash@^4.17.0" },
+        data: { name: "handler", mode: "code", body: "res.json({});", npmDependencies: "axios, lodash@^4.17.0" },
       },
     ]);
     const { dependencies } = collectFlowDependencies(flow);
@@ -81,9 +81,9 @@ describe("collectFlowDependencies", () => {
     const flow = makeFlow([
       {
         id: "h1",
-        type: "handler.customCode",
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { code: "res.json({});", npmDependencies: "@org/pkg, @org/other@^1.0.0" },
+        data: { name: "handler", mode: "code", body: "res.json({});", npmDependencies: "@org/pkg, @org/other@^1.0.0" },
       },
     ]);
     const { dependencies } = collectFlowDependencies(flow);
@@ -100,9 +100,9 @@ describe("collectFlowDependencies", () => {
       },
       {
         id: "h1",
-        type: "handler.customCode",
+        type: "logic.handlerFunction",
         position: { x: 0, y: 0 },
-        data: { code: "res.json({});", npmDependencies: "axios@^2.0.0" },
+        data: { name: "handler", mode: "code", body: "res.json({});", npmDependencies: "axios@^2.0.0" },
       },
     ]);
     const { dependencies, conflicts } = collectFlowDependencies(flow);
@@ -128,9 +128,9 @@ describe("collectFlowDependencies", () => {
             nodes: [
               {
                 id: "inner1",
-                type: "handler.customCode",
+                type: "logic.handlerFunction",
                 position: { x: 0, y: 0 },
-                data: { code: "", npmDependencies: "uuid@^9.0.0" },
+                data: { name: "inner", mode: "code", body: "", npmDependencies: "uuid@^9.0.0" },
               },
             ],
             edges: [],
@@ -190,9 +190,9 @@ describe("collectProjectDependencies", () => {
         flow: makeFlow([
           {
             id: "h1",
-            type: "handler.customCode",
+            type: "logic.handlerFunction",
             position: { x: 0, y: 0 },
-            data: { code: "res.json({});", npmDependencies: "lodash@^4.17.0" },
+            data: { name: "handler", mode: "code", body: "res.json({});", npmDependencies: "lodash@^4.17.0" },
           },
         ]),
       },
@@ -221,9 +221,9 @@ describe("collectProjectDependencies", () => {
         flow: makeFlow([
           {
             id: "h1",
-            type: "handler.customCode",
+            type: "logic.handlerFunction",
             position: { x: 0, y: 0 },
-            data: { code: "res.json({});", npmDependencies: "axios@^2.0.0" },
+            data: { name: "handler", mode: "code", body: "res.json({});", npmDependencies: "axios@^2.0.0" },
           },
         ]),
       },
