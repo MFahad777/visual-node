@@ -4,7 +4,42 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 1.0.0 (Latest)
+## Version 1.1.0 (Latest)
+
+### New
+
+#### Send JSON can now respond with a wired-in value
+The **Send JSON** node's response body can now come from a wired connection instead of
+only the static "JSON Body" field. Wire in a **Get Variable** node (or any other
+value-producing node) and its value is sent as the response instead of whatever's typed
+in the field — the field becomes read-only and shows "Wired" whenever a connection is
+present. Leave it unwired and Send JSON behaves exactly as before.
+
+**Use case**: Return dynamic data — like a variable that changes at runtime — as a JSON
+response, without hardcoding it in the config panel.
+
+#### Path Extractor can now resolve a path computed at runtime
+The **Path Extractor** node's property path (e.g. `items[0].name`) can now come from a
+wired connection instead of only being typed into the "Path" field. Wire in a
+value-producing node — such as a **Get Variable** holding a dynamically-built path
+string — and it takes over: a wired path always wins over whatever's typed in the field,
+which becomes read-only and shows "Wired." The canvas also shows `"(wired)"` under the
+node so it's clear at a glance which mode is active. Leave it unwired and Path Extractor
+behaves exactly as before.
+
+**Use case**: Look up a value at a path that isn't known until the request is actually
+being handled — for example, a field name that depends on user input — instead of only
+supporting a fixed path typed in ahead of time.
+
+### Documentation
+
+- The [Handler reference](/node-reference/handler#send-json--handlersendjson) and
+  [Logic reference](/node-reference/logic#path-extractor--logicpathextractor) pages are
+  updated for Send JSON's and Path Extractor's new wireable input pins.
+
+---
+
+## Version 1.0.0
 
 ### 🚨 Breaking Changes
 

@@ -249,19 +249,30 @@ arguments gathered from dynamically-added parameter pins. A non-function resolve
 is returned as-is, ignoring any parameters.
 
 - **Inputs**: `in` (exec) — "In"; `data_object` (value) — "Object" (wire-only, no
-  inline literal); plus dynamic `param-0..N` value pins, each with inline free-form
-  literal editing
+  inline literal); `path` (value, optional) — "Path" — wire in any value-producing node
+  (e.g. a **Get Variable** holding a dynamically-built path string) to compute the path
+  at runtime instead of typing it into the config field below; plus dynamic
+  `param-0..N` value pins, each with inline free-form literal editing
 - **Outputs**: `out` (exec) — "Next"; `data_value` (value) — "Result"
 - **Config fields**:
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `path` | text | `""` | Free-form dot/bracket property path, e.g. `"billing.currency"` or `"items[0].name"`. |
+| `path` | text | `""` | Free-form dot/bracket property path, e.g. `"billing.currency"` or `"items[0].name"`. Only used when the `path` pin is unwired. |
 
 Grow or shrink the parameter pins with the **"+ Add Param"** / **"- Remove Param"**
 buttons rendered directly on the node face. Unlike other dynamic-pin node types
 (variadic boolean operators, Sequence, Switch), removal always targets the
 **highest-index** pin, never a pin in the middle of the list.
+
+### Wiring in a dynamic path
+
+Wire a value-producing node into the `path` pin to compute the property path at runtime
+instead of typing a fixed one — a wired path always **wins** over whatever's typed in
+the "Path" field, which becomes disabled and shows "Wired" in the config panel while the
+pin stays connected. The canvas subtitle also shows `"(wired)"` instead of the literal
+path text, so a wired Path Extractor is distinguishable from an unwired one at a glance.
+Unwire the pin and Path Extractor goes back to using the "Path" field, exactly as before.
 
 ```js
 // path: "store.getInvoice", param-0 wired to an Invoice ID value
