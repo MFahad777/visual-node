@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
-import type { ConfigField, VariableDeclaration } from "@visual-node/core";
+import type { ConfigField, NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
 import { useEditorTabsStore } from "../store/editorTabsStore.js";
 import { getCallbackArgs } from "../canvas/effectivePorts.js";
@@ -631,6 +631,123 @@ function ConsoleLogConfig({
 }
 
 /**
+ * `handler.sendJson`'s "JSON Body" config field only takes effect when its "jsonBody"
+ * input pin is unwired — once wired, the wired node's value is what actually gets sent
+ * (see `send-json.node.ts`'s `emit()`), and the typed JSON is ignored. Mirrors
+ * `ConsoleLogConfig`'s precedent for the identical shape (a configSchema field with a
+ * parallel optional value pin), but shows a plain disabled "Wired" placeholder rather
+ * than a read-only preview of the field's stored value — unlike Console Log's single
+ * scalar expression, JSON Body holds an arbitrary object with no compact one-line
+ * preview, so `CallbackConfig`'s disabled-"Wired"-input styling fits better here.
+ */
+function SendJsonConfig({
+  node,
+  edges,
+  definition,
+  updateNodeConfig,
+  openCodeExpand,
+}: {
+  node: Node;
+  edges: Edge[];
+  definition: NodeDefinition;
+  updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
+  openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
+}) {
+  const isBodyWired = edges.some((e) => e.target === node.id && e.targetHandle === "jsonBody");
+  const statusCodeField = definition.configSchema.find((f) => f.key === "statusCode");
+  const bodyField = definition.configSchema.find((f) => f.key === "body");
+
+  return (
+    <div className="flex flex-col gap-3">
+      {statusCodeField && (
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-neutral-400">{statusCodeField.label}</span>
+          <ConfigFieldInput
+            field={statusCodeField}
+            value={node.data?.statusCode}
+            onChange={(value) => updateNodeConfig(node.id, "statusCode", value)}
+          />
+        </label>
+      )}
+      <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">JSON Body</span>
+        <span className="text-[11px] text-neutral-400">
+          {isBodyWired
+            ? "The JSON Body pin is wired — its value is sent instead of this field."
+            : "The response body, sent as JSON."}
+        </span>
+        {isBodyWired ? (
+          <input
+            type="text"
+            disabled
+            value="Wired"
+            className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-400"
+          />
+        ) : (
+          bodyField && (
+            <LazyJsonCodeField
+              field={bodyField}
+              value={node.data?.body}
+              onChange={(value) => updateNodeConfig(node.id, "body", value)}
+              onExpand={() => openCodeExpand(node.id, "body", "JSON Body")}
+            />
+          )
+        )}
+      </label>
+    </div>
+  );
+}
+
+/**
+ * `logic.pathExtractor`'s "Path" config field only takes effect when its "path"
+ * input pin is unwired — once wired, the wired node's value is what actually gets resolved.
+ * Mirrors `SendJsonConfig`'s pattern for a configSchema field with a parallel optional value pin.
+ */
+function PathExtractorConfig({
+  node,
+  edges,
+  definition,
+  updateNodeConfig,
+}: {
+  node: Node;
+  edges: Edge[];
+  definition: NodeDefinition;
+  updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
+}) {
+  const isPathWired = edges.some((e) => e.target === node.id && e.targetHandle === "path");
+  const pathField = definition.configSchema.find((f) => f.key === "path");
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Path</span>
+        <span className="text-[11px] text-neutral-400">
+          {isPathWired
+            ? "The Path pin is wired — its value is resolved instead of this field."
+            : "Dot or bracket notation: e.g. a.b, items[0].name, billing.calculateTotal."}
+        </span>
+        {isPathWired ? (
+          <input
+            type="text"
+            disabled
+            value="Wired"
+            className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-400"
+          />
+        ) : (
+          pathField && (
+            <ConfigFieldInput
+              field={pathField}
+              value={node.data?.path}
+              onChange={(value) => updateNodeConfig(node.id, "path", value)}
+            />
+          )
+        )}
+      </label>
+    </div>
+  );
+}
+
+/**
  * `variable.get`/`variable.set`'s only real "configuration" is which variable they're bound
  * to (`data.variableId`, set at drop time — see `VariableDropMenu.tsx` — and never edited
  * here) — this renders a read-only summary instead of the generic `configSchema`-driven
@@ -755,6 +872,16 @@ export function NodeConfigPanel() {
         <CallbackConfig node={node} edges={edges} updateNodeConfig={updateNodeConfig} />
       ) : node.type === "debug.consoleLog" ? (
         <ConsoleLogConfig node={node} edges={edges} updateNodeConfig={updateNodeConfig} openCodeExpand={openCodeExpand} />
+      ) : node.type === "handler.sendJson" ? (
+        <SendJsonConfig
+          node={node}
+          edges={edges}
+          definition={definition}
+          updateNodeConfig={updateNodeConfig}
+          openCodeExpand={openCodeExpand}
+        />
+      ) : node.type === "logic.pathExtractor" ? (
+        <PathExtractorConfig node={node} edges={edges} definition={definition} updateNodeConfig={updateNodeConfig} />
       ) : node.type === "controlFlow.switch" ? (
         <SwitchCasesConfig
           node={node}

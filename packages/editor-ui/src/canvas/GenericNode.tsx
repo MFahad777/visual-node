@@ -32,6 +32,8 @@ function summarize(
   data: Record<string, unknown>,
   variables: VariableDeclaration[],
   moduleVariables?: VariableDeclaration[],
+  nodeId?: string,
+  edges?: Array<{ target: string; targetHandle?: string | null }>,
 ): string | null {
   switch (type) {
     case "express.listen":
@@ -62,6 +64,9 @@ function summarize(
       return expression.length > 0 ? expression : "(empty)";
     }
     case "logic.pathExtractor": {
+      if (edges && nodeId && edges.some((e) => e.target === nodeId && e.targetHandle === "path")) {
+        return "(wired)";
+      }
       const path = String(data.path ?? "");
       return path.length > 0 ? path : "(no path)";
     }
@@ -200,6 +205,8 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     (data ?? {}) as Record<string, unknown>,
     variables,
     scopedEdgeContext?.moduleVariables,
+    id,
+    edges,
   );
   const theme = CATEGORY_THEME[definition.category];
   const accentHex = theme.accentHex;

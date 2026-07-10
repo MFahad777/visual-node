@@ -865,3 +865,129 @@ describe("debug.consoleLog", () => {
     expect(logIdx).toBeGreaterThan(addIdx);
   });
 });
+
+describe("handler.sendJson", () => {
+  it("emits JSON.stringify(body) unchanged when jsonBody is unwired", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "send", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: { a: 1 } } },
+              ],
+              edges: [{ id: "ge1", source: "entry1", target: "send", sourceHandle: "out", targetHandle: "in" }],
+            },
+          },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+
+    expect(validateFlow(flow).valid).toBe(true);
+    const { code } = emitExpress(flow);
+    // Either JSON stringified compact or Prettier-formatted — both are correct
+    expect(code.includes('res.status(200).json({"a":1});') || code.includes('res.status(200).json({ a: 1 });')).toBe(true);
+  });
+
+  it("sends the wired jsonBody pin's value instead of the JSON Body field", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "add", type: "operators.add", position: { x: 0, y: 0 }, data: { literals: { a: 2, b: 3 } } },
+                // The typed JSON Body must be ignored once "jsonBody" is wired.
+                {
+                  id: "send",
+                  type: "handler.sendJson",
+                  position: { x: 0, y: 0 },
+                  data: { statusCode: 200, body: { shouldNotAppear: true } },
+                },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "send", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "add", target: "send", sourceHandle: "result", targetHandle: "jsonBody" },
+              ],
+            },
+          },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+
+    expect(validateFlow(flow).valid).toBe(true);
+    const { code } = emitExpress(flow);
+    expect(code).not.toContain("shouldNotAppear");
+    const addIdx = code.indexOf("const _op_add = ((2) + (3));");
+    const sendIdx = code.indexOf("res.status(200).json(_op_add);");
+    expect(addIdx).toBeGreaterThan(-1);
+    expect(sendIdx).toBeGreaterThan(addIdx);
+  });
+
+  it("throws when more than one edge targets jsonBody", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                { id: "add1", type: "operators.add", position: { x: 0, y: 0 }, data: { literals: { a: 1, b: 1 } } },
+                { id: "add2", type: "operators.add", position: { x: 0, y: 0 }, data: { literals: { a: 2, b: 2 } } },
+                { id: "send", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "send", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "add1", target: "send", sourceHandle: "result", targetHandle: "jsonBody" },
+                { id: "ge3", source: "add2", target: "send", sourceHandle: "result", targetHandle: "jsonBody" },
+              ],
+            },
+          },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e3", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+
+    expect(() => emitExpress(flow)).toThrow(/more than one incoming connection/);
+  });
+});

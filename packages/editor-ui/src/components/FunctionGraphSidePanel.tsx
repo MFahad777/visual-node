@@ -266,6 +266,40 @@ function SubCanvasNodeConfig({
     );
   }
 
+  if (node.type === "logic.pathExtractor") {
+    const isPathWired = edges.some((e) => e.target === node.id && e.targetHandle === "path");
+    const pathField = definition.configSchema.find((f) => f.key === "path");
+    return (
+      <div className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-neutral-400">Path</span>
+          <span className="text-[11px] text-neutral-400">
+            {isPathWired
+              ? "The Path pin is wired — its value is resolved instead of this field."
+              : "Dot or bracket notation: e.g. a.b, items[0].name, billing.calculateTotal."}
+          </span>
+          {isPathWired ? (
+            <input
+              type="text"
+              disabled
+              value="Wired"
+              className="w-full cursor-not-allowed rounded border border-neutral-800 bg-black/30 px-2 py-1 text-xs text-neutral-400"
+            />
+          ) : (
+            pathField && (
+              <input
+                type="text"
+                className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+                value={String(node.data?.path ?? "")}
+                onChange={(e) => updateNodeData(node.id, "path", e.target.value)}
+              />
+            )
+          )}
+        </label>
+      </div>
+    );
+  }
+
   if (node.type === "logic.functionCall") {
     const variableName = String(node.data?.variableName ?? "");
     const functionName = String(node.data?.functionName ?? "");

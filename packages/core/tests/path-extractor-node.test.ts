@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { emitExpress } from "../src/codegen/emit-express.js";
 import { getNodeDefinition, type EmitContext } from "../src/schema/node-registry.js";
-import type { Flow, FlowNode } from "../src/schema/node.types.js";
+import type { Flow, FlowNode, FlowEdge } from "../src/schema/node.types.js";
 import { registerBuiltinNodes } from "../src/nodes/index.js";
 
 registerBuiltinNodes();
@@ -153,5 +153,137 @@ describe("logic.pathExtractor", () => {
     `;
     const result = runEmitted(setup, emitted.body!);
     expect(result).toBeCloseTo(99);
+  });
+
+  describe("wired path input", () => {
+    // For wired-path tests, we create a mock source node that looks like a logic.expression
+    // or similar (something with a resultIdentifier) and wire it to the path pin
+    function makeWiredPathContext(sourceNodeType: string, sourceHandle: string = "result"): EmitContext {
+      const sourceNode: FlowNode = { id: "pathSource", type: sourceNodeType, position: { x: 0, y: 0 }, data: {} };
+      const peNode: FlowNode = { id: "pe1", type: "logic.pathExtractor", position: { x: 0, y: 0 }, data: {} };
+      const flow = makeFlow([sourceNode, peNode], [
+        { id: "e1", source: "pathSource", target: "pe1", sourceHandle, targetHandle: "path" },
+      ]);
+      return {
+        flow,
+        getNode: (id: string) => flow.nodes.find((n) => n.id === id),
+        getIncoming: (nodeId: string, pinId: string) =>
+          flow.edges.filter((e) => e.target === nodeId && e.targetHandle === pinId),
+        getOutgoing: () => [],
+        emitNode: () => {
+          throw new Error("unused");
+        },
+      };
+    }
+
+    it("always emits lodash.get import plus the shared runtime helper when path is wired, regardless of path structure", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const node = pathExtractorNode({ literals: { data_object: "input" } });
+      // Use operators.add as a source node since it has a resultIdentifier
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      expect(emitted.imports).toHaveLength(2);
+      expect(emitted.imports![0]).toBe('const _pathGet = require("lodash.get");');
+      expect(emitted.imports![1]).toContain("function _visualNodePathResolve(obj, path, args)");
+    });
+
+    it("calls the shared _visualNodePathResolve helper with the wired path passed as an argument, not embedded inline in the body", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const node = pathExtractorNode({ literals: { data_object: "input" } });
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      // The body is a single call to the shared helper — no per-instance inline IIFE anymore.
+      expect(emitted.body).toBe("const _pathval_pe1 = _visualNodePathResolve((input), _op_pathSource, []);");
+      expect(emitted.body).not.toContain("_pathin_pe1");
+      expect(emitted.body).not.toContain("=> {");
+    });
+
+    it("resolves a plain property via wired path at runtime", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const node = pathExtractorNode({ literals: { data_object: "__obj" } });
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      // The wired source (operators.add) uses resultIdentifier pattern _op_<id>
+      const setup = `
+        ${emitted.imports!.join("\n")}
+        const __obj = { a: { b: 42 } };
+        const _op_pathSource = "a.b";
+      `;
+      const result = runEmitted(setup, emitted.body!, "_pathval_pe1");
+      expect(result).toBe(42);
+    });
+
+    it("resolves bracket array element via wired path at runtime", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const node = pathExtractorNode({ literals: { data_object: "__obj" } });
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      const setup = `
+        ${emitted.imports!.join("\n")}
+        const __obj = { items: [{ name: "x" }] };
+        const _op_pathSource = "items[0].name";
+      `;
+      const result = runEmitted(setup, emitted.body!, "_pathval_pe1");
+      expect(result).toBe("x");
+    });
+
+    it("calls a resolved method via wired path with .apply binding when path is wired", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const node = pathExtractorNode({
+        paramCount: 1,
+        literals: { data_object: "__obj", "param-0": '"Alice"' },
+      });
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      const setup = `
+        ${emitted.imports!.join("\n")}
+        const _op_pathSource = "greet";
+        const __obj = {
+          greet: function (name) {
+            return "Hello, " + name + " (from " + this.name + ")";
+          },
+          name: "App"
+        };
+      `;
+      const result = runEmitted(setup, emitted.body!, "_pathval_pe1");
+      expect(result).toBe("Hello, Alice (from App)");
+    });
+
+    it("throws when path pin has more than one incoming connection", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      const source1: FlowNode = { id: "s1", type: "operators.add", position: { x: 0, y: 0 }, data: {} };
+      const source2: FlowNode = { id: "s2", type: "operators.subtract", position: { x: 0, y: 0 }, data: {} };
+      const peNode: FlowNode = { id: "pe1", type: "logic.pathExtractor", position: { x: 0, y: 0 }, data: {} };
+      const flow = makeFlow([source1, source2, peNode], [
+        { id: "e1", source: "s1", target: "pe1", sourceHandle: "result", targetHandle: "path" },
+        { id: "e2", source: "s2", target: "pe1", sourceHandle: "result", targetHandle: "path" },
+      ]);
+      const ctx: EmitContext = {
+        flow,
+        getNode: (id: string) => flow.nodes.find((n) => n.id === id),
+        getIncoming: (nodeId: string, pinId: string) =>
+          flow.edges.filter((e) => e.target === nodeId && e.targetHandle === pinId),
+        getOutgoing: () => [],
+        emitNode: () => {
+          throw new Error("unused");
+        },
+      };
+      expect(() => def.emit(peNode, ctx)).toThrow(/more than one incoming connection/);
+    });
+
+    it("wired path takes precedence even when data.path is set", () => {
+      const def = getNodeDefinition("logic.pathExtractor")!;
+      // Node has a stale literal path (empty), but it's wired — wired wins, no empty-path error
+      const node = pathExtractorNode({ path: "", literals: { data_object: "__obj" } });
+      const ctx = makeWiredPathContext("operators.add", "result");
+      const emitted = def.emit(node, ctx);
+      const setup = `
+        ${emitted.imports!.join("\n")}
+        const __obj = { a: { b: 42 } };
+        const _op_pathSource = "a.b";
+      `;
+      const result = runEmitted(setup, emitted.body!, "_pathval_pe1");
+      expect(result).toBe(42);
+    });
   });
 });
