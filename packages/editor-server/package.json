@@ -1,6 +1,6 @@
 {
   "name": "visual-node",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Visual, node-based backend builder for Node.js. Drag-and-drop flows compile to real, readable Express.js source code.",
   "type": "module",
   "main": "./dist/server.js",
