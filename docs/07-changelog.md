@@ -4,7 +4,44 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 1.1.0 (Latest)
+## Version 1.2.0 (Latest)
+
+### New
+
+#### Redirect wires to reduce visual clutter
+Double-click anywhere along a wire to drop a draggable anchor point that bends the wire's path. Drag the anchor to reposition it; double-click it again or select it and press Delete to remove it. Works identically on the main canvas and inside Function/Handler-Function graphs.
+
+**Use case**: Untangle crossing wires and reduce visual clutter on a busy canvas without changing any logic or generated code.
+
+#### Select and move multiple nodes at once
+Hold Shift and drag to draw a selection box around several nodes. Any node the box touches is highlighted. Drag any of the selected nodes to move the entire group together, preserving their relative positions. Press Delete or Backspace to remove all selected nodes and their connected wires at once.
+
+**Use case**: Reorganize large sections of your flow quickly, or clean up a whole block of nodes without touching them one at a time.
+
+#### Add notes to nodes with comments
+Every node gets a small comment bubble icon in its top-right corner when selected. Click the icon to open a text editor and add a note. Your comment renders as a persistent text block above the node on the canvas and is automatically included as a documentation comment in the generated code.
+
+**Use case**: Document why you wired something a particular way, or explain a complex node's purpose so others (or future-you) understand the intent.
+
+#### Group nodes in resizable, colored comment boxes
+Press `C` with one or more nodes selected to wrap them in a resizable, colored box with a title. The box is a first-class canvas element — drag it to move everything inside together, double-click the box itself to edit its title, and right-click to pick any color via the built-in color picker. Comment boxes work identically on the main canvas and inside Function/Handler-Function graphs.
+
+**Use case**: Visually organize related nodes into logical sections (e.g., "Authentication" or "Data Validation") so your flow reads like a story, not a tangle of wires.
+
+### Fixed
+
+- **A node could unexpectedly jump out of a comment box after being dragged**, even when it never left the box's visual bounds. Fixed.
+- **Comment boxes could lose track of which nodes were inside them** after resizing the box. Fixed.
+- **Comment text and group-box titles now scale with zoom level** so they don't visually overlap nearby nodes when you zoom out.
+- **A node's comment preview was invisible**, clipped by the node itself. Now positioned correctly so it's always visible.
+
+### Documentation
+
+- Updated [Flows, Nodes, and Pins](/core-concepts/flows-nodes-and-pins) with a new section covering canvas interaction techniques (multi-select, reroute anchors, node comments, and comment boxes).
+
+---
+
+## Version 1.1.0
 
 ### New
 
