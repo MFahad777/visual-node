@@ -1,2 +1,4 @@
 packages:
   - "packages/*"
+patchedDependencies:
+  flatbuffers@24.12.23: patches/flatbuffers@24.12.23.patch

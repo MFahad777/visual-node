@@ -2,6 +2,8 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
+export { CommentGroup } from './fbs/comment-group.js';
+export { EdgeWaypoint } from './fbs/edge-waypoint.js';
 export { Flow } from './fbs/flow.js';
 export { FlowEdge } from './fbs/flow-edge.js';
 export { FlowNode } from './fbs/flow-node.js';

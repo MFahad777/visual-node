@@ -821,6 +821,22 @@ export function NodeConfigPanel() {
     );
   }
 
+  // Phase 33: comment-group boxes are a UI-only React Flow node type, deliberately not a
+  // packages/core NodeDefinition (no ports, no emit()) — special-case it here so selecting
+  // one doesn't fall into the "Unknown node type" error path below. Title/color are already
+  // edited inline on the box itself (CommentGroupNode.tsx), so this panel has nothing to add.
+  if (node.type === "annotation.commentGroup") {
+    return (
+      <div className="flex h-full shrink-0" style={{ width }}>
+        <ResizeHandle axis="x" onMouseDown={onMouseDown} />
+        <div className="h-full min-w-0 flex-1 border-l border-black/60 bg-[#1f1f1f] p-3 text-xs text-neutral-400">
+          Comment box — edit its title and color directly on the canvas.
+          {variablesPanel}
+        </div>
+      </div>
+    );
+  }
+
   const definition = node.type ? nodeDefinitions[node.type] : undefined;
   if (!definition) {
     return (

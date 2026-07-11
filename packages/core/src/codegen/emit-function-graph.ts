@@ -1,8 +1,9 @@
-import type { FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
+import type { CommentGroup, FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
 import { requireNodeDefinition, type EmitContext, type EmittedCode } from "../schema/node-registry.js";
 import { emitExecChain, hoistValueDepsCore } from "./exec-chain.js";
 import { CycleError, topologicalSort } from "./topo-sort.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
+import { withNodeComment } from "./node-comment.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -17,6 +18,10 @@ export interface FunctionGraph {
    * `outerVariables` parameter) — only declaration validation/emission stays scoped to this
    * list alone. */
   variables?: VariableDeclaration[];
+  /** Resizable, colored, titled boxes drawn behind groups of nodes on the canvas — purely a UI
+   * annotation, like `FlowNode.position`: never read by `emitFunctionGraphBody`. Optional for
+   * backward compatibility with graphs saved before Phase 33. */
+  comments?: CommentGroup[];
 }
 
 /**
@@ -91,7 +96,7 @@ function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDec
       if (!node) throw new FunctionGraphError(`emitNode: unknown node id "${nodeId}"`);
       const def = requireNodeDefinition(node.type);
       try {
-        const emitted = def.emit(node, ctx);
+        const emitted = withNodeComment(node, def.emit(node, ctx));
         cache.set(nodeId, emitted);
         return emitted;
       } catch (err) {

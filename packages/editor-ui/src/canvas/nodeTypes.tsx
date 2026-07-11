@@ -7,6 +7,7 @@ import { LogicNode } from "../components/nodes/LogicNode.js";
 import { DebugNode } from "../components/nodes/DebugNode.js";
 import { OperatorNode } from "../components/nodes/OperatorNode.js";
 import { ControlFlowNode } from "../components/nodes/ControlFlowNode.js";
+import { CommentGroupNode } from "./CommentGroupNode.js";
 import { GenericNode } from "./GenericNode.js";
 
 const explicitNodeTypes: NodeTypes = {
@@ -46,6 +47,8 @@ const explicitNodeTypes: NodeTypes = {
   "controlFlow.branch": ControlFlowNode,
   "controlFlow.switch": ControlFlowNode,
   "controlFlow.sequence": ControlFlowNode,
+  // Phase 33: annotation/comment group boxes (not nodes, purely UI).
+  "annotation.commentGroup": CommentGroupNode,
 };
 
 /**

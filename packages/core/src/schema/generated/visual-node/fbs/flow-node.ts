@@ -59,8 +59,15 @@ dataArray():Uint8Array|null {
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
+parentId():string|null
+parentId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+parentId(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startFlowNode(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 }
 
 static addId(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset) {
@@ -89,6 +96,10 @@ static createDataVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):f
 
 static startDataVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(1, numElems, 1);
+}
+
+static addParentId(builder:flatbuffers.Builder, parentIdOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(4, parentIdOffset, 0);
 }
 
 static endFlowNode(builder:flatbuffers.Builder):flatbuffers.Offset {

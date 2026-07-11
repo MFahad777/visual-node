@@ -866,6 +866,57 @@ describe("debug.consoleLog", () => {
   });
 });
 
+describe("node-level comments (data.comment) inside a Function/Handler-Function blueprint graph", () => {
+  it("emits a node's data.comment as a /** ... */ block directly above its own code inside a compiled function body (emit-function-graph.ts's emitNode closure)", () => {
+    const flow = makeFlow(
+      [
+        { id: "init", type: "express.init", position: { x: 0, y: 0 }, data: {} },
+        { id: "route", type: "express.route", position: { x: 0, y: 0 }, data: { method: "GET", path: "/x" } },
+        {
+          id: "hf1",
+          type: "logic.handlerFunction",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "handler",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                { id: "entry1", type: "logic.graphEntry", position: { x: 0, y: 0 }, data: {} },
+                {
+                  id: "log",
+                  type: "debug.consoleLog",
+                  position: { x: 0, y: 0 },
+                  data: { expression: '"hit"', comment: "Log a debug marker" },
+                },
+                { id: "handler", type: "handler.sendJson", position: { x: 0, y: 0 }, data: { statusCode: 200, body: {} } },
+              ],
+              edges: [
+                { id: "ge1", source: "entry1", target: "log", sourceHandle: "out", targetHandle: "in" },
+                { id: "ge2", source: "log", target: "handler", sourceHandle: "out", targetHandle: "in" },
+              ],
+            },
+          },
+        },
+        { id: "listen", type: "express.listen", position: { x: 0, y: 0 }, data: { port: 3000 } },
+      ],
+      [
+        { id: "e1", source: "init", target: "route", sourceHandle: "out", targetHandle: "in" },
+        { id: "e2", source: "route", target: "hf1", sourceHandle: "out", targetHandle: "in" },
+        { id: "e4", source: "init", target: "listen", sourceHandle: "out", targetHandle: "in" },
+      ],
+    );
+
+    const result = validateFlow(flow);
+    expect(result.valid).toBe(true);
+
+    const { code } = emitExpress(flow);
+    const commentIdx = code.indexOf("/** Log a debug marker */");
+    const logIdx = code.indexOf('console.log("hit");');
+    expect(commentIdx).toBeGreaterThan(-1);
+    expect(logIdx).toBeGreaterThan(commentIdx);
+  });
+});
+
 describe("handler.sendJson", () => {
   it("emits JSON.stringify(body) unchanged when jsonBody is unwired", () => {
     const flow = makeFlow(

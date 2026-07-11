@@ -3,6 +3,7 @@ import { requireNodeDefinition, type EmitContext, type EmittedCode } from "../sc
 import { validateFlow, getConstVariablesOverriddenFromBegin } from "../schema/validate.js";
 import { topologicalSortStructuralNodes, collectLogicNodes } from "./graph-walker.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
+import { withNodeComment } from "./node-comment.js";
 
 export interface EmitResult {
   code: string;
@@ -28,7 +29,7 @@ function buildEmitContext(flow: Flow): EmitContext {
       const node = nodesById.get(nodeId);
       if (!node) throw new Error(`emitNode: unknown node id "${nodeId}"`);
       const def = requireNodeDefinition(node.type);
-      const emitted = def.emit(node, ctx);
+      const emitted = withNodeComment(node, def.emit(node, ctx));
       cache.set(nodeId, emitted);
       return emitted;
     },

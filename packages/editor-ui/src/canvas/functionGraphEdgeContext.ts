@@ -2,7 +2,17 @@ import { createContext, useContext } from "react";
 import type { VariableDeclaration } from "@visual-node/core";
 
 export interface FunctionGraphEdgeContextValue {
-  edges: Array<{ id: string; source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }>;
+  // Widened to include `data` (type-only change — the real object passed in is always the
+  // full react-flow `Edge[]`): CustomEdge needs `edge.data.waypoints` reachable through this
+  // scoped path (Phase 31), the same way it already reaches `sourceHandle`/`targetHandle`.
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+    data?: Record<string, unknown>;
+  }>;
   // Widened to include `data` (type-only change — the real object passed in is always the
   // full react-flow `Node[]`): CustomEdge needs a source/target node's `data` to resolve its
   // effective ports (computeEffectiveOutputs/computeEffectiveInputs) for exec-vs-value wire
@@ -27,6 +37,11 @@ export interface FunctionGraphEdgeContextValue {
   // the global flowStore's equivalents when this context is provided, mirroring how it
   // already prefers `edges`/`nodes` here over the global store.
   updateNodeData?: (nodeId: string, key: string, value: unknown) => void;
+  // Present only inside a Function node's blueprint sub-canvas, mirroring `updateNodeData`
+  // above — GenericNode.tsx's Comment "Expand" button must open the scoped functionGraphStore's
+  // own expandedCommentField, not the global flowStore's, or the modal looks up a node id that
+  // doesn't exist there and silently no-ops.
+  openCommentExpand?: (nodeId: string) => void;
   addInputPin?: (nodeId: string) => void;
   removeInputPin?: (nodeId: string, pinId: string) => void;
   addSwitchCasePin?: (nodeId: string) => void;
@@ -38,6 +53,14 @@ export interface FunctionGraphEdgeContextValue {
   removePathExtractorParam?: (nodeId: string) => void;
   addCallbackArg?: (nodeId: string) => void;
   removeCallbackArg?: (nodeId: string, argId: string) => void;
+  // Phase 31: back the draggable/removable wire-anchor (waypoint) feature. Only present
+  // inside a Function Graph sub-canvas — the main canvas calls the global `useFlowStore`'s
+  // equivalents instead, same fallback pattern as `deleteEdge` above.
+  addEdgeWaypoint?: (edgeId: string, index: number, point: { x: number; y: number }) => void;
+  moveEdgeWaypoint?: (edgeId: string, waypointId: string, point: { x: number; y: number }) => void;
+  removeEdgeWaypoint?: (edgeId: string, waypointId: string) => void;
+  // Current zoom level of the function graph's canvas, read from the scoped functionGraphStore
+  currentZoom?: number;
 }
 
 /**

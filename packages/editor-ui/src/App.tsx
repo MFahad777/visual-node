@@ -6,6 +6,7 @@ import { FileExplorer } from "./components/FileExplorer.js";
 import { NodeConfigPanel } from "./components/NodeConfigPanel.js";
 import { CodePreviewModal } from "./components/CodePreviewModal.js";
 import { CodeExpandModal } from "./components/CodeExpandModal.js";
+import { CommentExpandModal } from "./components/CommentExpandModal.js";
 import { FunctionGraphTabView } from "./components/FunctionGraphTabView.js";
 import { FunctionGraphSidePanel } from "./components/FunctionGraphSidePanel.js";
 import { NodeBrowserModal } from "./components/NodeBrowserModal.js";
@@ -68,6 +69,7 @@ export function App() {
       </div>
       <CodePreviewModal />
       <CodeExpandModal />
+      <CommentExpandModal />
       <NodeBrowserModal />
       <SettingsModal />
     </div>

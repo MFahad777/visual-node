@@ -4,6 +4,9 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { EdgeWaypoint } from './edge-waypoint.js';
+
+
 export class FlowEdge {
   bb: flatbuffers.ByteBuffer|null = null;
   bb_pos = 0;
@@ -57,8 +60,18 @@ targetHandle(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+waypoints(index: number, obj?:EdgeWaypoint):EdgeWaypoint|null {
+  const offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? (obj || new EdgeWaypoint()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+waypointsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startFlowEdge(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(6);
 }
 
 static addId(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset) {
@@ -81,6 +94,22 @@ static addTargetHandle(builder:flatbuffers.Builder, targetHandleOffset:flatbuffe
   builder.addFieldOffset(4, targetHandleOffset, 0);
 }
 
+static addWaypoints(builder:flatbuffers.Builder, waypointsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(5, waypointsOffset, 0);
+}
+
+static createWaypointsVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startWaypointsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endFlowEdge(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   builder.requiredField(offset, 4) // id
@@ -89,13 +118,14 @@ static endFlowEdge(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createFlowEdge(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, sourceOffset:flatbuffers.Offset, sourceHandleOffset:flatbuffers.Offset, targetOffset:flatbuffers.Offset, targetHandleOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createFlowEdge(builder:flatbuffers.Builder, idOffset:flatbuffers.Offset, sourceOffset:flatbuffers.Offset, sourceHandleOffset:flatbuffers.Offset, targetOffset:flatbuffers.Offset, targetHandleOffset:flatbuffers.Offset, waypointsOffset:flatbuffers.Offset):flatbuffers.Offset {
   FlowEdge.startFlowEdge(builder);
   FlowEdge.addId(builder, idOffset);
   FlowEdge.addSource(builder, sourceOffset);
   FlowEdge.addSourceHandle(builder, sourceHandleOffset);
   FlowEdge.addTarget(builder, targetOffset);
   FlowEdge.addTargetHandle(builder, targetHandleOffset);
+  FlowEdge.addWaypoints(builder, waypointsOffset);
   return FlowEdge.endFlowEdge(builder);
 }
 }

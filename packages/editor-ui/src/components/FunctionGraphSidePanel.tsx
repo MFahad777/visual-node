@@ -189,6 +189,17 @@ function SubCanvasNodeConfig({
   variables: VariableDeclaration[];
   moduleVariables: VariableDeclaration[];
 }) {
+  // Phase 33: comment-group boxes are a UI-only React Flow node type with no NodeDefinition
+  // (no ports, no emit()) — special-case before the "Loading…" fallback below, which would
+  // otherwise show forever for this type since `definition` can never resolve for it.
+  if (node.type === "annotation.commentGroup") {
+    return (
+      <p className="text-xs text-neutral-400">
+        Comment box — edit its title and color directly on the canvas.
+      </p>
+    );
+  }
+
   if (!definition) return <p className="text-xs text-neutral-400">Loading…</p>;
 
   if (node.type === "variable.get" || node.type === "variable.set") {

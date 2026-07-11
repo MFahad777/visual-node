@@ -1,5 +1,5 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { memo, useMemo } from "react";
+import { Handle, Position, type NodeProps, useReactFlow } from "@xyflow/react";
+import { memo, useMemo, useState, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { PortDefinition, VariableDeclaration } from "@visual-node/core";
 import { useFlowStore } from "../store/flowStore.js";
@@ -7,6 +7,8 @@ import { useFunctionGraphNodeDefinitions } from "./functionGraphNodeDefinitions.
 import { useFunctionGraphEdgeContext } from "./functionGraphEdgeContext.js";
 import { CATEGORY_THEME } from "./categoryTheme.js";
 import { CategoryIcon } from "./CategoryIcon.js";
+import { NodeCommentEditor } from "./NodeCommentEditor.js";
+import { CommentIcon } from "./CommentIcon.js";
 import { getVariableTypeColor } from "./variableTypeTheme.js";
 import {
   computeEffectiveInputs,
@@ -143,6 +145,10 @@ function summarize(
 export type GenericNodeProps = NodeProps;
 
 function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
+  const globalZoom = useFlowStore((s) => s.currentZoom);
+  const scopedEdgeContext = useFunctionGraphEdgeContext();
+  const zoom = scopedEdgeContext?.currentZoom ?? globalZoom;
+
   const globalDefinitions = useFlowStore((s) => s.nodeDefinitions);
   // Function-graph-only types (logic.graphEntry/graphReturn) are deliberately
   // absent from `globalDefinitions` (see functionGraphNodeDefinitions.ts) — when rendering
@@ -155,7 +161,6 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   // Function node's blueprint sub-canvas, edges live in a local functionGraphStore with
   // `fgedge_*` ids that never match the global flowStore, so pin-connected checks below
   // would always miss and never glow without reading the scoped edges here instead.
-  const scopedEdgeContext = useFunctionGraphEdgeContext();
   // A4: use useShallow to only trigger re-render if the edges array reference changes
   // (i.e. a real wiring change), not on every store update (like position drag).
   const globalEdges = useFlowStore(
@@ -181,6 +186,12 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const globalRemovePathExtractorParam = useFlowStore((s) => s.removePathExtractorParam);
   const globalAddCallbackArg = useFlowStore((s) => s.addCallbackArg);
   const globalRemoveCallbackArg = useFlowStore((s) => s.removeCallbackArg);
+  // Same scoped/global fallback as the mutations above: inside a Function Graph tab, the
+  // Comment "Expand" button must open the scoped functionGraphStore's own
+  // expandedCommentField, or CommentExpandModal looks up a node id that only exists locally
+  // and silently no-ops (the bug this fixes).
+  const globalOpenCommentExpand = useFlowStore((s) => s.openCommentExpand);
+  const openCommentExpand = scopedEdgeContext?.openCommentExpand ?? globalOpenCommentExpand;
   const updateNodeData = scopedEdgeContext?.updateNodeData ?? globalUpdateNodeConfig;
   const addInputPin = scopedEdgeContext?.addInputPin ?? globalAddInputPin;
   const removeInputPin = scopedEdgeContext?.removeInputPin ?? globalRemoveInputPin;
@@ -190,6 +201,9 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const removePathExtractorParam = scopedEdgeContext?.removePathExtractorParam ?? globalRemovePathExtractorParam;
   const addCallbackArg = scopedEdgeContext?.addCallbackArg ?? globalAddCallbackArg;
   const removeCallbackArg = scopedEdgeContext?.removeCallbackArg ?? globalRemoveCallbackArg;
+
+  const [isEditingComment, setIsEditingComment] = useState(false);
+  const bubbleRef = useRef<HTMLButtonElement>(null);
 
   if (!definition) {
     return (
@@ -321,6 +335,8 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     isExecPort(port) ? execPinStyle(connected) : pinStyle(connected, valuePinColor(port));
 
   const nodeData = (data ?? {}) as Record<string, unknown>;
+  const comment = typeof nodeData.comment === "string" ? nodeData.comment : "";
+
   // A5: memoize effectiveInputs/Outputs computation, which is pure and keyed on type/data/definition.
   const effectiveInputs = useMemo(
     () => computeEffectiveInputs(type, nodeData, definition),
@@ -346,18 +362,33 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const isPathExtractorNode = type === "logic.pathExtractor";
   const isCallbackNode = type === "logic.callback";
   const callbackArgIds = new Set(getCallbackArgs(nodeData).map((a) => `arg-${a.id}`));
+  const scaleValue = Math.min(Math.max(1 / zoom, 0.5), 2);
+  const dynamicTopOffset = -(36 + 10 * (scaleValue - 1));
 
   return (
-    <div
-      className={[
-        "min-w-[190px] overflow-hidden rounded-xl border shadow-lg shadow-black/50",
-        hasError ? "border-red-500 ring-2 ring-red-500" : selected ? "border-sky-400 ring-2 ring-sky-400" : "border-black/60",
-      ].join(" ")}
-      style={{
-        boxShadow: selected ? `0 0 0 1px ${accentHex}55, 0 8px 24px -4px ${accentHex}66` : undefined,
-      }}
-      title={hasError ? errors.map((e) => e.message).join("\n") : undefined}
-    >
+    <div className="relative">
+      {selected && (
+        <button
+          ref={bubbleRef}
+          onClick={() => setIsEditingComment(true)}
+          className="nodrag nopan absolute right-0 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-amber-400 bg-[#1f1f1f] text-amber-400 hover:bg-amber-400 hover:text-black"
+          style={{ top: `${dynamicTopOffset}px` }}
+          title="Add or edit comment"
+        >
+          <CommentIcon className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <div
+        className={[
+          "relative min-w-[190px] overflow-hidden rounded-xl border shadow-lg shadow-black/50",
+          hasError ? "border-red-500 ring-2 ring-red-500" : selected ? "border-sky-400 ring-2 ring-sky-400" : "border-black/60",
+        ].join(" ")}
+        style={{
+          boxShadow: selected ? `0 0 0 1px ${accentHex}55, 0 8px 24px -4px ${accentHex}66` : undefined,
+        }}
+        title={hasError ? errors.map((e) => e.message).join("\n") : undefined}
+      >
+
       <div className={`flex items-center gap-1.5 px-2.5 py-1.5 ${theme.headerClass}`}>
         <span className="flex h-5 w-5 items-center justify-center rounded bg-black/25">
           <CategoryIcon category={definition.category} className="h-3.5 w-3.5 text-white/90" />
@@ -527,7 +558,35 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
         )}
       </div>
     </div>
-  );
+    {comment.length > 0 && (
+      <div
+        onClick={() => setIsEditingComment(true)}
+        title={comment}
+        className="nodrag nopan absolute left-0 max-w-[150px] truncate cursor-pointer rounded-full border border-amber-400/40 bg-[#1f1f1f]/95 px-2 py-1 italic text-amber-300/90 transition-all duration-200"
+        style={{
+          top: `${dynamicTopOffset}px`,
+          fontSize: `${Math.max(10, Math.min(20, 14 * scaleValue))}px`,
+          padding: `${4 * scaleValue}px ${8 * scaleValue}px`,
+        }}
+      >
+        {comment.replace(/\s+/g, " ").trim()}
+      </div>
+    )}
+
+    {isEditingComment && (
+      <NodeCommentEditor
+        initialValue={comment}
+        onSave={(text) => updateNodeData(id, "comment", text)}
+        onClose={() => setIsEditingComment(false)}
+        onExpand={(currentText) => {
+          updateNodeData(id, "comment", currentText);
+          setIsEditingComment(false);
+          openCommentExpand(id);
+        }}
+      />
+    )}
+  </div>
+);
 }
 
 // A1: wrap in React.memo with a custom comparator that only compares `id`, `type`, `selected`,

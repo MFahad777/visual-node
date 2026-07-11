@@ -5,12 +5,14 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  SelectionMode,
   useReactFlow,
   type Edge,
   type Node,
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type EdgeMouseHandler,
   type XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -24,6 +26,7 @@ import { CategoryLegend } from "../canvas/CategoryLegend.js";
 import { FunctionGraphNodeDefinitionsContext, useFunctionGraphNodeDefinitions } from "../canvas/functionGraphNodeDefinitions.js";
 import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
 import { isValidPinConnection } from "../canvas/connectionValidation.js";
+import { bestInsertIndex } from "../canvas/edgeWaypoints.js";
 import { FunctionGraphEdgeContext } from "../canvas/functionGraphEdgeContext.js";
 import { VariableDropMenu } from "../canvas/VariableDropMenu.js";
 import { FunctionGraphNodePicker } from "./FunctionGraphNodePicker.js";
@@ -73,6 +76,11 @@ export function FunctionGraphTabView({
   const onEdgesChange = tabStore((s) => s.onEdgesChange);
   const onConnect = tabStore((s) => s.onConnect);
   const deleteEdge = tabStore((s) => s.deleteEdge);
+  const deleteSelectedNode = tabStore((s) => s.deleteSelectedNode);
+  const openCommentExpand = tabStore((s) => s.openCommentExpand);
+  const addEdgeWaypoint = tabStore((s) => s.addEdgeWaypoint);
+  const moveEdgeWaypoint = tabStore((s) => s.moveEdgeWaypoint);
+  const removeEdgeWaypoint = tabStore((s) => s.removeEdgeWaypoint);
   const updateNodeData = tabStore((s) => s.updateNodeData);
   const addInputPin = tabStore((s) => s.addInputPin);
   const removeInputPin = tabStore((s) => s.removeInputPin);
@@ -87,6 +95,10 @@ export function FunctionGraphTabView({
   const removeCallbackArg = tabStore((s) => s.removeCallbackArg);
   const variables = tabStore((s) => s.variables);
   const selectNode = tabStore((s) => s.selectNode);
+  const setZoom = tabStore((s) => s.setZoom);
+  const currentZoom = tabStore((s) => s.currentZoom);
+  const addCommentGroup = tabStore((s) => s.addCommentGroup);
+  const reparentNodeOnDragStop = tabStore((s) => s.reparentNodeOnDragStop);
   // Phase 25: the outer/main-canvas module-level variable list, read straight off the global
   // flowStore singleton — no prop threading needed, same store any other component in this app
   // reads directly. Kept separate from the tab's own local `variables` above.
@@ -119,6 +131,9 @@ export function FunctionGraphTabView({
       edges,
       nodes,
       deleteEdge,
+      openCommentExpand,
+      moveEdgeWaypoint,
+      removeEdgeWaypoint,
       updateNodeData,
       addInputPin,
       removeInputPin,
@@ -133,11 +148,15 @@ export function FunctionGraphTabView({
       removeCallbackArg,
       variables,
       moduleVariables,
+      currentZoom,
     }),
     [
       edges,
       nodes,
       deleteEdge,
+      openCommentExpand,
+      moveEdgeWaypoint,
+      removeEdgeWaypoint,
       updateNodeData,
       addInputPin,
       removeInputPin,
@@ -152,6 +171,7 @@ export function FunctionGraphTabView({
       removeCallbackArg,
       variables,
       moduleVariables,
+      currentZoom,
     ]
   );
 
@@ -176,6 +196,9 @@ export function FunctionGraphTabView({
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            addEdgeWaypoint={addEdgeWaypoint}
+            addCommentGroup={addCommentGroup}
+            reparentNodeOnDragStop={reparentNodeOnDragStop}
             picker={picker}
             setPicker={setPicker}
             variableDrop={variableDrop}
@@ -185,6 +208,8 @@ export function FunctionGraphTabView({
             localNodes={nodes}
             onAddNode={(type, position, data) => tabStore.getState().addNode(type, position, data)}
             onSelectNode={selectNode}
+            deleteSelectedNode={deleteSelectedNode}
+            setZoom={setZoom}
           />
         </ReactFlowProvider>
       </FunctionGraphEdgeContext.Provider>
@@ -204,6 +229,9 @@ function GraphCanvas({
   onNodesChange,
   onEdgesChange,
   onConnect,
+  addEdgeWaypoint,
+  addCommentGroup,
+  reparentNodeOnDragStop,
   picker,
   setPicker,
   variableDrop,
@@ -213,6 +241,8 @@ function GraphCanvas({
   localNodes,
   onAddNode,
   onSelectNode,
+  deleteSelectedNode,
+  setZoom,
 }: {
   functionNodeId: string;
   isActive: boolean;
@@ -221,6 +251,9 @@ function GraphCanvas({
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
+  addEdgeWaypoint: (edgeId: string, index: number, point: XYPosition) => void;
+  addCommentGroup: (bounds: { x: number; y: number; width: number; height: number }, title?: string, memberIds?: string[]) => void;
+  reparentNodeOnDragStop: (nodeId: string) => void;
   picker: PickerState | null;
   setPicker: (p: PickerState | null) => void;
   variableDrop: VariableDropState | null;
@@ -230,6 +263,8 @@ function GraphCanvas({
   localNodes: Array<{ type?: string; data?: Record<string, unknown> }>;
   onAddNode: (type: string, position: XYPosition, data: Record<string, unknown>) => void;
   onSelectNode: (nodeId: string | null) => void;
+  deleteSelectedNode: () => void;
+  setZoom: (zoom: number) => void;
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const scopedDefinitions = useFunctionGraphNodeDefinitions();
@@ -251,6 +286,24 @@ function GraphCanvas({
       });
     },
     [screenToFlowPosition, setPicker],
+  );
+
+  // Phase 31: mirrors FlowCanvas.tsx's onEdgeDoubleClick — drops a reroute anchor at the
+  // click point, inserted via the nearest-insertion heuristic over
+  // [sourceNode, ...existingWaypoints, targetNode].
+  const onEdgeDoubleClick: EdgeMouseHandler<Edge> = useCallback(
+    (event, edge) => {
+      const sourceNode = nodes.find((n) => n.id === edge.source);
+      const targetNode = nodes.find((n) => n.id === edge.target);
+      if (!sourceNode || !targetNode) return;
+      const liveEdge = edges.find((e) => e.id === edge.id);
+      const existingWaypoints =
+        (liveEdge?.data as { waypoints?: Array<{ x: number; y: number }> } | undefined)?.waypoints ?? [];
+      const point = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const index = bestInsertIndex([sourceNode.position, ...existingWaypoints, targetNode.position], point);
+      addEdgeWaypoint(edge.id, index, point);
+    },
+    [nodes, edges, screenToFlowPosition, addEdgeWaypoint],
   );
 
   // Variables (Phase 10): the only drop payload this sub-canvas understands today — dragged
@@ -276,6 +329,96 @@ function GraphCanvas({
     [screenToFlowPosition, setVariableDrop],
   );
 
+  // Phase 34: C-key listener for creating comment group boxes around selected nodes.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Guard: not active when this tab isn't visible, or when typing in an input
+      if (!isActive) return;
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        const selectedNodes = nodes.filter((n) => n.selected && n.type !== "annotation.commentGroup");
+
+        if (selectedNodes.length > 0) {
+          // Compute bounding box with padding
+          const positions = selectedNodes.map((n) => ({
+            x: n.position.x,
+            y: n.position.y,
+            w: n.width ?? 190,
+            h: n.height ?? 200,
+          }));
+          const minX = Math.min(...positions.map((p) => p.x));
+          const maxX = Math.max(...positions.map((p) => p.x + p.w));
+          const minY = Math.min(...positions.map((p) => p.y));
+          const maxY = Math.max(...positions.map((p) => p.y + p.h));
+
+          const padding = 40;
+          const topPadding = 50; // Extra space for title row
+          addCommentGroup(
+            {
+              x: minX - padding,
+              y: minY - topPadding,
+              width: maxX - minX + padding * 2,
+              height: maxY - minY + topPadding + padding,
+            },
+            undefined,
+            selectedNodes.map((n) => n.id),
+          );
+        } else {
+          // No selection: create a default-sized box in viewport center (approx)
+          addCommentGroup({
+            x: 200,
+            y: 100,
+            width: 220,
+            height: 120,
+          });
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isActive, nodes, addCommentGroup]);
+
+  // Phase 34: Custom Delete/Backspace handler to orphan children when deleting comment groups.
+  // React Flow's built-in deleteKeyCode would auto-delete children, but we want them to
+  // survive as free nodes instead. Disabled whenever this tab is not active to avoid
+  // interfering with other tabs' delete handling (same rationale as deleteKeyCode guard).
+  useEffect(() => {
+    const handleDelete = (event: KeyboardEvent) => {
+      if (!isActive) return;
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelectedNode();
+      }
+    };
+
+    document.addEventListener("keydown", handleDelete);
+    return () => document.removeEventListener("keydown", handleDelete);
+  }, [isActive, deleteSelectedNode]);
+
+  const onNodeDragStop = useCallback(
+    (event: MouseEvent | TouchEvent, node: Node) => {
+      if (node.type !== "annotation.commentGroup") {
+        reparentNodeOnDragStop(node.id);
+      }
+    },
+    [reparentNodeOnDragStop],
+  );
+
   return (
     <div className="h-full w-full bg-[#1b1b1b]" onDragOver={onDragOver} onDrop={onDrop}>
       <ReactFlow
@@ -286,19 +429,30 @@ function GraphCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         isValidConnection={isValidConnection}
+        onMove={(_, viewport) => setZoom(viewport.zoom)}
         onNodeClick={(_, node) => onSelectNode(node.id)}
+        onNodeDragStop={onNodeDragStop}
         onPaneClick={() => onSelectNode(null)}
         onPaneContextMenu={onPaneContextMenu}
+        // Box-select (hold Shift + left-drag, react-flow's default selectionKeyCode) picks
+        // up any node the drag box touches rather than requiring full containment — mirrors
+        // the same change in FlowCanvas.tsx's main canvas.
+        selectionMode={SelectionMode.Partial}
+        // Keep this tab's selectedNodeId in sync with react-flow's own selection state, not
+        // just clicks — see the matching comment in FlowCanvas.tsx for the full rationale.
+        onSelectionChange={({ nodes: selectedNodes }) =>
+          onSelectNode(selectedNodes.length === 1 ? selectedNodes[0].id : null)
+        }
         colorMode="dark"
         defaultEdgeOptions={{ style: { stroke: "#8f8f8f", strokeWidth: 2 } }}
-        // Every open function-graph tab's <ReactFlow> stays mounted (Phase 21 tabs, unlike
-        // the old single modal, can have several open at once) — react-flow's delete
-        // handling attaches a real `document`-level keydown listener regardless of which
-        // instance is visually on top, so only the currently active tab may respond to
-        // Delete/Backspace; every other mounted-but-hidden tab (including the Main Graph)
-        // must have it disabled. See FlowCanvas.tsx's mirror-image guard.
-        deleteKeyCode={isActive ? ["Backspace", "Delete"] : null}
+        // Phase 34: Disabled React Flow's built-in deleteKeyCode handler entirely and replaced it
+        // with a custom document-level listener (handleDelete) that calls deleteSelectedNode
+        // from the store. This allows us to orphan children when deleting comment groups
+        // instead of auto-deleting them. The custom handler has the same isActive guard
+        // (disabled when this tab is not active) and the same input-focus guards.
+        deleteKeyCode={null}
         fitView
       >
         <Background variant={BackgroundVariant.Dots} color="#3a3a3a" gap={18} size={1.5} />

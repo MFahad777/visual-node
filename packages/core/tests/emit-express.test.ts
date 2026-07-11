@@ -111,4 +111,37 @@ describe("emitExpress", () => {
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.message.includes("cycle"))).toBe(true);
   });
+
+  it("emits a node's data.comment as a /** ... */ block directly above its own emitted code", () => {
+    const flow = loadFixture("hello-world.flow.json");
+    const handlerNode = flow.nodes.find((n) => n.id === "handler_fn")!;
+    handlerNode.data.comment = "Handles GET /hello";
+
+    const { code } = emitExpress(flow);
+
+    const commentIdx = code.indexOf("/** Handles GET /hello */");
+    const funcIdx = code.indexOf("function helloHandler");
+    expect(commentIdx).toBeGreaterThan(-1);
+    expect(funcIdx).toBeGreaterThan(commentIdx);
+    // "directly above" — nothing but whitespace/newline between the comment block and the
+    // node's own emitted code.
+    const between = code.slice(commentIdx + "/** Handles GET /hello */".length, funcIdx);
+    expect(between.trim()).toBe("");
+  });
+
+  it("sanitizes a comment containing a literal */ so it can't prematurely close the JS comment block", () => {
+    const flow = loadFixture("hello-world.flow.json");
+    const handlerNode = flow.nodes.find((n) => n.id === "handler_fn")!;
+    handlerNode.data.comment = "before */ after";
+
+    const { code } = emitExpress(flow);
+
+    // The unescaped form must never appear — it would prematurely close the comment block.
+    expect(code).not.toContain("before */ after");
+    // The sanitized (escaped) form must appear instead, still inside one intact comment block.
+    expect(code).toContain("/** before *\\/ after */");
+    const commentIdx = code.indexOf("/** before *\\/ after */");
+    const funcIdx = code.indexOf("function helloHandler");
+    expect(funcIdx).toBeGreaterThan(commentIdx);
+  });
 });

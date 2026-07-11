@@ -7,7 +7,10 @@ table FlowNode {
   type: string (required);
   position: Position;
   data: [ubyte];            // FlexBuffer-encoded Record<string, any>
+  parent_id: string;        // React Flow parentId; UI-only, never read by codegen/validation
 }
+
+table EdgeWaypoint { id: string (required); x: float64; y: float64; }
 
 table FlowEdge {
   id: string (required);
@@ -15,6 +18,7 @@ table FlowEdge {
   source_handle: string;
   target: string (required);
   target_handle: string;
+  waypoints: [EdgeWaypoint];
 }
 
 table Meta { name: string (required); target: string (required); }
@@ -27,12 +31,22 @@ table Variable {
   default_value: string;
 }
 
+table CommentGroup {
+  id: string (required);
+  title: string (required);
+  position: Position;
+  width: float64;
+  height: float64;
+  color: string (required);
+}
+
 table Flow {
   version: string (required);
   meta: Meta;
   nodes: [FlowNode];
   edges: [FlowEdge];
   variables: [Variable];
+  comments: [CommentGroup];
 }
 
 root_type Flow;

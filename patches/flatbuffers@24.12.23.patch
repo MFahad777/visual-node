@@ -1,0 +1,13 @@
+diff --git a/js/flexbuffers/reference-util.js b/js/flexbuffers/reference-util.js
+index 9c078c91ad81bac5434d1c9d523fcec5c3263113..78958056a1078d5e6be29040ce5e88076f53688b 100644
+--- a/js/flexbuffers/reference-util.js
++++ b/js/flexbuffers/reference-util.js
+@@ -66,7 +66,7 @@ function readFloat(dataView, offset, width) {
+ exports.readFloat = readFloat;
+ function indirect(dataView, offset, width) {
+     const step = readUInt(dataView, offset, width);
+-    return offset - step;
++    return offset - Number(step);
+ }
+ exports.indirect = indirect;
+ function keyIndex(key, dataView, offset, parentWidth, byteWidth, length) {

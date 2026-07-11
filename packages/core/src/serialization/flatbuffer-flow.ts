@@ -19,13 +19,15 @@
 import * as flatbuffers from "flatbuffers";
 import * as flexbuffers from "flatbuffers/js/flexbuffers.js";
 
-import type { Flow, FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
+import type { CommentGroup, EdgeWaypoint, Flow, FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
 import { Flow as FbsFlow } from "../schema/generated/visual-node/fbs/flow.js";
 import { FlowNode as FbsFlowNode } from "../schema/generated/visual-node/fbs/flow-node.js";
 import { FlowEdge as FbsFlowEdge } from "../schema/generated/visual-node/fbs/flow-edge.js";
+import { EdgeWaypoint as FbsEdgeWaypoint } from "../schema/generated/visual-node/fbs/edge-waypoint.js";
 import { Meta as FbsMeta } from "../schema/generated/visual-node/fbs/meta.js";
 import { Position as FbsPosition } from "../schema/generated/visual-node/fbs/position.js";
 import { Variable as FbsVariable } from "../schema/generated/visual-node/fbs/variable.js";
+import { CommentGroup as FbsCommentGroup } from "../schema/generated/visual-node/fbs/comment-group.js";
 
 const FILE_IDENTIFIER = "FSFL";
 
@@ -58,6 +60,31 @@ function stripUndefined(value: unknown): unknown {
   return value;
 }
 
+/** Decode-side mirror of `stripUndefined()` above, for a different FlexBuffers edge case:
+ * an integer whose magnitude needs 64-bit width (e.g. a node's numeric literal >= 2^31,
+ * such as a comparison threshold on `operators.greaterThan`) round-trips through
+ * `flexbuffers.toObject()` as a native JS `bigint`, not a `number` — confirmed in the
+ * `flatbuffers` package's own `flexbuffers/reference-util.js` (`readInt`/`readUInt`, 64-bit
+ * width branch). Nothing downstream in this codebase expects a `bigint` in `node.data` (every
+ * numeric config/literal field is typed and rendered as `number`), so a leaked `bigint` throws
+ * the first time it's used in real arithmetic (`Cannot mix BigInt and other types`) rather than
+ * at decode time, making it hard to trace back. Recursively coercing to `Number` here (lossy
+ * only past `Number.MAX_SAFE_INTEGER`, an acceptable tradeoff — this tool has no need for true
+ * 64-bit precision in a UI-authored literal) closes the whole class regardless of which node
+ * type or expression would otherwise have hit it. */
+function restoreBigInts(value: unknown): unknown {
+  if (typeof value === "bigint") return Number(value);
+  if (Array.isArray(value)) return value.map(restoreBigInts);
+  if (value !== null && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = restoreBigInts(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 function buildNode(builder: flatbuffers.Builder, node: FlowNode): flatbuffers.Offset {
   // Child offsets (strings, the FlexBuffer data vector, the nested Position table) must
   // all be created before FlowNode.startFlowNode() opens the parent table.
@@ -70,13 +97,23 @@ function buildNode(builder: flatbuffers.Builder, node: FlowNode): flatbuffers.Of
   const idOffset = builder.createString(node.id ?? "");
   const typeOffset = builder.createString(node.type ?? "");
   const positionOffset = buildPosition(builder, node.position?.x ?? 0, node.position?.y ?? 0);
+  const parentIdOffset = node.parentId !== undefined ? builder.createString(node.parentId) : 0;
 
   FbsFlowNode.startFlowNode(builder);
   FbsFlowNode.addId(builder, idOffset);
   FbsFlowNode.addType(builder, typeOffset);
   FbsFlowNode.addPosition(builder, positionOffset);
   FbsFlowNode.addData(builder, dataOffset);
+  FbsFlowNode.addParentId(builder, parentIdOffset);
   return FbsFlowNode.endFlowNode(builder);
+}
+
+/** Builds a FlatBuffers `EdgeWaypoint` table (Phase 31) — same bottom-up-children-first
+ * constraint as `buildPosition()` above, plus an `id` string since (unlike `Position`)
+ * a waypoint needs a stable identity for drag/remove to target one specific point. */
+function buildEdgeWaypoint(builder: flatbuffers.Builder, waypoint: EdgeWaypoint): flatbuffers.Offset {
+  const idOffset = builder.createString(waypoint.id ?? "");
+  return FbsEdgeWaypoint.createEdgeWaypoint(builder, idOffset, waypoint.x ?? 0, waypoint.y ?? 0);
 }
 
 function buildEdge(builder: flatbuffers.Builder, edge: FlowEdge): flatbuffers.Offset {
@@ -88,6 +125,8 @@ function buildEdge(builder: flatbuffers.Builder, edge: FlowEdge): flatbuffers.Of
   const sourceHandleOffset = edge.sourceHandle !== undefined ? builder.createString(edge.sourceHandle) : 0;
   const targetOffset = builder.createString(edge.target ?? "");
   const targetHandleOffset = edge.targetHandle !== undefined ? builder.createString(edge.targetHandle) : 0;
+  const waypointOffsets = (edge.waypoints ?? []).map((wp) => buildEdgeWaypoint(builder, wp));
+  const waypointsOffset = FbsFlowEdge.createWaypointsVector(builder, waypointOffsets);
 
   return FbsFlowEdge.createFlowEdge(
     builder,
@@ -96,6 +135,7 @@ function buildEdge(builder: flatbuffers.Builder, edge: FlowEdge): flatbuffers.Of
     sourceHandleOffset,
     targetOffset,
     targetHandleOffset,
+    waypointsOffset,
   );
 }
 
@@ -109,6 +149,23 @@ function buildVariable(builder: flatbuffers.Builder, variable: VariableDeclarati
   const defaultValueOffset = variable.defaultValue !== undefined ? builder.createString(variable.defaultValue) : 0;
 
   return FbsVariable.createVariable(builder, idOffset, nameOffset, keywordOffset, dataTypeOffset, defaultValueOffset);
+}
+
+function buildCommentGroup(builder: flatbuffers.Builder, comment: CommentGroup): flatbuffers.Offset {
+  // Similar to buildVariable, but with a nested Position sub-table like buildNode has.
+  const idOffset = builder.createString(comment.id ?? "");
+  const titleOffset = builder.createString(comment.title ?? "");
+  const positionOffset = buildPosition(builder, comment.position?.x ?? 0, comment.position?.y ?? 0);
+  const colorOffset = builder.createString(comment.color ?? "");
+
+  FbsCommentGroup.startCommentGroup(builder);
+  FbsCommentGroup.addId(builder, idOffset);
+  FbsCommentGroup.addTitle(builder, titleOffset);
+  FbsCommentGroup.addPosition(builder, positionOffset);
+  FbsCommentGroup.addWidth(builder, comment.width ?? 0);
+  FbsCommentGroup.addHeight(builder, comment.height ?? 0);
+  FbsCommentGroup.addColor(builder, colorOffset);
+  return FbsCommentGroup.endCommentGroup(builder);
 }
 
 /** Encodes a `Flow` into the FlatBuffers/FlexBuffers hybrid binary format. */
@@ -135,12 +192,16 @@ export function encodeFlow(flow: Flow): Uint8Array {
   const variableOffsets = (flow.variables ?? []).map((variable) => buildVariable(builder, variable));
   const variablesVectorOffset = FbsFlow.createVariablesVector(builder, variableOffsets);
 
+  const commentOffsets = (flow.comments ?? []).map((comment) => buildCommentGroup(builder, comment));
+  const commentsVectorOffset = FbsFlow.createCommentsVector(builder, commentOffsets);
+
   FbsFlow.startFlow(builder);
   FbsFlow.addVersion(builder, versionOffset);
   FbsFlow.addMeta(builder, metaOffset);
   FbsFlow.addNodes(builder, nodesVectorOffset);
   FbsFlow.addEdges(builder, edgesVectorOffset);
   FbsFlow.addVariables(builder, variablesVectorOffset);
+  FbsFlow.addComments(builder, commentsVectorOffset);
   const flowOffset = FbsFlow.endFlow(builder);
 
   builder.finish(flowOffset, FILE_IDENTIFIER);
@@ -183,17 +244,21 @@ export function decodeFlow(bytes: Uint8Array): Flow {
     // larger one. `.slice()` copies into a fresh, exactly-sized ArrayBuffer.
     const data =
       dataBytes && dataBytes.length > 0
-        ? (flexbuffers.toObject(dataBytes.slice().buffer) as Record<string, unknown>)
+        ? (restoreBigInts(flexbuffers.toObject(dataBytes.slice().buffer)) as Record<string, unknown>)
         : {};
 
     const fbsPosition = fbsNode.position();
+    const parentId = fbsNode.parentId();
 
-    nodes.push({
+    const node: FlowNode = {
       id: fbsNode.id(),
       type: fbsNode.type(),
       position: { x: fbsPosition ? fbsPosition.x() : 0, y: fbsPosition ? fbsPosition.y() : 0 },
       data,
-    });
+    };
+    if (parentId !== null) node.parentId = parentId;
+
+    nodes.push(node);
   }
 
   const edges: FlowEdge[] = [];
@@ -211,6 +276,22 @@ export function decodeFlow(bytes: Uint8Array): Flow {
     };
     if (sourceHandle !== null) edge.sourceHandle = sourceHandle;
     if (targetHandle !== null) edge.targetHandle = targetHandle;
+
+    // Phase 31: absent for every pre-Phase-31 file — `waypointsLength()` returns 0 in that
+    // case, same "offset is 0 -> empty" convention as `variables`/`nodes` above, so no
+    // pre-existing file breaks. Only set the field at all when non-empty, matching how
+    // `sourceHandle`/`targetHandle` are only set when present.
+    const waypointCount = fbsEdge.waypointsLength();
+    if (waypointCount > 0) {
+      const waypoints: EdgeWaypoint[] = [];
+      for (let w = 0; w < waypointCount; w++) {
+        const fbsWaypoint = fbsEdge.waypoints(w);
+        if (!fbsWaypoint) continue;
+        waypoints.push({ id: fbsWaypoint.id(), x: fbsWaypoint.x(), y: fbsWaypoint.y() });
+      }
+      edge.waypoints = waypoints;
+    }
+
     edges.push(edge);
   }
 
@@ -236,9 +317,34 @@ export function decodeFlow(bytes: Uint8Array): Flow {
     variables.push(variable);
   }
 
+  // Phase 33: absent for every pre-Phase-33 file — `commentsLength()` returns 0 in that
+  // case, same "offset is 0 -> empty" convention as `waypoints` and `variables` above, so no
+  // pre-existing file breaks. Only set the field at all when non-empty, matching how
+  // `waypoints` are only set when present.
+  const commentsCount = fbsFlow.commentsLength();
+  let comments: CommentGroup[] | undefined;
+  if (commentsCount > 0) {
+    comments = [];
+    for (let i = 0; i < commentsCount; i++) {
+      const fbsComment = fbsFlow.comments(i);
+      if (!fbsComment) continue;
+
+      const fbsPosition = fbsComment.position();
+      const comment: CommentGroup = {
+        id: fbsComment.id(),
+        title: fbsComment.title(),
+        position: { x: fbsPosition ? fbsPosition.x() : 0, y: fbsPosition ? fbsPosition.y() : 0 },
+        width: fbsComment.width(),
+        height: fbsComment.height(),
+        color: fbsComment.color(),
+      };
+      comments.push(comment);
+    }
+  }
+
   const fbsMeta = fbsFlow.meta();
 
-  return {
+  const result: Flow = {
     version: fbsFlow.version(),
     meta: {
       name: fbsMeta ? fbsMeta.name() : "",
@@ -248,4 +354,8 @@ export function decodeFlow(bytes: Uint8Array): Flow {
     edges,
     variables,
   };
+
+  if (comments) result.comments = comments;
+
+  return result;
 }

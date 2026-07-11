@@ -10,7 +10,7 @@ import {
   type Connection,
   type XYPosition,
 } from "@xyflow/react";
-import type { Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
+import type { EdgeWaypoint, Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
 import * as api from "../api/client.js";
 import type { CompiledFile, ProjectFileError, WrittenFile, ProjectSettings } from "../api/client.js";
 import { flowToGraph, graphToFlow } from "./adapters.js";
@@ -31,6 +31,8 @@ import {
   setFunctionUsage as setFunctionUsageHelper,
 } from "./variadicPins.js";
 import { defaultLiteralsFor, type FunctionUsage } from "../canvas/effectivePorts.js";
+import { translateWaypoints } from "../canvas/edgeWaypoints.js";
+import { reparentNode, releaseChildrenOfDeletedGroup, assignInitialMembers, withParentsBeforeChildren, findContainingGroup } from "../canvas/subflowGroups.js";
 
 let nextNodeId = 1;
 function generateNodeId(type: string): string {
@@ -47,6 +49,11 @@ function generateVariableId(): string {
   return `variable_${nextVariableId++}`;
 }
 
+let nextWaypointId = 1;
+function generateWaypointId(): string {
+  return `waypoint_${nextWaypointId++}`;
+}
+
 /**
  * A loaded flow's node/edge ids may already contain higher numbers than these
  * module-level counters (e.g. after a page reload restores a flow saved in an earlier
@@ -61,6 +68,16 @@ function seedIdCounters(nodes: Node[], edges: Edge[]): void {
   for (const edge of edges) {
     const match = /^edge_(\d+)$/.exec(edge.id);
     if (match) nextEdgeId = Math.max(nextEdgeId, Number(match[1]) + 1);
+
+    // Phase 31 reroute waypoints: stashed in edge.data.waypoints (not a first-class React
+    // Flow Edge field), so most edges won't have any — guard against missing data/waypoints.
+    const waypoints = (edge.data as { waypoints?: EdgeWaypoint[] } | undefined)?.waypoints;
+    if (waypoints) {
+      for (const waypoint of waypoints) {
+        const wMatch = /_(\d+)$/.exec(waypoint.id);
+        if (wMatch) nextWaypointId = Math.max(nextWaypointId, Number(wMatch[1]) + 1);
+      }
+    }
   }
 }
 
@@ -110,6 +127,7 @@ export interface FlowStoreState {
   nodeDefinitions: Record<string, NodeDefinition>;
 
   selectedNodeId: string | null;
+  currentZoom: number;
 
   validationErrors: ValidationError[];
   validationErrorsByNodeId: Map<string, ValidationError[]>;
@@ -131,6 +149,7 @@ export interface FlowStoreState {
   isErrorLogOpen: boolean;
 
   expandedCodeField: { nodeId: string; fieldKey: string; fieldLabel: string } | null;
+  expandedCommentField: { nodeId: string } | null;
 
   isLoading: boolean;
   isSaving: boolean;
@@ -173,8 +192,12 @@ export interface FlowStoreState {
   removeCallbackArg: (nodeId: string, argId: string) => void;
   setFunctionUsage: (nodeId: string, usage: FunctionUsage) => void;
   selectNode: (nodeId: string | null) => void;
+  setZoom: (zoom: number) => void;
   deleteSelectedNode: () => void;
   deleteEdge: (edgeId: string) => void;
+  addEdgeWaypoint: (edgeId: string, index: number, point: { x: number; y: number }) => void;
+  moveEdgeWaypoint: (edgeId: string, waypointId: string, point: { x: number; y: number }) => void;
+  removeEdgeWaypoint: (edgeId: string, waypointId: string) => void;
 
   addVariable: () => void;
   renameVariable: (id: string, name: string) => void;
@@ -182,6 +205,9 @@ export interface FlowStoreState {
   setVariableDataType: (id: string, dataType: VariableDeclaration["dataType"]) => void;
   setVariableDefault: (id: string, value: string) => void;
   removeVariable: (id: string) => void;
+
+  addCommentGroup: (bounds: { x: number; y: number; width: number; height: number }, title?: string, memberIds?: string[]) => void;
+  reparentNodeOnDragStop: (nodeId: string) => void;
 
   saveFlow: () => Promise<void>;
   runValidation: () => Promise<void>;
@@ -197,6 +223,8 @@ export interface FlowStoreState {
   closeErrorLog: () => void;
   openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
   closeCodeExpand: () => void;
+  openCommentExpand: (nodeId: string) => void;
+  closeCommentExpand: () => void;
 
   startServer: () => Promise<boolean>;
   stopServer: () => Promise<void>;
@@ -253,6 +281,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   nodeDefinitions: {},
 
   selectedNodeId: null,
+  currentZoom: 1,
 
   validationErrors: [],
   validationErrorsByNodeId: new Map(),
@@ -272,6 +301,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   isErrorLogOpen: false,
 
   expandedCodeField: null,
+  expandedCommentField: null,
 
   isLoading: false,
   isSaving: false,
@@ -353,10 +383,39 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     // React Flow fires "select" changes on click and "dimensions" changes whenever a
     // node's DOM element is (re)measured (e.g. on selection outline, on mount) — neither
     // is an actual edit to the flow's content, so they must not flip isDirty and trigger
-    // a spurious "Save*"/"discard unsaved changes?" prompt.
-    const hasContentChange = changes.some((c) => c.type !== "select" && c.type !== "dimensions");
+    // a spurious "Save*"/"discard unsaved changes?" prompt. Exception: Phase 33 comment
+    // group nodes' dimension changes are real edits (user resizing the box) and must be marked dirty.
+    const currentNodes = get().nodes;
+    const hasContentChange = changes.some((c) => {
+      if (c.type !== "select" && c.type !== "dimensions") return true;
+      // Comment group dimension changes are always real edits (user resizing via NodeResizer)
+      if (c.type === "dimensions" && "id" in c) {
+        const node = currentNodes.find((n) => n.id === c.id);
+        if (node?.type === "annotation.commentGroup") return true;
+      }
+      return false;
+    });
+    const updatedNodes = applyNodeChanges(changes, currentNodes);
+
+    // Phase 32: when nodes move, translate their connected edges' waypoints by the same
+    // delta so the anchors follow the nodes instead of staying fixed in place.
+    const waypointUpdates = translateWaypoints(currentNodes, get().edges, changes);
+    let updatedEdges = get().edges;
+    if (waypointUpdates.length > 0) {
+      const edgeChanges: EdgeChange[] = waypointUpdates.map((update) => {
+        const edge = updatedEdges.find((e) => e.id === update.id);
+        return {
+          type: "replace",
+          id: update.id,
+          item: { ...edge!, data: update.data },
+        } as EdgeChange;
+      });
+      updatedEdges = applyEdgeChanges(edgeChanges, updatedEdges);
+    }
+
     set({
-      nodes: applyNodeChanges(changes, get().nodes),
+      nodes: updatedNodes,
+      edges: updatedEdges,
       isDirty: get().isDirty || hasContentChange,
     });
     get().runValidation();
@@ -563,11 +622,17 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
+  setZoom: (zoom) => set({ currentZoom: zoom }),
+
   deleteSelectedNode: () => {
-    const { selectedNodeId } = get();
+    const { selectedNodeId, nodes } = get();
     if (!selectedNodeId) return;
+    let updatedNodes = nodes;
+    if (nodes.find((n) => n.id === selectedNodeId)?.type === "annotation.commentGroup") {
+      updatedNodes = releaseChildrenOfDeletedGroup(nodes, selectedNodeId);
+    }
     set({
-      nodes: get().nodes.filter((n) => n.id !== selectedNodeId),
+      nodes: updatedNodes.filter((n) => n.id !== selectedNodeId),
       edges: get().edges.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId),
       selectedNodeId: null,
       isDirty: true,
@@ -578,6 +643,54 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   deleteEdge: (edgeId) => {
     set({
       edges: get().edges.filter((e) => e.id !== edgeId),
+      isDirty: true,
+    });
+    get().runValidation();
+  },
+
+  // Phase 31 redirecting wires (reroute anchors). Purely cosmetic routing — like
+  // node.position, never read by codegen/validation — stashed in edge.data.waypoints since
+  // React Flow's Edge type has no first-class waypoints concept.
+  addEdgeWaypoint: (edgeId, index, point) => {
+    set({
+      edges: get().edges.map((e) => {
+        if (e.id !== edgeId) return e;
+        const existing = (e.data as { waypoints?: EdgeWaypoint[] } | undefined)?.waypoints ?? [];
+        const waypoint: EdgeWaypoint = { id: generateWaypointId(), x: point.x, y: point.y };
+        const next = [...existing.slice(0, index), waypoint, ...existing.slice(index)];
+        return { ...e, data: { ...e.data, waypoints: next } };
+      }),
+      isDirty: true,
+    });
+    get().runValidation();
+  },
+
+  // Fires on every pointer-drag frame while an anchor is being dragged — deliberately skips
+  // runValidation() (waypoints never affect validation results) unlike the other two.
+  moveEdgeWaypoint: (edgeId, waypointId, point) => {
+    set({
+      edges: get().edges.map((e) => {
+        if (e.id !== edgeId) return e;
+        const existing = (e.data as { waypoints?: EdgeWaypoint[] } | undefined)?.waypoints ?? [];
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            waypoints: existing.map((w) => (w.id === waypointId ? { ...w, x: point.x, y: point.y } : w)),
+          },
+        };
+      }),
+      isDirty: true,
+    });
+  },
+
+  removeEdgeWaypoint: (edgeId, waypointId) => {
+    set({
+      edges: get().edges.map((e) => {
+        if (e.id !== edgeId) return e;
+        const existing = (e.data as { waypoints?: EdgeWaypoint[] } | undefined)?.waypoints ?? [];
+        return { ...e, data: { ...e.data, waypoints: existing.filter((w) => w.id !== waypointId) } };
+      }),
       isDirty: true,
     });
     get().runValidation();
@@ -643,6 +756,43 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   removeVariable: (id) => {
     set({ variables: get().variables.filter((v) => v.id !== id), isDirty: true });
     get().runValidation();
+  },
+
+  addCommentGroup: (bounds, title, memberIds) => {
+    const node: Node = {
+      id: generateNodeId("annotation.commentGroup"),
+      type: "annotation.commentGroup",
+      position: { x: bounds.x, y: bounds.y },
+      width: bounds.width,
+      height: bounds.height,
+      zIndex: -1,
+      data: { title: title ?? "Comment", color: "#4b4b63", width: bounds.width, height: bounds.height },
+    };
+    let updatedNodes = [...get().nodes, node];
+    if (memberIds && memberIds.length > 0) {
+      updatedNodes = assignInitialMembers(updatedNodes, node.id, memberIds);
+    }
+    set({ nodes: withParentsBeforeChildren(updatedNodes), isDirty: true });
+    get().runValidation();
+  },
+
+  // Called at drag-stop to reconcile a just-dragged non-group node with comment-group
+  // membership — reparents if now overlapping a group, un-parents if no longer in its group.
+  reparentNodeOnDragStop: (nodeId) => {
+    const nodes = get().nodes;
+    const draggedNode = nodes.find((n) => n.id === nodeId);
+    if (!draggedNode || draggedNode.type === "annotation.commentGroup") return;
+
+    const newParentId = findContainingGroup(nodes, nodeId);
+    const currentParentId = draggedNode.parentId;
+
+    if (newParentId !== currentParentId) {
+      set({
+        nodes: reparentNode(nodes, nodeId, newParentId),
+        isDirty: true,
+      });
+      get().runValidation();
+    }
   },
 
   saveFlow: async () => {
@@ -784,8 +934,11 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
   toggleErrorLog: () => set((s) => ({ isErrorLogOpen: !s.isErrorLogOpen })),
   closeErrorLog: () => set({ isErrorLogOpen: false }),
 
-  openCodeExpand: (nodeId, fieldKey, fieldLabel) => set({ expandedCodeField: { nodeId, fieldKey, fieldLabel } }),
+  openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => set({ expandedCodeField: { nodeId, fieldKey, fieldLabel } }),
   closeCodeExpand: () => set({ expandedCodeField: null }),
+
+  openCommentExpand: (nodeId: string) => set({ expandedCommentField: { nodeId } }),
+  closeCommentExpand: () => set({ expandedCommentField: null }),
 
   startServer: async () => {
     const { projectSettings, currentFilePath } = get();

@@ -3,6 +3,18 @@ export interface FlowNode {
   type: string;
   position: { x: number; y: number };
   data: Record<string, any>;
+  /** React Flow `parentId` — this node is a child of the comment-group node with this id;
+   * `position` is then relative to that parent's {0,0}, not absolute canvas coordinates.
+   * UI-organizational only, like `position` itself — never read by codegen or validation. */
+  parentId?: string;
+}
+
+/** A draggable point a wire's rendered path bends through — purely a canvas-routing aid,
+ * like `FlowNode.position`: never read by codegen or validation. See Phase 31. */
+export interface EdgeWaypoint {
+  id: string;
+  x: number;
+  y: number;
 }
 
 export interface FlowEdge {
@@ -11,6 +23,7 @@ export interface FlowEdge {
   sourceHandle?: string;
   target: string;
   targetHandle?: string;
+  waypoints?: EdgeWaypoint[];
 }
 
 export type VariableDataType =
@@ -54,6 +67,19 @@ export interface VariableDeclaration {
   defaultValue?: string;
 }
 
+/** A resizable, colored, titled box drawn behind a group of nodes on the canvas — purely a
+ * UI annotation, like `FlowNode.position`/`EdgeWaypoint`: never read by codegen or
+ * validation. Membership (which nodes are children of this group) is persisted via
+ * `FlowNode.parentId`, not computed geometrically at drag-time. */
+export interface CommentGroup {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  color: string; // hex string, e.g. "#7d5ba6"
+}
+
 export interface Flow {
   version: string;
   meta: {
@@ -63,4 +89,5 @@ export interface Flow {
   nodes: FlowNode[];
   edges: FlowEdge[];
   variables: VariableDeclaration[];
+  comments?: CommentGroup[];
 }

@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  flatbuffers@24.12.23:
+    hash: 94317b7d120eb57e67e0e97f6b97641af4442a61b7a4a69dc2facc3d6c01a598
+    path: patches/flatbuffers@24.12.23.patch
+
 importers:
 
   .:
@@ -19,7 +24,7 @@ importers:
     dependencies:
       flatbuffers:
         specifier: ^24.3.25
-        version: 24.12.23
+        version: 24.12.23(patch_hash=94317b7d120eb57e67e0e97f6b97641af4442a61b7a4a69dc2facc3d6c01a598)
       prettier:
         specifier: ^3.3.3
         version: 3.9.4
@@ -3772,7 +3777,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  flatbuffers@24.12.23: {}
+  flatbuffers@24.12.23(patch_hash=94317b7d120eb57e67e0e97f6b97641af4442a61b7a4a69dc2facc3d6c01a598): {}
 
   flatbuffers@25.9.23: {}
 

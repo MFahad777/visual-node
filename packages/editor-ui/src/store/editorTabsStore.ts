@@ -100,7 +100,7 @@ export const useEditorTabsStore = create<EditorTabsState>((set, get) => ({
     const initialVariables =
       (functionNode.data?.graph as { variables?: VariableDeclaration[] } | undefined)?.variables ?? [];
     const graph =
-      (functionNode.data?.graph as { nodes: FlowNode[]; edges: FlowEdge[] } | undefined) ?? { nodes: [], edges: [] };
+      (functionNode.data?.graph as { nodes: FlowNode[]; edges: FlowEdge[]; comments?: any } | undefined) ?? { nodes: [], edges: [] };
 
     const store = createFunctionGraphStore(graph, paramNames, initialVariables);
 
