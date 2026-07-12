@@ -49,7 +49,23 @@ export function PreviewApp() {
   const edges = useFlowStore((s) => s.edges);
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh' }} className="node-preview-readonly">
+      {/* This is a static visual demo embedded in the docs, not a live editor — the
+          literal-value <input>/<Checkbox>/<button> elements GenericNode renders for
+          unwired pins are plain DOM, outside react-flow's own drag/connect/pan props
+          above, so a click-drag inside one (e.g. selecting text) still bubbled into a
+          native browser drag gesture and shifted the surrounding docs page. Blocking
+          pointer-events on every interactive element is the only thing that reaches
+          those, since there's no react-flow prop for it. */}
+      <style>{`
+        .node-preview-readonly input,
+        .node-preview-readonly button,
+        .node-preview-readonly select,
+        .node-preview-readonly textarea,
+        .node-preview-readonly .react-flow__handle {
+          pointer-events: none;
+        }
+      `}</style>
       <ReactFlowProvider>
         <ReactFlow
           nodes={nodes}
@@ -64,6 +80,7 @@ export function PreviewApp() {
           nodesConnectable={false}
           nodesFocusable={false}
           edgesFocusable={false}
+          elementsSelectable={false}
           fitView
         />
       </ReactFlowProvider>
