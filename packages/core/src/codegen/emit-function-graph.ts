@@ -1,5 +1,5 @@
 import type { CommentGroup, FlowEdge, FlowNode, VariableDeclaration } from "../schema/node.types.js";
-import { requireNodeDefinition, type EmitContext, type EmittedCode } from "../schema/node-registry.js";
+import { requireNodeDefinition, getNodeDefinition, type EmitContext, type EmittedCode } from "../schema/node-registry.js";
 import { emitExecChain, hoistValueDepsCore } from "./exec-chain.js";
 import { CycleError, topologicalSort } from "./topo-sort.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
@@ -66,7 +66,13 @@ export function resultIdentifierFor(node: FlowNode, handle?: string, ctx?: EmitC
 }
 
 function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): EmitContext {
-  const nodesById = new Map(graph.nodes.map((n) => [n.id, n]));
+  // Filter out comment nodes and other nodes with invalid types (UI-only annotations, not executable)
+  const validNodes = graph.nodes.filter((n) => {
+    if (!n.type) return false;
+    const def = getNodeDefinition(n.type);
+    return def !== undefined;
+  });
+  const nodesById = new Map(validNodes.map((n) => [n.id, n]));
   const cache = new Map<string, EmittedCode>();
 
   const matchesHandle = (edge: FlowEdge, side: "source" | "target", handle?: string) =>
@@ -135,7 +141,14 @@ export interface FunctionGraphBodyResult {
  * blueprint graph compile into a real `if`/`switch` block instead of flat statement soup.
  */
 export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): FunctionGraphBodyResult {
-  const returnNodes = graph.nodes.filter((n) => n.type === "logic.graphReturn");
+  // Filter out comment nodes and other nodes with invalid types (UI-only annotations, not executable)
+  const validNodes = graph.nodes.filter((n) => {
+    if (!n.type) return false;
+    const def = getNodeDefinition(n.type);
+    return def !== undefined;
+  });
+
+  const returnNodes = validNodes.filter((n) => n.type === "logic.graphReturn");
 
   // A whole-graph cycle pre-flight, independent of the reachability-based walk below: since
   // exec-chain.ts's walker only visits nodes actually reachable from the entry's exec spine
@@ -147,7 +160,7 @@ export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: Vari
   // they can never actually participate in a cycle.
   try {
     topologicalSort(
-      graph.nodes.map((n) => n.id),
+      validNodes.map((n) => n.id),
       graph.edges,
     );
   } catch (err) {
@@ -158,7 +171,7 @@ export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: Vari
   }
 
   const ctx = buildGraphEmitContext(graph, outerVariables);
-  const entry = graph.nodes.find((n) => n.type === "logic.graphEntry");
+  const entry = validNodes.find((n) => n.type === "logic.graphEntry");
   const startNodeId = entry ? ctx.getOutgoing(entry.id, "out")[0]?.target : undefined;
 
   let trunk: ReturnType<typeof emitExecChain>;

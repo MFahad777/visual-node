@@ -1,6 +1,6 @@
 {
   "name": "@visual-node/core",
-  "version": "1.2.0",
+  "version": "1.2.5",
   "publishConfig": {
     "access": "public"
   },
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "prettier": "^3.3.3",
-    "flatbuffers": "^24.3.25"
+    "flatbuffers": "24.12.23"
   },
   "devDependencies": {
     "typescript": "^5.5.4",

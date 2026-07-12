@@ -1,5 +1,5 @@
 import type { Flow, FlowNode } from "../schema/node.types.js";
-import { requireNodeDefinition } from "../schema/node-registry.js";
+import { requireNodeDefinition, getNodeDefinition } from "../schema/node-registry.js";
 import { execEntryPort } from "./exec-chain.js";
 import { CycleError, topologicalSort } from "./topo-sort.js";
 
@@ -12,7 +12,11 @@ import { CycleError, topologicalSort } from "./topo-sort.js";
 const STRUCTURAL_CATEGORIES = new Set(["server", "routing", "middleware"]);
 
 export function topologicalSortStructuralNodes(flow: Flow): FlowNode[] {
-  const allStructural = flow.nodes.filter((n) => STRUCTURAL_CATEGORIES.has(requireNodeDefinition(n.type).category));
+  // Filter out nodes with invalid types (e.g., comment groups mistakenly in nodes array)
+  const allStructural = flow.nodes.filter((n) => {
+    const def = getNodeDefinition(n.type);
+    return def && STRUCTURAL_CATEGORIES.has(def.category);
+  });
   const allStructuralIds = new Set(allStructural.map((n) => n.id));
 
   const fullAdjacency = new Map<string, string[]>();
@@ -90,8 +94,10 @@ export function topologicalSortStructuralNodes(flow: Flow): FlowNode[] {
  */
 export function collectLogicNodes(flow: Flow): FlowNode[] {
   return flow.nodes.filter((n) => {
-    const def = requireNodeDefinition(n.type);
-    if (def.category !== "logic") return false;
+    // Skip nodes with no type or invalid types (e.g., comment groups that mistakenly ended up in nodes array)
+    if (!n.type) return false;
+    const def = getNodeDefinition(n.type);
+    if (!def || def.category !== "logic") return false;
     if (def.alwaysCollect) return true;
     return execEntryPort(def)?.kind !== "exec";
   });

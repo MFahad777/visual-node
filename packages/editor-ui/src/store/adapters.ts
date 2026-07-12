@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { EdgeWaypoint, Flow, VariableDeclaration } from "@visual-node/core";
+import type { EdgeWaypoint, Flow, VariableDeclaration, FlowNode, CommentGroup } from "@visual-node/core";
 import { withParentsBeforeChildren } from "../canvas/subflowGroups.js";
 
 /** Converts a persisted `Flow` into React Flow's native node/edge shape for the canvas.
@@ -49,8 +49,8 @@ export function flowToGraph(flow: Flow): { nodes: Node[]; edges: Edge[] } {
  * Phase 33: Partitions comment-group nodes back into `flow.comments`.
  */
 export function graphToFlow(nodes: Node[], edges: Edge[], meta: Flow["meta"], variables: VariableDeclaration[]): Flow {
-  const flowNodes = [];
-  const commentGroups = [];
+  const flowNodes: FlowNode[] = [];
+  const commentGroups: CommentGroup[] = [];
 
   for (const n of nodes) {
     if (n.type === "annotation.commentGroup") {
@@ -64,11 +64,11 @@ export function graphToFlow(nodes: Node[], edges: Edge[], meta: Flow["meta"], va
         height: n.height ?? 120,
         color: data.color ?? "#4b4b63",
       });
-    } else {
-      // Regular node
+    } else if (n.type && n.type !== "annotation.commentGroup") {
+      // Regular node - explicitly exclude comment groups and ensure type exists
       flowNodes.push({
         id: n.id,
-        type: n.type!,
+        type: n.type,
         position: n.position,
         data: n.data ?? {},
         ...(n.parentId && { parentId: n.parentId }),

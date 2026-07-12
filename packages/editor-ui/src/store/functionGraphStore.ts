@@ -10,7 +10,7 @@ import {
   type Connection,
   type XYPosition,
 } from "@xyflow/react";
-import type { CommentGroup, EdgeWaypoint, FlowEdge, FlowNode, VariableDeclaration } from "@visual-node/core";
+import type { CommentGroup, EdgeWaypoint, FlowEdge, FlowNode, VariableDeclaration, FunctionGraph } from "@visual-node/core";
 import {
   addVariadicInputPin,
   removeVariadicInputPin,
@@ -518,7 +518,7 @@ export function createFunctionGraphStore(
     exportGraph: () => {
       // Phase 33: Partition comment-group nodes back into comments array, mirroring
       // flowStore's graphToFlow logic. Non-comment nodes go into the main nodes array.
-      const flowNodes = [];
+      const flowNodes: FlowNode[] = [];
       const commentGroups: CommentGroup[] = [];
 
       for (const n of get().nodes) {
@@ -532,10 +532,11 @@ export function createFunctionGraphStore(
             height: n.height ?? 120,
             color: data.color ?? "#4b4b63",
           });
-        } else {
+        } else if (n.type) {
+          // Only include nodes with a valid type (exclude React Flow-only nodes)
           flowNodes.push({
             id: n.id,
-            type: n.type!,
+            type: n.type,
             position: n.position,
             data: n.data ?? {},
             ...(n.parentId && { parentId: n.parentId }),
@@ -543,7 +544,7 @@ export function createFunctionGraphStore(
         }
       }
 
-      const result: any = {
+      const result: ReturnType<FunctionGraphState["exportGraph"]> = {
         nodes: flowNodes,
         edges: get().edges.map((e) => {
           const waypoints = (e.data as { waypoints?: EdgeWaypoint[] } | undefined)?.waypoints;

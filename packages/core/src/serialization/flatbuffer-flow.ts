@@ -60,29 +60,37 @@ function stripUndefined(value: unknown): unknown {
   return value;
 }
 
-/** Decode-side mirror of `stripUndefined()` above, for a different FlexBuffers edge case:
- * an integer whose magnitude needs 64-bit width (e.g. a node's numeric literal >= 2^31,
- * such as a comparison threshold on `operators.greaterThan`) round-trips through
+/** Converts any `bigint` values in decoded data to `Number`. An integer whose magnitude
+ * needs 64-bit width (e.g. a node's numeric literal >= 2^31) round-trips through
  * `flexbuffers.toObject()` as a native JS `bigint`, not a `number` — confirmed in the
  * `flatbuffers` package's own `flexbuffers/reference-util.js` (`readInt`/`readUInt`, 64-bit
  * width branch). Nothing downstream in this codebase expects a `bigint` in `node.data` (every
  * numeric config/literal field is typed and rendered as `number`), so a leaked `bigint` throws
  * the first time it's used in real arithmetic (`Cannot mix BigInt and other types`) rather than
- * at decode time, making it hard to trace back. Recursively coercing to `Number` here (lossy
- * only past `Number.MAX_SAFE_INTEGER`, an acceptable tradeoff — this tool has no need for true
- * 64-bit precision in a UI-authored literal) closes the whole class regardless of which node
- * type or expression would otherwise have hit it. */
-function restoreBigInts(value: unknown): unknown {
-  if (typeof value === "bigint") return Number(value);
-  if (Array.isArray(value)) return value.map(restoreBigInts);
-  if (value !== null && typeof value === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = restoreBigInts(v);
+ * at decode time. Recursively coercing to `Number` here (lossy only past
+ * `Number.MAX_SAFE_INTEGER`, an acceptable tradeoff — this tool has no need for true 64-bit
+ * precision in a UI-authored literal) prevents this whole class of errors for successfully
+ * decoded data. Note: files with bigint variables/literals may fail decoding entirely at the
+ * `toObject()` stage with "Cannot mix BigInt and other types"; those are caught separately
+ * and the node's config is reset with a warning message. */
+function restoreBigInts(value: unknown, path: string = ""): unknown {
+  try {
+    if (typeof value === "bigint") return Number(value);
+    if (Array.isArray(value)) return value.map((v, i) => restoreBigInts(v, `${path}[${i}]`));
+    if (value !== null && typeof value === "object") {
+      const result: Record<string, unknown> = {};
+      for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+        result[key] = restoreBigInts(v, path ? `${path}.${key}` : key);
+      }
+      return result;
     }
-    return result;
+    return value;
+  } catch (err) {
+    throw new Error(
+      `Failed to restore BigInts${path ? ` at path "${path}"` : ""}: ` +
+      `${err instanceof Error ? err.message : String(err)}`
+    );
   }
-  return value;
 }
 
 function buildNode(builder: flatbuffers.Builder, node: FlowNode): flatbuffers.Offset {
@@ -242,10 +250,33 @@ export function decodeFlow(bytes: Uint8Array): Flow {
     // toReference() reads length/metadata off the *end* of the buffer it's given, so it
     // needs a buffer trimmed to exactly the FlexBuffer's own bytes, not a view into a
     // larger one. `.slice()` copies into a fresh, exactly-sized ArrayBuffer.
-    const data =
-      dataBytes && dataBytes.length > 0
-        ? (restoreBigInts(flexbuffers.toObject(dataBytes.slice().buffer)) as Record<string, unknown>)
-        : {};
+    let data: Record<string, unknown> = {};
+    if (dataBytes && dataBytes.length > 0) {
+      try {
+        const decoded = flexbuffers.toObject(dataBytes.slice().buffer);
+        data = (restoreBigInts(decoded) as Record<string, unknown>);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        // Files with bigint variables or values cause FlexBuffers to reject decoding
+        // with "Cannot mix BigInt and other types". Rather than silently converting
+        // (losing data), warn the user and recover with empty config so they can
+        // recreate the variable with the correct type.
+        if (errMsg.includes("Cannot mix BigInt")) {
+          console.warn(
+            `⚠️ CONFIGURATION RESET: Node "${fbsNode.id()}" (${fbsNode.type()}) ` +
+            `has corrupted config data from a bigint variable/literal. ` +
+            `The node itself is present, but you'll need to recreate its configuration. ` +
+            `This typically happens if you declared a variable with dataType: "bigint" — ` +
+            `delete that variable declaration and recreate it without using the bigint type.`
+          );
+          data = {};
+        } else {
+          throw new Error(
+            `Failed to decode node "${fbsNode.id()}" data (type: ${fbsNode.type()}): ${errMsg}`
+          );
+        }
+      }
+    }
 
     const fbsPosition = fbsNode.position();
     const parentId = fbsNode.parentId();
