@@ -1,0 +1,1925 @@
+{
+  "express.init": {
+    "type": "express.init",
+    "category": "server",
+    "label": "Express App",
+    "description": "Creates the Express application instance. Exactly one is allowed per flow.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "App"
+      }
+    ],
+    "configSchema": []
+  },
+  "express.listen": {
+    "type": "express.listen",
+    "category": "server",
+    "label": "Listen",
+    "description": "Starts the HTTP server on a port.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "App"
+      }
+    ],
+    "outputs": [],
+    "configSchema": [
+      {
+        "key": "port",
+        "label": "Port",
+        "type": "number",
+        "default": 3000
+      }
+    ]
+  },
+  "express.middleware.jsonParser": {
+    "type": "express.middleware.jsonParser",
+    "category": "middleware",
+    "label": "JSON Body Parser",
+    "description": "Parses incoming requests with JSON payloads (app.use(express.json())).",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "App"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "App"
+      }
+    ],
+    "configSchema": []
+  },
+  "middleware.customCode": {
+    "type": "middleware.customCode",
+    "category": "middleware",
+    "label": "Custom Middleware",
+    "description": "Escape hatch: raw JavaScript inserted as an app.use(...) middleware.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "App"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "App"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "code",
+        "label": "Code",
+        "type": "code",
+        "default": "",
+        "hint": "Available: req (Request), res (Response), next. Call next() to continue to the next middleware/route, or send a response (res.json/res.send/res.end) to end the chain there."
+      },
+      {
+        "key": "isAsync",
+        "label": "Async Middleware",
+        "type": "boolean",
+        "default": false,
+        "hint": "Enable to use await inside this middleware."
+      },
+      {
+        "key": "npmDependencies",
+        "label": "npm Dependencies",
+        "type": "text",
+        "default": "",
+        "hint": "Comma-separated npm packages this code requires, e.g. \"axios, lodash@^4.17.0\"."
+      }
+    ]
+  },
+  "express.route": {
+    "type": "express.route",
+    "category": "routing",
+    "label": "Route",
+    "description": "Defines an HTTP route and attaches a Handler Function to it.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "App"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Handler",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "method",
+        "label": "Method",
+        "type": "select",
+        "options": [
+          "GET",
+          "POST",
+          "PUT",
+          "DELETE",
+          "PATCH"
+        ],
+        "default": "GET"
+      },
+      {
+        "key": "path",
+        "label": "Path",
+        "type": "text",
+        "default": "/"
+      }
+    ]
+  },
+  "handler.sendJson": {
+    "type": "handler.sendJson",
+    "category": "handler",
+    "label": "Send JSON",
+    "description": "Terminal handler: responds with a JSON body and status code.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Request"
+      },
+      {
+        "id": "jsonBody",
+        "label": "JSON Body",
+        "kind": "value"
+      }
+    ],
+    "outputs": [],
+    "configSchema": [
+      {
+        "key": "statusCode",
+        "label": "Status Code",
+        "type": "number",
+        "default": 200
+      },
+      {
+        "key": "body",
+        "label": "JSON Body",
+        "type": "code",
+        "default": {}
+      }
+    ]
+  },
+  "logic.handlerFunction": {
+    "type": "logic.handlerFunction",
+    "category": "logic",
+    "label": "Handler Function",
+    "description": "Declares a named Express request handler function with fixed req, res, next parameters. Attach it to a Route node via an edge to wire the handler. Chain another Handler Function off its \"Next\" output to register multiple handlers on the same route (call next() in this handler's body to reach it) — a single Handler Function can also be reused across multiple routes.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Attach",
+        "kind": "exec"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "name",
+        "label": "Function Name",
+        "type": "text",
+        "default": "handler",
+        "hint": "Must be a valid JS identifier. This is the function name Express will call."
+      },
+      {
+        "key": "body",
+        "label": "Function Body",
+        "type": "code",
+        "default": "",
+        "hint": "Available: req, res, next. Use res.json(...) or res.send(...) to respond, next() to continue to the next middleware."
+      },
+      {
+        "key": "mode",
+        "label": "Authoring Mode",
+        "type": "select",
+        "options": [
+          "code",
+          "blueprint"
+        ],
+        "default": "code",
+        "hint": "\"code\" uses the Function Body field above; \"blueprint\" compiles this handler from a node graph instead (see the \"Open Blueprint Graph\" button)."
+      },
+      {
+        "key": "isAsync",
+        "label": "Async Handler",
+        "type": "boolean",
+        "default": false,
+        "hint": "Enable to use await inside this handler's body (e.g. for async plugin nodes or external API calls)."
+      },
+      {
+        "key": "npmDependencies",
+        "label": "npm Dependencies",
+        "type": "text",
+        "default": "",
+        "hint": "Comma-separated npm packages this code requires (code mode only), e.g. \"axios, lodash@^4.17.0\"."
+      }
+    ],
+    "alwaysCollect": true
+  },
+  "logic.function": {
+    "type": "logic.function",
+    "category": "logic",
+    "label": "Function",
+    "description": "Declares a named JavaScript function at the top level of this file. Connect it to an Export node to make it require()-able from other blueprint files, or leave it unconnected to use it as a private helper within this file.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Function"
+      },
+      {
+        "id": "value",
+        "label": "Assign / Parameter",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "name",
+        "label": "Function Name",
+        "type": "text",
+        "default": "myFunction",
+        "hint": "Must be a valid JS identifier. If connected to an Export node, this is also the property name other files see on the imported module."
+      },
+      {
+        "key": "params",
+        "label": "Parameters",
+        "type": "text",
+        "default": "",
+        "hint": "Comma-separated parameter names, e.g. \"date, format\". Leave blank for no parameters."
+      },
+      {
+        "key": "body",
+        "label": "Function Body",
+        "type": "code",
+        "default": "",
+        "hint": "Available: the parameter names declared above. Use `return` to produce a value, exactly like a normal function body."
+      },
+      {
+        "key": "mode",
+        "label": "Authoring Mode",
+        "type": "select",
+        "options": [
+          "code",
+          "blueprint"
+        ],
+        "default": "code",
+        "hint": "\"code\" uses the Function Body field above; \"blueprint\" compiles this function from a node graph instead (see the \"Open Blueprint Graph\" button)."
+      },
+      {
+        "key": "isAsync",
+        "label": "Async Function",
+        "type": "boolean",
+        "default": false,
+        "hint": "Enable to use await inside this function's body."
+      },
+      {
+        "key": "npmDependencies",
+        "label": "npm Dependencies",
+        "type": "text",
+        "default": "",
+        "hint": "Comma-separated npm packages this code requires (code mode only), e.g. \"axios, lodash@^4.17.0\"."
+      }
+    ]
+  },
+  "logic.export": {
+    "type": "logic.export",
+    "category": "logic",
+    "label": "Export",
+    "description": "Marks which Function node(s) and/or variable(s) (via a Get Variable node) in this file are exported (module.exports) so other blueprint files can require() them. At most one Export node is allowed per file.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Functions"
+      },
+      {
+        "id": "variables",
+        "label": "Variables",
+        "kind": "value"
+      }
+    ],
+    "outputs": [],
+    "configSchema": []
+  },
+  "logic.require": {
+    "type": "logic.require",
+    "category": "logic",
+    "label": "Require",
+    "description": "Imports another blueprint file's exports, or an installed npm package, via require(), exactly like Node's require(). The user is responsible for knowing what properties the target exports.",
+    "inputs": [],
+    "outputs": [],
+    "configSchema": [
+      {
+        "key": "sourceType",
+        "label": "Source",
+        "type": "select",
+        "options": [
+          "local",
+          "npm"
+        ],
+        "default": "local",
+        "hint": "\"local\" requires another .blueprint file in this project; \"npm\" requires an installed npm package."
+      },
+      {
+        "key": "path",
+        "label": "Path",
+        "type": "text",
+        "default": "",
+        "hint": "Local mode: relative path to another .blueprint file, without an extension, e.g. \"../helpers/dateFormater\". npm mode: the package name, e.g. \"axios\" or \"@org/pkg\"."
+      },
+      {
+        "key": "variableName",
+        "label": "Variable Name",
+        "type": "text",
+        "default": "",
+        "hint": "Local variable name to bind the imported module to, e.g. \"dateHelper\". Must be a valid JS identifier and unique in this file."
+      },
+      {
+        "key": "version",
+        "label": "Version",
+        "type": "text",
+        "default": "",
+        "hint": "npm mode only. e.g. \"^1.7.0\". Leave blank to install unpinned (\"*\")."
+      }
+    ]
+  },
+  "logic.functionCall": {
+    "type": "logic.functionCall",
+    "category": "logic",
+    "label": "Function Call",
+    "description": "Calls an exported function from a required module. Created from the node search (pick a specific function), not configured from scratch — connect its Result output into another Function Call's parameter to chain calls, or leave a parameter unconnected and type its value directly.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Request"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next"
+      },
+      {
+        "id": "result",
+        "label": "Result"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "callKind",
+        "label": "Call Kind",
+        "type": "text",
+        "default": "require"
+      },
+      {
+        "key": "requirePath",
+        "label": "Module Path",
+        "type": "text",
+        "default": ""
+      },
+      {
+        "key": "variableName",
+        "label": "Module Variable",
+        "type": "text",
+        "default": ""
+      },
+      {
+        "key": "functionName",
+        "label": "Function Name",
+        "type": "text",
+        "default": ""
+      },
+      {
+        "key": "params",
+        "label": "Parameters",
+        "type": "text",
+        "default": ""
+      },
+      {
+        "key": "resultVariable",
+        "label": "Result Variable Name",
+        "type": "text",
+        "default": "result",
+        "hint": "Must be a valid, unique JS identifier. Other nodes reference this call's return value by this name."
+      }
+    ]
+  },
+  "debug.consoleLog": {
+    "type": "debug.consoleLog",
+    "category": "debugging",
+    "label": "Console Log",
+    "description": "Prints a value to the server console, then continues to the next node in the handler chain.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Request"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "expression",
+        "label": "Expression",
+        "type": "code",
+        "default": "\"Debug:\"",
+        "hint": "Available: req, res. Any JS expression(s), comma-separated for multiple console.log arguments, e.g. req.method, req.path. Ignored while the Value pin is wired."
+      }
+    ]
+  },
+  "logic.graphEntry": {
+    "type": "logic.graphEntry",
+    "category": "logic",
+    "label": "Start",
+    "description": "The entry point of a function's blueprint graph: one execution output to kick off the first node in the chain, plus one value output pin per parameter. Exactly one per graph, managed via the function graph editor's Inputs panel — not added manually.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next"
+      }
+    ],
+    "configSchema": []
+  },
+  "logic.graphReturn": {
+    "type": "logic.graphReturn",
+    "category": "logic",
+    "label": "Return",
+    "description": "Ends this execution path, returning whatever is wired (or typed as a literal) into \"Value\".",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [],
+    "configSchema": []
+  },
+  "operators.add": {
+    "type": "operators.add",
+    "category": "operators",
+    "label": "Add",
+    "description": "Adds two values (JS `+` — numeric addition or string concatenation).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.subtract": {
+    "type": "operators.subtract",
+    "category": "operators",
+    "label": "Subtract",
+    "description": "Subtracts B from A (JS `-`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.multiply": {
+    "type": "operators.multiply",
+    "category": "operators",
+    "label": "Multiply",
+    "description": "Multiplies two values (JS `*`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.divide": {
+    "type": "operators.divide",
+    "category": "operators",
+    "label": "Divide",
+    "description": "Divides A by B (JS `/`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.modulo": {
+    "type": "operators.modulo",
+    "category": "operators",
+    "label": "Modulo",
+    "description": "Remainder of A divided by B (JS `%`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.equal": {
+    "type": "operators.equal",
+    "category": "operators",
+    "label": "Equal",
+    "description": "Equality check (JS `===` by default, `==` when \"Strict\" is off).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "strict",
+        "label": "Strict",
+        "type": "boolean",
+        "default": true,
+        "hint": "When off, emits JS \"==\" (loose) instead of \"===\" (strict)."
+      }
+    ]
+  },
+  "operators.notEqual": {
+    "type": "operators.notEqual",
+    "category": "operators",
+    "label": "Not Equal",
+    "description": "Inequality check (JS `!==` by default, `!=` when \"Strict\" is off).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "strict",
+        "label": "Strict",
+        "type": "boolean",
+        "default": true,
+        "hint": "When off, emits JS \"!=\" (loose) instead of \"!==\" (strict)."
+      }
+    ]
+  },
+  "operators.greaterThan": {
+    "type": "operators.greaterThan",
+    "category": "operators",
+    "label": "Greater Than",
+    "description": "Whether A is greater than B (JS `>`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.lessThan": {
+    "type": "operators.lessThan",
+    "category": "operators",
+    "label": "Less Than",
+    "description": "Whether A is less than B (JS `<`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.greaterOrEqual": {
+    "type": "operators.greaterOrEqual",
+    "category": "operators",
+    "label": "Greater Or Equal",
+    "description": "Whether A is greater than or equal to B (JS `>=`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.lessOrEqual": {
+    "type": "operators.lessOrEqual",
+    "category": "operators",
+    "label": "Less Or Equal",
+    "description": "Whether A is less than or equal to B (JS `<=`).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.and": {
+    "type": "operators.and",
+    "category": "operators",
+    "label": "AND",
+    "description": "True only if every input is truthy (each input is Boolean-coerced before combining).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.nand": {
+    "type": "operators.nand",
+    "category": "operators",
+    "label": "NAND",
+    "description": "Negated AND: false only if every input is truthy.",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.or": {
+    "type": "operators.or",
+    "category": "operators",
+    "label": "OR",
+    "description": "True if at least one input is truthy (each input is Boolean-coerced before combining).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.nor": {
+    "type": "operators.nor",
+    "category": "operators",
+    "label": "NOR",
+    "description": "Negated OR: true only if every input is falsy.",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.xor": {
+    "type": "operators.xor",
+    "category": "operators",
+    "label": "XOR",
+    "description": "True if an odd number of inputs are truthy (N-ary parity XOR, each input Boolean-coerced first).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      },
+      {
+        "id": "b",
+        "label": "B",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "operators.not": {
+    "type": "operators.not",
+    "category": "operators",
+    "label": "NOT",
+    "description": "Logical negation of a value (Boolean-coerced before negating, so the result is a real boolean).",
+    "inputs": [
+      {
+        "id": "a",
+        "label": "A",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "controlFlow.branch": {
+    "type": "controlFlow.branch",
+    "category": "controlFlow",
+    "label": "Branch",
+    "description": "An \"if\": evaluates \"Condition\" and continues down either the \"True\" or \"False\" execution output, never both. Compiled by codegen/exec-chain.ts, not by this node's own emit().",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "condition",
+        "label": "Condition",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "true",
+        "label": "True",
+        "kind": "exec"
+      },
+      {
+        "id": "false",
+        "label": "False",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
+  "controlFlow.switch": {
+    "type": "controlFlow.switch",
+    "category": "controlFlow",
+    "label": "Switch",
+    "description": "A \"Switch on Int\": routes execution to the output matching \"Selection\", or \"Default\" if no case matches. Compiled by codegen/exec-chain.ts, not by this node's own emit().",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "selection",
+        "label": "Selection",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "default",
+        "label": "Default",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
+  "controlFlow.sequence": {
+    "type": "controlFlow.sequence",
+    "category": "controlFlow",
+    "label": "Sequence",
+    "description": "Runs each wired execution output in left-to-right order, unconditionally — every wired pin fires (unlike Branch/Switch, which pick exactly one). Compiled by codegen/exec-chain.ts, not by this node's own emit().",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "then-0",
+        "label": "Then 0",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
+  "variable.get": {
+    "type": "variable.get",
+    "category": "logic",
+    "label": "Get Variable",
+    "description": "Reads the current value of a declared variable. Bound to a specific variable at creation time.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "variable.set": {
+    "type": "variable.set",
+    "category": "logic",
+    "label": "Set Variable",
+    "description": "Assigns a new value to a declared variable, then continues to the next node.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "Exec",
+        "kind": "exec"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
+  "logic.begin": {
+    "type": "logic.begin",
+    "category": "logic",
+    "label": "Begin",
+    "description": "Runs once when this file is loaded, before any request comes in. Wire it to other nodes for file-scope setup, like initializing a variable.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Then",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
+  "array.map": {
+    "type": "array.map",
+    "category": "array",
+    "label": "Map",
+    "description": "Transforms each element in an array using the callback, producing a new array.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.filter": {
+    "type": "array.filter",
+    "category": "array",
+    "label": "Filter",
+    "description": "Filters an array to include only elements for which the callback returns true.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.forEach": {
+    "type": "array.forEach",
+    "category": "array",
+    "label": "ForEach",
+    "description": "Executes the callback for each element in an array, with no return value.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.flatMap": {
+    "type": "array.flatMap",
+    "category": "array",
+    "label": "FlatMap",
+    "description": "Maps each element and flattens the result by one level.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.find": {
+    "type": "array.find",
+    "category": "array",
+    "label": "Find",
+    "description": "Returns the first element that satisfies the callback, or undefined.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.findIndex": {
+    "type": "array.findIndex",
+    "category": "array",
+    "label": "FindIndex",
+    "description": "Returns the index of the first element that satisfies the callback, or -1.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.every": {
+    "type": "array.every",
+    "category": "array",
+    "label": "Every",
+    "description": "Returns true if every element passes the callback test.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.some": {
+    "type": "array.some",
+    "category": "array",
+    "label": "Some",
+    "description": "Returns true if at least one element passes the callback test.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef"
+      ]
+    }
+  },
+  "array.reduce": {
+    "type": "array.reduce",
+    "category": "array",
+    "label": "Reduce",
+    "description": "Reduces an array to a single value by applying the callback to an accumulator and each element.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "label": "Loop Body",
+        "kind": "exec"
+      },
+      {
+        "id": "element",
+        "label": "Element",
+        "kind": "value"
+      },
+      {
+        "id": "index",
+        "label": "Index",
+        "kind": "value"
+      },
+      {
+        "id": "arrayRef",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "accumulator",
+        "label": "Accumulator",
+        "kind": "value"
+      },
+      {
+        "id": "completed",
+        "label": "Completed",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "loopShape": {
+      "bodyPin": "loopBody",
+      "completedPin": "completed",
+      "contextPinIds": [
+        "element",
+        "index",
+        "arrayRef",
+        "accumulator"
+      ]
+    },
+    "configSchema": [
+      {
+        "key": "callback",
+        "label": "Callback",
+        "type": "code",
+        "default": "",
+        "hint": "Available: accumulator, item, index, array. Use `return` to produce the next accumulator value."
+      },
+      {
+        "key": "initialValue",
+        "label": "Initial Value",
+        "type": "text",
+        "default": "0",
+        "hint": "Starting value for the accumulator. Any JS expression."
+      }
+    ]
+  },
+  "array.push": {
+    "type": "array.push",
+    "category": "array",
+    "label": "Push",
+    "description": "Adds an element to the end of an array and returns the new length.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "array.pop": {
+    "type": "array.pop",
+    "category": "array",
+    "label": "Pop",
+    "description": "Removes the last element from an array and returns it.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "array.unshift": {
+    "type": "array.unshift",
+    "category": "array",
+    "label": "Unshift",
+    "description": "Adds an element to the beginning of an array and returns the new length.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "array.shift": {
+    "type": "array.shift",
+    "category": "array",
+    "label": "Shift",
+    "description": "Removes the first element from an array and returns it.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "array.includes": {
+    "type": "array.includes",
+    "category": "array",
+    "label": "Includes",
+    "description": "Returns true if the array includes the search element, false otherwise.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "searchElement",
+        "label": "Search Element",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "fromIndex",
+        "label": "From Index",
+        "type": "number",
+        "hint": "Optional: start searching from this index. Leave blank to search from the beginning."
+      }
+    ]
+  },
+  "array.indexOf": {
+    "type": "array.indexOf",
+    "category": "array",
+    "label": "IndexOf",
+    "description": "Returns the index of the search element, or -1 if not found.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "array",
+        "label": "Array",
+        "kind": "value"
+      },
+      {
+        "id": "searchElement",
+        "label": "Search Element",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "fromIndex",
+        "label": "From Index",
+        "type": "number",
+        "hint": "Optional: start searching from this index. Leave blank to search from the beginning."
+      }
+    ]
+  },
+  "logic.pathExtractor": {
+    "type": "logic.pathExtractor",
+    "category": "logic",
+    "label": "Path Extractor",
+    "description": "Resolves a property path (dot or bracket syntax) against an object. If the resolved value is a function, calls it with the dynamically added Param pins as arguments, binding the correct parent object as `this`.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "data_object",
+        "label": "Object",
+        "kind": "value"
+      },
+      {
+        "id": "path",
+        "label": "Path",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "data_value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "path",
+        "label": "Path",
+        "type": "text",
+        "default": ""
+      }
+    ],
+    "npmDependencies": {
+      "lodash.get": "^4.4.2"
+    }
+  },
+  "logic.callback": {
+    "type": "logic.callback",
+    "category": "logic",
+    "label": "Callback",
+    "description": "Calls a wired function value (e.g. a Function node's \"Assign / Parameter\" output, or a \"function\"-typed variable) with the dynamically added argument pins, and exposes its return value on the Result pin.",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "function",
+        "label": "Function",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "result",
+        "label": "Result",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  }
+}

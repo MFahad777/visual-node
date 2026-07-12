@@ -12,7 +12,8 @@
     "fbs:gen": "node scripts/gen-fbs.mjs",
     "migrate:blueprints": "node scripts/migrate-blueprints.mjs",
     "publish:packages": "node scripts/publish.mjs",
-    "publish:packages:dry-run": "node scripts/publish.mjs --dry-run"
+    "publish:packages:dry-run": "node scripts/publish.mjs --dry-run",
+    "docs:refresh-previews": "node scripts/docs-refresh-previews.mjs"
   },
   "engines": {
     "node": ">=18"

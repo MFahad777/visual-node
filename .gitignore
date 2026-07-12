@@ -8,3 +8,4 @@ docs/
 .claude/
 .docusaurus/
 build/
+packages/editor-ui/dist-preview/
