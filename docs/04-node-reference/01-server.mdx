@@ -9,11 +9,11 @@ import NodePreview from '@site/src/components/NodePreview';
 Creating and starting the Express application itself. Every flow with any
 server/routing/middleware node needs exactly one `express.init`.
 
-<NodePreview type="express.route" />
-
 ## Express App — `express.init`
 
 Creates the Express application instance.
+
+<NodePreview type="express.init" height={140} width={240} />
 
 - **Inputs**: none
 - **Outputs**: `out` — "App"
@@ -31,6 +31,8 @@ const app = express();
 ## Listen — `express.listen`
 
 Starts the HTTP server on a port.
+
+<NodePreview type="express.listen" height={140} width={240} />
 
 - **Inputs**: `in` — "App"
 - **Outputs**: none

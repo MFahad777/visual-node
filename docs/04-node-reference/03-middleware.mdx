@@ -2,11 +2,15 @@
 title: Middleware
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Middleware nodes
 
 ## JSON Body Parser — `express.middleware.jsonParser`
 
 Parses incoming requests with JSON payloads.
+
+<NodePreview type="express.middleware.jsonParser" height={200} width={280} />
 
 - **Inputs**: `in` — "App"
 - **Outputs**: `out` — "App"
@@ -19,6 +23,8 @@ app.use(express.json());
 ## Custom Middleware — `middleware.customCode`
 
 The escape hatch for middleware: raw JavaScript inserted as an `app.use(...)` callback.
+
+<NodePreview type="middleware.customCode" height={200} width={280} />
 
 - **Inputs**: `in` — "App"
 - **Outputs**: `out` — "App"

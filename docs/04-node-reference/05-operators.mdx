@@ -2,6 +2,8 @@
 title: Operators
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Operator nodes
 
 All 17 operator nodes share the same shape: **pure, value-producing, no execution
@@ -40,6 +42,12 @@ Inputs `a`, `b` (value); output `result` (value).
 const _op_add1 = (17 + 5);
 ```
 
+<NodePreview type="operators.add" height={200} width={280} />
+<NodePreview type="operators.subtract" height={200} width={280} />
+<NodePreview type="operators.multiply" height={200} width={280} />
+<NodePreview type="operators.divide" height={200} width={280} />
+<NodePreview type="operators.modulo" height={200} width={280} />
+
 ## Comparison
 
 Inputs `a`, `b` (value); output `result` (value). Same shape as arithmetic, just a
@@ -53,6 +61,13 @@ different operator.
 | `operators.lessThan` | Less Than | `a < b` |
 | `operators.greaterOrEqual` | Greater Or Equal | `a >= b` |
 | `operators.lessOrEqual` | Less Or Equal | `a <= b` |
+
+<NodePreview type="operators.equal" height={200} width={280} />
+<NodePreview type="operators.notEqual" height={200} width={280} />
+<NodePreview type="operators.greaterThan" height={200} width={280} />
+<NodePreview type="operators.lessThan" height={200} width={280} />
+<NodePreview type="operators.greaterOrEqual" height={200} width={280} />
+<NodePreview type="operators.lessOrEqual" height={200} width={280} />
 
 ### Strict vs. Loose Comparison (Equal and Not Equal)
 
@@ -96,6 +111,12 @@ const _op_and1 = (Boolean(a) && Boolean(b) && Boolean(c));
 const _op_xor1 = (Boolean(a)) !== (Boolean(b));
 ```
 
+<NodePreview type="operators.and" data={{ extraInputs: ["extra-0", "extra-1", "extra-2"] }} height={320} width={360} />
+<NodePreview type="operators.nand" data={{ extraInputs: ["extra-0", "extra-1", "extra-2"] }} height={320} width={360} />
+<NodePreview type="operators.or" data={{ extraInputs: ["extra-0", "extra-1", "extra-2"] }} height={320} width={360} />
+<NodePreview type="operators.nor" data={{ extraInputs: ["extra-0", "extra-1", "extra-2"] }} height={320} width={360} />
+<NodePreview type="operators.xor" data={{ extraInputs: ["extra-0", "extra-1", "extra-2"] }} height={320} width={360} />
+
 ## Unary
 
 The one operator with a single input.
@@ -108,6 +129,8 @@ The one operator with a single input.
 ```js
 const _op_not1 = !(Boolean(a));
 ```
+
+<NodePreview type="operators.not" height={200} width={280} />
 
 ## A main-canvas example
 

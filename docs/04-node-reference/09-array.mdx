@@ -2,6 +2,8 @@
 title: Array
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Array nodes
 
 15 node types for working with arrays: 9 **loop-container** nodes (iteration methods
@@ -17,6 +19,16 @@ Graph](/core-concepts/function-graphs-and-blueprint-mode).
 
 `array.map`, `array.filter`, `array.forEach`, `array.flatMap`, `array.find`,
 `array.findIndex`, `array.every`, `array.some`, `array.reduce`.
+
+<NodePreview type="array.map" height={380} width={400} />
+<NodePreview type="array.filter" height={380} width={400} />
+<NodePreview type="array.forEach" height={380} width={400} />
+<NodePreview type="array.flatMap" height={380} width={400} />
+<NodePreview type="array.find" height={380} width={400} />
+<NodePreview type="array.findIndex" height={380} width={400} />
+<NodePreview type="array.every" height={380} width={400} />
+<NodePreview type="array.some" height={380} width={400} />
+<NodePreview type="array.reduce" height={380} width={400} />
 
 - **Inputs**: `in` (exec) — "In"; `array` (value) — "Array"
 - **Outputs**: `loopBody` (exec) — "Loop Body", repeats once per element; `element`
@@ -60,6 +72,13 @@ bodies existed, so every pre-existing `.blueprint` file keeps compiling unchange
 
 `array.push`, `array.pop`, `array.unshift`, `array.shift`, `array.includes`,
 `array.indexOf`.
+
+<NodePreview type="array.push" height={260} width={320} />
+<NodePreview type="array.pop" height={260} width={320} />
+<NodePreview type="array.unshift" height={260} width={320} />
+<NodePreview type="array.shift" height={260} width={320} />
+<NodePreview type="array.includes" height={260} width={320} />
+<NodePreview type="array.indexOf" height={260} width={320} />
 
 Ordinary single exec-in/exec-out nodes, no forking or loop body — identical shape to
 `debug.consoleLog`.

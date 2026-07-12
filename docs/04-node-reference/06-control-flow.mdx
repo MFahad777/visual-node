@@ -2,6 +2,8 @@
 title: Control Flow
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Control Flow nodes
 
 All three nodes here are compiled specially: their own `emit()` functions are defensive
@@ -16,6 +18,8 @@ Graph](/core-concepts/function-graphs-and-blueprint-mode).
 ## Branch — `controlFlow.branch`
 
 An "if": evaluates "Condition" and continues down either "True" or "False", never both.
+
+<NodePreview type="controlFlow.branch" height={260} width={320} />
 
 - **Inputs**: `in` (exec) — "In"; `condition` (value) — "Condition"
 - **Outputs**: `true` (exec) — "True"; `false` (exec) — "False"
@@ -59,6 +63,8 @@ Routes execution to the output matching "Selection", or "Default" if nothing mat
 Despite an internal "Switch on Int" label, Selection accepts **any** primitive type —
 number, string, or boolean.
 
+<NodePreview type="controlFlow.switch" data={{ cases: [{id:"0",value:1},{id:"1",value:2},{id:"2",value:"other"}] }} height={320} width={360} />
+
 - **Inputs**: `in` (exec) — "In"; `selection` (value) — "Selection", any type
 - **Outputs**: `default` (exec) — "Default", plus one dynamic `case-<id>` exec output
   per entry in the node's **Cases** list (edited in the side panel — add/remove/edit
@@ -96,6 +102,8 @@ Unlike Branch/Switch, which each pick exactly **one** output to run per request,
 runs **every wired output, unconditionally, in left-to-right pin order**. Use it whenever
 the relative order of two or more independent pieces of logic matters, but nothing about
 how they're wired otherwise forces that order.
+
+<NodePreview type="controlFlow.sequence" data={{ pins: [{id:"1"},{id:"2"},{id:"3"}] }} height={260} width={320} />
 
 - **Inputs**: `in` (exec) — "In"
 - **Outputs**: one static `then-0` (exec) — "Then 0" — plus any number of additional

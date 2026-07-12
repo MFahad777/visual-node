@@ -2,6 +2,8 @@
 title: Logic
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Logic nodes
 
 The most heterogeneous category: declaring and calling functions, requiring modules,
@@ -10,6 +12,8 @@ module-load-time setup, and reading/writing named variables.
 ## Function — `logic.function`
 
 Declares a named JavaScript function at the top level of the current file.
+
+<NodePreview type="logic.function" data={{ params: "a, b, c" }} height={260} width={320} />
 
 - **Inputs**: one dynamic value pin per declared parameter (see "Default parameter
   values" below)
@@ -71,6 +75,8 @@ Declares a named Express request handler with fixed `req`, `res`, `next` paramet
 Routes attach to a Handler Function instead of embedding a handler inline — this is the
 node every route needs at least one of.
 
+<NodePreview type="logic.handlerFunction" height={200} width={280} />
+
 - **Inputs**: `in` — "Attach" (exec) — wire a Route's "Handler" output here
 - **Outputs**: `out` — "Next" (exec) — wire to another Handler Function to chain them
 - **Config fields**:
@@ -117,6 +123,8 @@ graph's **Module Variables** panel).
 
 Marks which Function node(s) and/or variable(s) in this file are exported.
 
+<NodePreview type="logic.export" height={200} width={280} />
+
 - **Inputs**: `in` — "Functions" — accepts **multiple** incoming edges, one per exported
   function; `variables` (value) — "Variables" — accepts **multiple** incoming edges, one
   per exported variable, wired from `variable.get` nodes
@@ -152,6 +160,8 @@ a `logic.functionCall` is already consumed.
 Imports another blueprint file's exports, or an installed npm package, exactly like
 Node's own `require()`.
 
+<NodePreview type="logic.require" height={140} width={240} />
+
 - **Inputs / Outputs**: none — it's a pure declaration, referenced elsewhere by the bare
   variable name you give it, not by wiring.
 - **Config fields**:
@@ -177,6 +187,8 @@ Calls an exported function from a Required module, or calls a sibling function d
 in the same file (including recursive calls). Always created **pre-filled** from
 the node search (pick a specific exported function or same-file function) rather than
 configured from a blank default.
+
+<NodePreview type="logic.functionCall" data={{ params: "x, y, z" }} height={320} width={360} />
 
 - **Inputs**: `in` — "Request", plus one dynamic value pin per declared parameter
 - **Outputs**: `out` — "Next"; `result` — "Result" (optional — see below)
@@ -220,6 +232,8 @@ Calling / Callback" usage, a `"function"`-typed variable, or any other node that
 produces a function value) — with however many arguments you give it, and captures the
 result.
 
+<NodePreview type="logic.callback" data={{ args: [{id:"0"},{id:"1"},{id:"2"}] }} height={320} width={360} />
+
 - **Inputs**: `in` (exec) — "In"; `function` (value) — "Function"; plus dynamic
   `arg-<id>` value pins, each with inline free-form literal editing when unwired
 - **Outputs**: `out` (exec) — "Next"; `result` (value) — "Result"
@@ -247,6 +261,8 @@ Resolves a free-form dot/bracket property path (e.g. `store.getInvoice`,
 called via `.apply(parent, args)` — preserving the correct `this` binding — with
 arguments gathered from dynamically-added parameter pins. A non-function resolved value
 is returned as-is, ignoring any parameters.
+
+<NodePreview type="logic.pathExtractor" data={{ paramCount: 3 }} height={380} width={400} />
 
 - **Inputs**: `in` (exec) — "In"; `data_object` (value) — "Object" (wire-only, no
   inline literal); `path` (value, optional) — "Path" — wire in any value-producing node
@@ -296,6 +312,8 @@ null-safe walk of arbitrary depth is what it's for.
 Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture. Never
 added manually.
 
+<NodePreview type="logic.graphEntry" data={{ params: ["date", "format", "locale"] }} height={260} width={320} />
+
 - **`logic.graphEntry`** ("Start"): no inputs; a static `out` exec output plus one
   dynamic value output per current function parameter, managed by the Function Graph
   editor's own panel.
@@ -304,6 +322,8 @@ added manually.
 
 **Function Graph only** — see [Function Graphs & Blueprint
 Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture.
+
+<NodePreview type="logic.graphReturn" height={200} width={280} />
 
 - **Inputs**: `in` (exec) — "In"; `value` (value) — "Value"
 - **Outputs**: none — Return ends the chain it's wired into.
@@ -344,6 +364,8 @@ for a worked early-return example.
 Runs once when this file is loaded, before any request comes in — the visual equivalent
 of top-of-file setup code.
 
+<NodePreview type="logic.begin" height={140} width={240} />
+
 - **Inputs**: none (always a root of its own exec chain)
 - **Outputs**: `out` (exec) — "Then"
 - **Config fields**: none
@@ -381,6 +403,8 @@ time (dragged from the Variables panel — grab the row by its **⠿** drag hand
 name/type fields, which are separately editable) — its config panel is intentionally
 empty.
 
+<NodePreview type="variable.get" height={140} width={240} />
+
 - **Inputs**: none
 - **Outputs**: `value` (value) — "Value"
 - **Config fields**: none
@@ -392,6 +416,8 @@ scope's variables kept fully independent.
 ## Set Variable — `variable.set`
 
 Assigns a new value to a declared variable, then continues to the next node.
+
+<NodePreview type="variable.set" height={200} width={280} />
 
 - **Inputs**: `in` (exec) — "Exec"; `value` (value) — "Value"
 - **Outputs**: `out` (exec) — "Next"

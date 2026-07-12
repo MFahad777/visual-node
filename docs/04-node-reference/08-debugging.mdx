@@ -2,11 +2,15 @@
 title: Debugging
 ---
 
+import NodePreview from '@site/src/components/NodePreview';
+
 # Debugging nodes
 
 ## Console Log — `debug.consoleLog`
 
 Prints a value to the server console, then continues to the next node in the chain.
+
+<NodePreview type="debug.consoleLog" height={200} width={280} />
 
 - **Inputs**: `in` — "Request" (exec); `value` (value) — "Value"
 - **Outputs**: `out` — "Next" (exec)
