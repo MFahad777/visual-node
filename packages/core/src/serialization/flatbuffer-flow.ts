@@ -60,6 +60,40 @@ function stripUndefined(value: unknown): unknown {
   return value;
 }
 
+/** FlexBuffers stores a non-integer number at the narrowest width that represents it
+ * exactly — float32 if `Math.fround(value) === value`, else float64. A map's byte-width is
+ * shared across ALL of its sibling values, so one float64-precision number (e.g. a
+ * drag-computed canvas position/size, which routinely has more decimal digits than float32
+ * can hold) silently forces 8-byte width onto every other key in that same object, including
+ * string/nested-object siblings. Decoding an 8-byte-wide string or nested map then hits a real
+ * bug in the `flatbuffers` npm package: its internal `indirect()` helper computes `offset -
+ * step` where `step` decodes as a native `bigint` at that width, and JS throws "Cannot mix
+ * BigInt and other types" mixing a plain `number` with a `bigint`. Confirmed via a real
+ * repro: a comment-group box's `height`/`width`/`position` (arbitrary-precision, from
+ * free-form drag/resize) sitting next to its `id`/`title`/`color` strings in one object is
+ * exactly this shape — decodeFlow's `Cannot mix BigInt` catch (below) then wipes the entire
+ * OWNING NODE's `data` to `{}`, which is why adding a comment box inside a Function's
+ * blueprint graph reproducibly erased that Function node's name/params/graph on the next
+ * decode. Rounding every non-integer number to its nearest float32 value before encoding
+ * keeps every map at 32-bit width, avoiding the crash entirely; canvas coordinates/dimensions
+ * never need sub-float32 precision, so this is lossy only in a way nothing in this app
+ * observes. (A separate, pre-existing, narrower case — a genuinely huge *integer* needing
+ * 64-bit width, e.g. a `bigint`-typed variable's encoded value — is intentionally left to the
+ * decode-side recovery below; real integer precision there can matter and isn't safe to
+ * silently round.) */
+function safeguardFloatWidth(value: unknown): unknown {
+  if (typeof value === "number" && !Number.isInteger(value)) return Math.fround(value);
+  if (Array.isArray(value)) return value.map(safeguardFloatWidth);
+  if (value !== null && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = safeguardFloatWidth(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 /** Converts any `bigint` values in decoded data to `Number`. An integer whose magnitude
  * needs 64-bit width (e.g. a node's numeric literal >= 2^31) round-trips through
  * `flexbuffers.toObject()` as a native JS `bigint`, not a `number` — confirmed in the
@@ -96,7 +130,7 @@ function restoreBigInts(value: unknown, path: string = ""): unknown {
 function buildNode(builder: flatbuffers.Builder, node: FlowNode): flatbuffers.Offset {
   // Child offsets (strings, the FlexBuffer data vector, the nested Position table) must
   // all be created before FlowNode.startFlowNode() opens the parent table.
-  const dataBytes = flexbuffers.encode(stripUndefined(node.data ?? {}));
+  const dataBytes = flexbuffers.encode(safeguardFloatWidth(stripUndefined(node.data ?? {})));
   const dataOffset = FbsFlowNode.createDataVector(builder, dataBytes);
   // `id`/`type` default to "" rather than being required, matching `data`/`position`'s
   // existing leniency above: callers are allowed to persist a structurally-incomplete Flow

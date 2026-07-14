@@ -15,6 +15,33 @@ import { FlowEdge as FbsFlowEdge } from "../src/schema/generated/visual-node/fbs
 registerBuiltinNodes();
 
 /**
+ * Mirrors `flatbuffer-flow.ts`'s `safeguardFloatWidth`: rounds every non-integer number to its
+ * nearest float32 value, recursively. `encodeFlow` now applies this to every node's `data`
+ * before handing it to FlexBuffers (see that file's doc comment for why — avoids the
+ * `indirect()` BigInt/Number crash entirely by never letting a map need 64-bit width). Only
+ * `node.data` goes through this (including a nested Function Graph's own `data.graph.nodes[]`,
+ * which live inside the SAME opaque blob) — a flow's top-level `node.position`/`comments`/
+ * `variables`/`edges[].waypoints` are strict FlatBuffers fields (float64 tables, real strings),
+ * never touched by FlexBuffers, so they round-trip exactly and must NOT be rounded here.
+ */
+function froundData<T>(value: T): T {
+  if (typeof value === "number" && !Number.isInteger(value)) return Math.fround(value) as unknown as T;
+  if (Array.isArray(value)) return value.map(froundData) as unknown as T;
+  if (value !== null && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) result[key] = froundData(v);
+    return result as T;
+  }
+  return value;
+}
+
+/** Builds the expected post-round-trip flow: every node's `data` rounded via `froundData`,
+ * everything else (position/comments/variables/waypoints) left exactly as authored. */
+function expectedAfterRoundTrip(flow: Flow): Flow {
+  return { ...flow, nodes: flow.nodes.map((n) => ({ ...n, data: froundData(n.data) })) };
+}
+
+/**
  * Builds FlatBuffers bytes the way pre-Phase-10 `encodeFlow` did: never calls
  * `FbsFlow.addVariables()` at all, so the `variables` field is genuinely ABSENT (not just an
  * empty vector) — the real shape of an already-on-disk `.blueprint` file from before this field
@@ -365,8 +392,8 @@ describe("flatbuffer-flow round-trip", () => {
     };
 
     const decoded = decodeFlow(encodeFlow(flow));
-    expect(decoded.nodes[0].data.someDecimal).toBe(9.99);
-    expect(decoded).toEqual(flow);
+    expect(decoded.nodes[0].data.someDecimal).toBe(Math.fround(9.99));
+    expect(decoded).toEqual(expectedAfterRoundTrip(flow));
   });
 
   it("decodes a large integer literal (>= 2^31, needs FlexBuffers 64-bit width) back as a JS number, not a bigint", () => {
@@ -398,17 +425,16 @@ describe("flatbuffer-flow round-trip", () => {
     expect(decoded).toEqual(flow);
   });
 
-  // NOTE: node.data values below deliberately avoid pairing a value that's exactly
-  // representable in float32 (e.g. 12.5, 0.25, -30.5) alongside another decimal in the same
-  // flat JS object. Doing so was found, while writing this test, to trip a SEPARATE,
-  // still-present FlexBuffers reader bug distinct from the BigInt/Number crash this patch
-  // fixes: when one sibling value needs full float64 precision (forcing the whole object's
-  // internal vector to WIDTH64) and another sibling is float32-exact, the float32-exact
-  // value silently decodes to a garbage magnitude (e.g. 12.5 -> ~5.4e-315) instead of either
-  // throwing or round-tripping correctly. That bug is out of scope for this task (the patch
-  // under test only fixes the indirect() BigInt/Number arithmetic crash) and untouched here;
-  // every decimal below (0.0725, 12.99, 0.15, etc.) needs true float64 precision, so no
-  // sibling in the same object is float32-exact and this test exercises only the fixed bug.
+  // NOTE: this used to require every node.data decimal to need true float64 precision (no
+  // sibling float32-exact), to dodge a SEPARATE FlexBuffers reader bug where mixing a
+  // float32-exact sibling with a float64-precision one silently decoded the float32-exact
+  // value to a garbage magnitude (e.g. 12.5 -> ~5.4e-315). `safeguardFloatWidth` in
+  // flatbuffer-flow.ts now rounds every non-integer node.data number to float32 before
+  // encoding, which keeps every map at a uniform 32-bit width and eliminates that bug too
+  // (not just the BigInt/Number crash this test is named for) — mixed exact/inexact decimals
+  // are no longer special. Node-data decimals below decode as their nearest float32 value
+  // (see `expectedAfterRoundTrip`); the flow-level `comments`/`position`/`variables` fields are
+  // strict FlatBuffers tables untouched by FlexBuffers and stay exact.
   it("round-trips a large, realistic flow with nested function graphs, decimal variable defaults, comments, and edge waypoints (BigInt/Number indirect() regression, real-world shape)", () => {
     const flow: Flow = {
       version: "1",
@@ -503,7 +529,73 @@ describe("flatbuffer-flow round-trip", () => {
     };
 
     const decoded = decodeFlow(encodeFlow(flow));
-    expect(decoded).toEqual(flow);
+    expect(decoded).toEqual(expectedAfterRoundTrip(flow));
+  });
+
+  it("round-trips a comment-group box drawn INSIDE a Function node's own nested blueprint graph, without wiping the Function's config (real bug report: adding a comment box inside a Function Graph corrupted that Function node's name/params/graph on the next decode)", () => {
+    // Unlike the flow-level `comments` field exercised above (a strict FlatBuffers table,
+    // never touched by FlexBuffers), a comment box drawn inside a Function's nested Blueprint
+    // graph lives at `node.data.graph.comments` — part of the SAME opaque FlexBuffers blob as
+    // the Function's own `name`/`params`. Its `id`/`title`/`color` strings sit alongside its
+    // `height`/`width`/`position` (drag-computed, arbitrary-precision) floats in one object,
+    // which is exactly the shape that used to force WIDTH64 and crash `indirect()` on decode —
+    // and since the crash happened while decoding the Function node's OWN data blob, the
+    // pre-fix recovery path wiped that whole node's data (name, params, graph — everything).
+    const flow: Flow = {
+      version: "1",
+      meta: { name: "comment-in-function-graph-test", target: "express" },
+      nodes: [
+        {
+          id: "fn1",
+          type: "logic.function",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "connectingToDB",
+            params: "url",
+            mode: "blueprint",
+            graph: {
+              nodes: [
+                {
+                  id: "entry",
+                  type: "logic.graphEntry",
+                  position: { x: 40, y: 136.43521253641146 },
+                  parentId: "box1",
+                  data: { params: ["url"] },
+                },
+                {
+                  id: "ret",
+                  type: "logic.graphReturn",
+                  position: { x: 619.858378312051, y: 50 },
+                  parentId: "box1",
+                  data: {},
+                },
+              ],
+              edges: [{ id: "ge1", source: "entry", sourceHandle: "out", target: "ret", targetHandle: "in" }],
+              variables: [],
+              comments: [
+                {
+                  id: "box1",
+                  title: "Comment",
+                  position: { x: 0, y: -96.43521253641146 },
+                  width: 931.1219153856068,
+                  height: 658.439148090192,
+                  color: "#4b4b63",
+                },
+              ],
+            },
+          },
+        },
+      ],
+      edges: [],
+      variables: [],
+    };
+
+    const decoded = decodeFlow(encodeFlow(flow));
+    const fn = decoded.nodes[0];
+    expect(fn.data.name).toBe("connectingToDB");
+    expect(fn.data.params).toBe("url");
+    expect((fn.data.graph as { nodes: unknown[] }).nodes).toHaveLength(2);
+    expect(decoded).toEqual(expectedAfterRoundTrip(flow));
   });
 
   it("round-trips a node with parentId set (Phase 34 — comment groups as subflows)", () => {
