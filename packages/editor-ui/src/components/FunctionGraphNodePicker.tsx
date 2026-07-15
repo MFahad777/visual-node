@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { XYPosition } from "@xyflow/react";
 import type { NodeDefinition } from "@visual-node/core";
 import * as api from "../api/client.js";
-import { useFlowStore } from "../store/flowStore.js";
+import { useFlowStore, generateUniquePromiseName } from "../store/flowStore.js";
 import { resolveRequiredFunctions, type ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
 
@@ -156,7 +156,7 @@ export function FunctionGraphNodePicker({
     return definitions.filter(
       (d) =>
         !PANEL_MANAGED_TYPES.has(d.type) &&
-        (d.label.toLowerCase().includes(q) || d.description.toLowerCase().includes(q)),
+        (d.label.toLowerCase().startsWith(q) || d.description.toLowerCase().startsWith(q)),
     );
   }, [definitions, query]);
 
@@ -165,7 +165,7 @@ export function FunctionGraphNodePicker({
     return functionCallEntries.filter((fn) => {
       const label = `${fn.functionName}(${fn.params})`;
       const description = `Call via ${fn.variableName} (${fn.requirePath})`;
-      return label.toLowerCase().includes(q) || description.toLowerCase().includes(q);
+      return label.toLowerCase().startsWith(q) || description.toLowerCase().startsWith(q);
     });
   }, [functionCallEntries, query]);
 
@@ -195,7 +195,7 @@ export function FunctionGraphNodePicker({
     const q = query.trim().toLowerCase();
     return sameFileEntries.filter((fn) => {
       const label = `${fn.functionName}(${fn.params})`;
-      return label.toLowerCase().includes(q);
+      return label.toLowerCase().startsWith(q);
     });
   }, [sameFileEntries, query]);
 
@@ -206,6 +206,10 @@ export function FunctionGraphNodePicker({
     const data: Record<string, unknown> = Object.fromEntries(def.configSchema.map((f) => [f.key, f.default]));
     const literals = defaultLiteralsFor(def.type, def);
     if (literals) data.literals = literals;
+    // Same auto-seeded unique display name flowStore.ts's addNodeFromPalette gives a
+    // main-canvas Promise node — a Promise created inside a nested Blueprint graph should
+    // never end up with a blank Name field either.
+    if (def.type === "logic.promise") data.name = generateUniquePromiseName(localNodes);
     onAddNode(def.type, flowPosition, data);
     onClose();
   }

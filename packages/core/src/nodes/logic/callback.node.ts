@@ -40,10 +40,18 @@ export const callbackNode: NodeDefinition = {
     const argExprs = getCallbackArgs(node).map((a) =>
       resolveValuePin(node, ctx, `arg-${a.id}`, { defaultLiteral: "undefined" }),
     );
+    const call = `${funcExpr}(${argExprs.join(", ")})`;
+
+    // Only declare a result variable if the "Result" pin is actually wired to something —
+    // e.g. calling a Promise's `resolve`/`reject` (always returns `undefined`) as a bare
+    // statement shouldn't produce a dead `const _cbresult_x = resolve(...)` binding.
+    if (ctx.getOutgoing(node.id, "result").length === 0) {
+      return { body: `${call};`, order: 0 };
+    }
 
     const resultVar = `_cbresult_${sanitizeIdentifier(node.id)}`;
     return {
-      body: `const ${resultVar} = ${funcExpr}(${argExprs.join(", ")});`,
+      body: `const ${resultVar} = ${call};`,
       order: 0,
     };
   },

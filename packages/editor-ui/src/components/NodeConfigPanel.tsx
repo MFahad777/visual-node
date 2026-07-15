@@ -454,6 +454,132 @@ function FunctionNodeConfig({
 }
 
 /**
+ * `logic.promise` mirrors `logic.function`'s Code/Blueprint dual-mode UI (see
+ * `FunctionNodeConfig` above) with key differences: it has no Name or Parameters fields
+ * (the executor always has fixed params `resolve` and `reject`), and it has an Await
+ * checkbox instead of an Async Function checkbox. When awaited, Then/Catch arms are hidden
+ * by `effectivePorts.ts`'s `promiseAllowedOutputHandles`.
+ */
+function PromiseNodeConfig({
+  node,
+  updateNodeConfig,
+  setPromiseAwaited,
+  openCodeExpand,
+  onOpenBlueprintGraph,
+}: {
+  node: Node;
+  updateNodeConfig: (nodeId: string, key: string, value: unknown) => void;
+  setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
+  openCodeExpand: (nodeId: string, fieldKey: string, fieldLabel: string) => void;
+  onOpenBlueprintGraph: () => void;
+}) {
+  const mode = node.data?.mode === "blueprint" ? "blueprint" : "code";
+  const awaited = node.data?.awaited === true;
+  const graph = node.data?.graph as { nodes?: unknown[]; edges?: unknown[] } | undefined;
+  const graphNodeCount = graph?.nodes?.length ?? 0;
+  const graphEdgeCount = graph?.edges?.length ?? 0;
+
+  function switchMode(next: "code" | "blueprint") {
+    if (next === mode) return;
+    if (next === "blueprint") {
+      const hasBody = String(node.data?.body ?? "").trim().length > 0;
+      const hasGraph = graphNodeCount > 0;
+      if (hasBody && !hasGraph) {
+        const confirmed = window.confirm(
+          "Switching to Blueprint mode won't preserve your existing Executor Body code. Continue?",
+        );
+        if (!confirmed) return;
+      }
+      updateNodeConfig(node.id, "mode", "blueprint");
+      return;
+    }
+    updateNodeConfig(node.id, "mode", "code");
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex items-center gap-2">
+        <Checkbox
+          checked={awaited}
+          onChange={(e) => setPromiseAwaited(node.id, e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Await Promise</span>
+      </label>
+
+      <label className="flex items-center gap-2">
+        <Checkbox
+          checked={node.data?.wrapInIife !== false}
+          onChange={(e) => updateNodeConfig(node.id, "wrapInIife", e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Wrap In IIFE</span>
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Authoring Mode</span>
+        <div className="flex overflow-hidden rounded border border-neutral-700">
+          <button
+            type="button"
+            onClick={() => switchMode("code")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "code" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Code
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("blueprint")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "blueprint" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Blueprint
+          </button>
+        </div>
+      </div>
+
+      {mode === "code" ? (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">Executor Body</span>
+            <span className="text-[11px] text-neutral-400">
+              Available: resolve, reject functions. Use resolve(value) or reject(error) to settle the Promise.
+            </span>
+            <LazyJsCodeField
+              value={node.data?.body}
+              onChange={(value) => updateNodeConfig(node.id, "body", value)}
+              onExpand={() => openCodeExpand(node.id, "body", "Executor Body")}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">npm Dependencies</span>
+            <span className="text-[11px] text-neutral-400">
+              Comma-separated package names this executor's code depends on, e.g. "lodash, dayjs".
+            </span>
+            <input
+              type="text"
+              className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+              value={String(node.data?.npmDependencies ?? "")}
+              onChange={(e) => updateNodeConfig(node.id, "npmDependencies", e.target.value)}
+            />
+          </label>
+        </>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="rounded bg-black/40 px-2 py-1.5 text-[11px] text-neutral-300">
+            {graphNodeCount} node{graphNodeCount === 1 ? "" : "s"}, {graphEdgeCount} edge{graphEdgeCount === 1 ? "" : "s"}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenBlueprintGraph}
+            className="rounded bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700"
+          >
+            Open Blueprint Graph
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * `logic.handlerFunction` mirrors `logic.function`'s Code/Blueprint dual-mode UI exactly
  * (see `FunctionNodeConfig` above), with two differences: its `req, res, next` parameters
  * are fixed by the node type (Express's handler signature is invariant) and rendered as a
@@ -776,6 +902,7 @@ export function NodeConfigPanel() {
   const node = useFlowStore((s) => s.nodes.find((n) => n.id === s.selectedNodeId));
   const nodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
   const updateNodeConfig = useFlowStore((s) => s.updateNodeConfig);
+  const setPromiseAwaited = useFlowStore((s) => s.setPromiseAwaited);
   const deleteSelectedNode = useFlowStore((s) => s.deleteSelectedNode);
   const edges = useFlowStore((s) => s.edges);
   const nodes = useFlowStore((s) => s.nodes);
@@ -879,6 +1006,14 @@ export function NodeConfigPanel() {
         <HandlerFunctionNodeConfig
           node={node}
           updateNodeConfig={updateNodeConfig}
+          openCodeExpand={openCodeExpand}
+          onOpenBlueprintGraph={() => openFunctionGraphTab(node)}
+        />
+      ) : node.type === "logic.promise" ? (
+        <PromiseNodeConfig
+          node={node}
+          updateNodeConfig={updateNodeConfig}
+          setPromiseAwaited={setPromiseAwaited}
           openCodeExpand={openCodeExpand}
           onOpenBlueprintGraph={() => openFunctionGraphTab(node)}
         />

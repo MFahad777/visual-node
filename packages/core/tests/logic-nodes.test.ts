@@ -765,6 +765,24 @@ describe("logic.begin", () => {
     expect(code).toContain("(async () => {");
     expect(code).toContain("await Promise.resolve();");
   });
+
+  it("omits the async IIFE wrapper when an awaited Promise node has wrapInIife: false", () => {
+    const flow = makeFlow(
+      [
+        { id: "begin", type: "logic.begin", position: { x: 0, y: 0 }, data: {} },
+        {
+          id: "promise1",
+          type: "logic.promise",
+          position: { x: 0, y: 0 },
+          data: { mode: "code", body: "resolve(1);", awaited: true, wrapInIife: false },
+        },
+      ],
+      [{ id: "e1", source: "begin", target: "promise1", sourceHandle: "out", targetHandle: "in" }],
+    );
+    const { code } = emitExpress(flow);
+    expect(code).not.toContain("(async () => {");
+    expect(code).toContain("await new Promise");
+  });
 });
 
 describe("debug.consoleLog", () => {

@@ -41,7 +41,8 @@ export type VariableDataType =
   | "symbol"
   | "buffer"
   | "url"
-  | "function";
+  | "function"
+  | "any";
 
 export interface VariableDeclaration {
   id: string;

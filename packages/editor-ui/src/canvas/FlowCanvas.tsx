@@ -274,7 +274,7 @@ export function FlowCanvas() {
         onMove={(_, viewport) => setZoom(viewport.zoom)}
         onNodeClick={(_, node) => selectNode(node.id)}
         onNodeDoubleClick={(_, node) => {
-          if ((node.type === "logic.function" || node.type === "logic.handlerFunction") && node.data?.mode === "blueprint") {
+          if ((node.type === "logic.function" || node.type === "logic.handlerFunction" || node.type === "logic.promise") && node.data?.mode === "blueprint") {
             openFunctionGraphTab(node);
           }
         }}

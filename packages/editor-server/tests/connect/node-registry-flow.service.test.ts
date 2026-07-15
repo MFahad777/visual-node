@@ -43,13 +43,14 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({});
 
-    // 53, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
+    // 54, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
     // in Phase 17 — wired inside a loop node's "Loop Body" arm to produce that iteration's
     // return value (see FUNCTION_GRAPH_ONLY_TYPES's doc comment in
     // nodes/function-graph-nodes.ts). Only `logic.graphEntry` remains function-graph-only.
     // Phase 18 added one more builtin, `logic.pathExtractor`. Phase 20 added `logic.callback`.
     // Phase 24 replaced `handler.customCode` with `logic.handlerFunction` (net count unchanged).
-    expect(res.definitions).toHaveLength(53);
+    // Added `logic.promise` for async-result handling.
+    expect(res.definitions).toHaveLength(54);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
@@ -85,9 +86,10 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({ scope: "function-graph" });
 
-    // Net unchanged: Phase 24 removed `handler.customCode` (was function-graph-usable) and
-    // added `handler.sendJson` (now function-graph-usable too) — same count as before.
-    expect(res.definitions).toHaveLength(44);
+    // 45: Phase 24 removed `handler.customCode` (was function-graph-usable) and
+    // added `handler.sendJson` (now function-graph-usable too). Added `logic.promise`
+    // for async-result handling.
+    expect(res.definitions).toHaveLength(45);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([

@@ -1,14 +1,66 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { Edge, Node } from "@xyflow/react";
 import type { NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import * as api from "../api/client.js";
-import { useFlowStore } from "../store/flowStore.js";
+import { useFlowStore, generateUniquePromiseName } from "../store/flowStore.js";
 import { useEditorTabsStore, type FunctionGraphTab } from "../store/editorTabsStore.js";
 import { getCallbackArgs } from "../canvas/effectivePorts.js";
 import { SwitchCasesConfig } from "./SwitchCasesConfig.js";
 import { VariablesPanel } from "./VariablesPanel.js";
 import { LazyCodeEditor } from "./LazyCodeEditor.js";
 import { Checkbox } from "./Checkbox.js";
+
+/**
+ * A tab's own outer node doesn't necessarily live in `flowStore` — a Promise node opened
+ * recursively from inside another tab's nested graph (see promise.node.ts) lives in that
+ * parent tab's own `functionGraphStore` instead (see `FunctionGraphTab.parentTabId`). These
+ * two helpers resolve "the array of sibling nodes this tab's outer node lives among" /
+ * "write a field back into this tab's outer node," dispatching to whichever store actually
+ * owns it. Plain functions, not hooks — safe to call from effects/event handlers; `useOwnerNode`
+ * below is the reactive (render-time) counterpart for read access.
+ */
+function getOwnerNodes(tab: FunctionGraphTab): Array<{ type?: string; data?: Record<string, unknown> }> {
+  if (tab.parentTabId === "main") return useFlowStore.getState().nodes;
+  const parentTab = useEditorTabsStore.getState().functionGraphTabs.find((t) => t.functionNodeId === tab.parentTabId);
+  return parentTab?.store.getState().nodes ?? [];
+}
+
+function updateOwnerNode(tab: FunctionGraphTab, nodeId: string, key: string, value: unknown): void {
+  if (tab.parentTabId === "main") {
+    useFlowStore.getState().updateNodeConfig(nodeId, key, value);
+    return;
+  }
+  const parentTab = useEditorTabsStore.getState().functionGraphTabs.find((t) => t.functionNodeId === tab.parentTabId);
+  parentTab?.store.getState().updateNodeData(nodeId, key, value);
+}
+
+/**
+ * Reactive counterpart to `getOwnerNodes`/`updateOwnerNode` — resolves `tab`'s own outer node
+ * (the Node the "Function Details" panel below describes), re-rendering when it changes,
+ * regardless of whether it lives in `flowStore` ("main"-parented tab) or another tab's own
+ * `functionGraphStore` (a recursively-nested tab). `useSyncExternalStore` (rather than a
+ * zustand hook call) is required here because WHICH store to subscribe to can itself change
+ * between renders of this same component instance (switching from a main-parented tab to a
+ * nested one) — conditionally calling one zustand hook vs. another based on a runtime value
+ * would violate the Rules of Hooks; subscribing/reading through a single indirection layer
+ * does not.
+ */
+function useOwnerNode(tab: FunctionGraphTab | undefined): Node | undefined {
+  const parentTab = useEditorTabsStore((s) =>
+    tab && tab.parentTabId !== "main" ? s.functionGraphTabs.find((t) => t.functionNodeId === tab.parentTabId) : undefined,
+  );
+  const ownerStore = tab ? (tab.parentTabId === "main" ? useFlowStore : parentTab?.store) : undefined;
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => (ownerStore ? ownerStore.subscribe(onStoreChange) : () => {}),
+    [ownerStore],
+  );
+  const getSnapshot = useCallback(
+    () => (tab && ownerStore ? ownerStore.getState().nodes.find((n) => n.id === tab.functionNodeId) : undefined),
+    [tab, ownerStore],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
 
 /**
  * Sidebar half of the active function-graph tab (Phase 21) — the `w-72` column
@@ -20,8 +72,18 @@ import { Checkbox } from "./Checkbox.js";
 export function FunctionGraphSidePanel() {
   const activeTabId = useEditorTabsStore((s) => s.activeTabId);
   const tab = useEditorTabsStore((s) => s.functionGraphTabs.find((t) => t.functionNodeId === activeTabId));
-  const functionNode = useFlowStore((s) => s.nodes.find((n) => n.id === activeTabId));
-  const updateNodeConfig = useFlowStore((s) => s.updateNodeConfig);
+  const functionNode = useOwnerNode(tab);
+
+  // Backfills a blank Name for a Promise node opened here that predates the auto-seeded name
+  // (created before this feature existed, or via any path that bypassed the seeding logic) —
+  // self-heals on open instead of leaving it stuck empty forever. Owner-aware: writes back
+  // into whichever store actually holds this tab's outer node.
+  useEffect(() => {
+    if (!tab || !functionNode) return;
+    if (functionNode.type !== "logic.promise") return;
+    if (String(functionNode.data?.name ?? "").trim()) return;
+    updateOwnerNode(tab, functionNode.id, "name", generateUniquePromiseName(getOwnerNodes(tab)));
+  }, [tab, functionNode]);
 
   if (!tab || !functionNode) return null;
 
@@ -30,7 +92,7 @@ export function FunctionGraphSidePanel() {
       key={tab.functionNodeId}
       tab={tab}
       functionNode={functionNode}
-      updateNodeConfig={updateNodeConfig}
+      updateNodeConfig={(nodeId, key, value) => updateOwnerNode(tab, nodeId, key, value)}
     />
   );
 }
@@ -50,6 +112,7 @@ function FunctionGraphSidePanelContent({
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
   const deleteSelectedNode = useGraphStore((s) => s.deleteSelectedNode);
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
+  const setPromiseAwaited = useGraphStore((s) => s.setPromiseAwaited);
   const addSwitchCasePin = useGraphStore((s) => s.addSwitchCasePin);
   const removeSwitchCasePin = useGraphStore((s) => s.removeSwitchCasePin);
   const updateSwitchCaseValue = useGraphStore((s) => s.updateSwitchCaseValue);
@@ -97,8 +160,9 @@ function FunctionGraphSidePanelContent({
 
   // Handler Function's req/res/next parameters are fixed by the node type — Express's
   // handler signature is invariant — so the Inputs list renders read-only here instead of
-  // the normal add/rename/remove controls `logic.function` gets.
-  const isFixedParams = functionNode.type === "logic.handlerFunction";
+  // the normal add/rename/remove controls `logic.function` gets. Promise's resolve/reject
+  // parameters are similarly fixed by the node type.
+  const isFixedParams = functionNode.type === "logic.handlerFunction" || functionNode.type === "logic.promise";
 
   return (
     <div className="w-72 shrink-0 overflow-auto border-l border-black/60 bg-[#1f1f1f] p-3">
@@ -145,11 +209,14 @@ function FunctionGraphSidePanelContent({
           definition={functionGraphDefinitions?.[selectedNode.type ?? ""] ?? null}
           edges={edges as Edge[]}
           updateNodeData={updateNodeData}
+          setPromiseAwaited={setPromiseAwaited}
           addSwitchCasePin={addSwitchCasePin}
           removeSwitchCasePin={removeSwitchCasePin}
           updateSwitchCaseValue={updateSwitchCaseValue}
           variables={variables}
           moduleVariables={moduleVariables}
+          localNodes={nodes}
+          parentTabId={tab.functionNodeId}
         />
       ) : (
         <p className="text-xs text-neutral-400">Select a node to configure it.</p>
@@ -173,21 +240,33 @@ function SubCanvasNodeConfig({
   definition,
   edges,
   updateNodeData,
+  setPromiseAwaited,
   addSwitchCasePin,
   removeSwitchCasePin,
   updateSwitchCaseValue,
   variables,
   moduleVariables,
+  localNodes,
+  parentTabId,
 }: {
   node: Node;
   definition: NodeDefinition | null;
   edges: Edge[];
   updateNodeData: (nodeId: string, key: string, value: unknown) => void;
+  setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
   addSwitchCasePin: (nodeId: string) => void;
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
   variables: VariableDeclaration[];
   moduleVariables: VariableDeclaration[];
+  /** This tab's own current node list — used to seed a unique Promise name and to detect an
+   * existing Blueprint-mode graph's node/edge count, same as `PromiseNodeConfig` on the main
+   * canvas. */
+  localNodes: Node[];
+  /** This tab's own `functionNodeId` — passed as the `parentTabId` to `openFunctionGraphTab`
+   * when opening a nested Promise node's own Blueprint graph, so live-sync writes back into
+   * THIS tab's store rather than assuming the main canvas. */
+  parentTabId: string;
 }) {
   // Phase 33: comment-group boxes are a UI-only React Flow node type with no NodeDefinition
   // (no ports, no emit()) — special-case before the "Loading…" fallback below, which would
@@ -201,6 +280,18 @@ function SubCanvasNodeConfig({
   }
 
   if (!definition) return <p className="text-xs text-neutral-400">Loading…</p>;
+
+  if (node.type === "logic.promise") {
+    return (
+      <NestedPromiseNodeConfig
+        node={node}
+        updateNodeData={updateNodeData}
+        setPromiseAwaited={setPromiseAwaited}
+        localNodes={localNodes}
+        parentTabId={parentTabId}
+      />
+    );
+  }
 
   if (node.type === "variable.get" || node.type === "variable.set") {
     // Phase 25: a Get/Set node in here can be bound to either this graph's own local variable
@@ -366,6 +457,150 @@ function SubCanvasNodeConfig({
           )}
         </label>
       ))}
+    </div>
+  );
+}
+
+/**
+ * A `logic.promise` node selected inside a nested Blueprint sub-canvas (Function/Handler
+ * Function graph, or recursively another Promise's own graph) — full parity with the main
+ * canvas's `PromiseNodeConfig` (NodeConfigPanel.tsx): Name, Code/Blueprint Authoring Mode
+ * toggle, Executor Body, npm Dependencies, Await, and Wrap In IIFE, plus an "Open Blueprint
+ * Graph" button that recursively opens THIS node's own tab with `parentTabId` set to the
+ * current tab (not "main") so live-sync writes back here, not into flowStore. Unlike the
+ * main-canvas version, this one also owns the Name field itself — the main canvas's Name
+ * field lives in `FunctionDetailsPanel` because that panel describes the outer tab's own
+ * node, but a nested Promise here is just an ordinary node on this tab's own canvas.
+ */
+function NestedPromiseNodeConfig({
+  node,
+  updateNodeData,
+  setPromiseAwaited,
+  localNodes,
+  parentTabId,
+}: {
+  node: Node;
+  updateNodeData: (nodeId: string, key: string, value: unknown) => void;
+  setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
+  localNodes: Node[];
+  parentTabId: string;
+}) {
+  const openFunctionGraphTab = useEditorTabsStore((s) => s.openFunctionGraphTab);
+  const mode = node.data?.mode === "blueprint" ? "blueprint" : "code";
+  const awaited = node.data?.awaited === true;
+  const graph = node.data?.graph as { nodes?: unknown[]; edges?: unknown[] } | undefined;
+  const graphNodeCount = graph?.nodes?.length ?? 0;
+  const graphEdgeCount = graph?.edges?.length ?? 0;
+
+  function switchMode(next: "code" | "blueprint") {
+    if (next === mode) return;
+    if (next === "blueprint") {
+      const hasBody = String(node.data?.body ?? "").trim().length > 0;
+      const hasGraph = graphNodeCount > 0;
+      if (hasBody && !hasGraph) {
+        const confirmed = window.confirm(
+          "Switching to Blueprint mode won't preserve your existing Executor Body code. Continue?",
+        );
+        if (!confirmed) return;
+      }
+      updateNodeData(node.id, "mode", "blueprint");
+      return;
+    }
+    updateNodeData(node.id, "mode", "code");
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Name</span>
+        <input
+          type="text"
+          className="w-full rounded border border-neutral-700 bg-[#2a2a2a] px-2 py-1 text-xs text-neutral-100"
+          value={String(node.data?.name ?? "")}
+          onChange={(e) => {
+            const trimmed = e.target.value.trim();
+            updateNodeData(node.id, "name", trimmed || generateUniquePromiseName(localNodes));
+          }}
+        />
+      </label>
+
+      <label className="flex items-center gap-2">
+        <Checkbox
+          checked={awaited}
+          onChange={(e) => setPromiseAwaited(node.id, e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Await Promise</span>
+      </label>
+
+      <label className="flex items-center gap-2">
+        <Checkbox
+          checked={node.data?.wrapInIife !== false}
+          onChange={(e) => updateNodeData(node.id, "wrapInIife", e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Wrap In IIFE</span>
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-400">Authoring Mode</span>
+        <div className="flex overflow-hidden rounded border border-neutral-700">
+          <button
+            type="button"
+            onClick={() => switchMode("code")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "code" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Code
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("blueprint")}
+            className={`flex-1 px-2 py-1 text-xs ${mode === "blueprint" ? "bg-sky-600 text-white" : "bg-[#1f1f1f] text-neutral-300 hover:bg-neutral-700"}`}
+          >
+            Blueprint
+          </button>
+        </div>
+      </div>
+
+      {mode === "code" ? (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">Executor Body</span>
+            <span className="text-[11px] text-neutral-400">
+              Available: resolve, reject functions. Use resolve(value) or reject(error) to settle the Promise.
+            </span>
+            <LazyCodeEditor
+              value={node.data?.body}
+              field={{ key: "body", label: "Executor Body", type: "code", default: "" }}
+              onChange={(value) => updateNodeData(node.id, "body", value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-neutral-400">npm Dependencies</span>
+            <span className="text-[11px] text-neutral-400">
+              Comma-separated package names this executor's code depends on, e.g. "lodash, dayjs".
+            </span>
+            <input
+              type="text"
+              className="w-full rounded border border-neutral-700 bg-[#1f1f1f] px-2 py-1 text-xs text-neutral-100"
+              value={String(node.data?.npmDependencies ?? "")}
+              onChange={(e) => updateNodeData(node.id, "npmDependencies", e.target.value)}
+            />
+          </label>
+        </>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="rounded bg-black/40 px-2 py-1.5 text-[11px] text-neutral-300">
+            {graphNodeCount} node{graphNodeCount === 1 ? "" : "s"}, {graphEdgeCount} edge{graphEdgeCount === 1 ? "" : "s"}
+          </div>
+          <button
+            type="button"
+            onClick={() => openFunctionGraphTab(node, parentTabId)}
+            className="rounded bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700"
+          >
+            Open Blueprint Graph
+          </button>
+        </div>
+      )}
     </div>
   );
 }

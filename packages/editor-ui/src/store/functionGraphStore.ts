@@ -23,6 +23,7 @@ import {
   removePathExtractorParam as removePathExtractorParamHelper,
   addCallbackArg as addCallbackArgHelper,
   removeCallbackArg as removeCallbackArgHelper,
+  setPromiseAwaited as setPromiseAwaitedHelper,
 } from "./variadicPins.js";
 import { translateWaypoints } from "../canvas/edgeWaypoints.js";
 import { withParentsBeforeChildren, reparentNode, releaseChildrenOfDeletedGroup, assignInitialMembers, findContainingGroup } from "../canvas/subflowGroups.js";
@@ -108,6 +109,7 @@ export interface FunctionGraphState {
   removePathExtractorParam: (nodeId: string) => void;
   addCallbackArg: (nodeId: string) => void;
   removeCallbackArg: (nodeId: string, argId: string) => void;
+  setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
   addParam: (name: string) => void;
   removeParam: (name: string) => void;
   renameParam: (oldName: string, newName: string) => void;
@@ -375,6 +377,10 @@ export function createFunctionGraphStore(
     },
     removeCallbackArg: (nodeId, argId) => {
       const { nodes, edges } = removeCallbackArgHelper(nodeId, argId, get().nodes, get().edges);
+      set({ nodes, edges });
+    },
+    setPromiseAwaited: (nodeId, awaited) => {
+      const { nodes, edges } = setPromiseAwaitedHelper(nodeId, awaited, get().nodes, get().edges);
       set({ nodes, edges });
     },
     updateSwitchCaseValue: (nodeId, caseId, value) => {

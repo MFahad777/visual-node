@@ -136,6 +136,8 @@ function summarize(
       const argCount = Array.isArray(data.args) ? data.args.length : 0;
       return `callback(${argCount} arg${argCount === 1 ? "" : "s"})`;
     }
+    case "logic.promise":
+      return data.awaited === true ? "Awaited" : "Then/Catch";
     default:
       return null;
   }
@@ -223,7 +225,12 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     edges,
   );
   const theme = CATEGORY_THEME[definition.category];
-  const accentHex = theme.accentHex;
+  // logic.promise gets a dedicated "Amber Gold" header/accent instead of the shared Logic
+  // (violet) category color, per explicit user request — distinguishes it at a glance from
+  // every other "logic"-category node (Function, Require, Export, Begin, etc.).
+  const isPromiseNode = type === "logic.promise";
+  const accentHex = isPromiseNode ? "#f5b400" : theme.accentHex;
+  const headerClass = isPromiseNode ? "bg-gradient-to-b from-amber-400 to-amber-600" : theme.headerClass;
 
   // A variable.get's single "value" output and a variable.set's "value" input carry the
   // bound variable's own type, not a generic "logic"-category value — resolve it the same
@@ -389,7 +396,7 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
         title={hasError ? errors.map((e) => e.message).join("\n") : undefined}
       >
 
-      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 ${theme.headerClass}`}>
+      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 ${headerClass}`}>
         <span className="flex h-5 w-5 items-center justify-center rounded bg-black/25">
           <CategoryIcon category={definition.category} className="h-3.5 w-3.5 text-white/90" />
         </span>

@@ -268,6 +268,7 @@ function GraphCanvas({
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const scopedDefinitions = useFunctionGraphNodeDefinitions();
+  const openFunctionGraphTab = useEditorTabsStore((s) => s.openFunctionGraphTab);
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) =>
@@ -433,6 +434,14 @@ function GraphCanvas({
         isValidConnection={isValidConnection}
         onMove={(_, viewport) => setZoom(viewport.zoom)}
         onNodeClick={(_, node) => onSelectNode(node.id)}
+        onNodeDoubleClick={(_, node) => {
+          // Recursion (see promise.node.ts): a Promise node's own Blueprint graph can be
+          // opened from inside another tab's nested canvas too, not just the main canvas —
+          // `parentTabId` is set to THIS tab's own id so live-sync writes back here.
+          if (node.type === "logic.promise" && node.data?.mode === "blueprint") {
+            openFunctionGraphTab(node, functionNodeId);
+          }
+        }}
         onNodeDragStop={onNodeDragStop}
         onPaneClick={() => onSelectNode(null)}
         onPaneContextMenu={onPaneContextMenu}

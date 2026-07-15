@@ -6,6 +6,7 @@ import {
   getCallbackArgs,
   functionAllowedInputHandles,
   functionAllowedOutputHandles,
+  promiseAllowedOutputHandles,
   type SwitchCase,
   type SequencePin,
   type CallbackArg,
@@ -218,4 +219,27 @@ export function updateSwitchCaseValue(nodeId: string, caseId: string, value: str
         }
       : n,
   );
+}
+
+/**
+ * Sets a `logic.promise` instance's `awaited` flag and drops any edge touching this node
+ * whose handle becomes hidden when awaited — `then`/`catch`/`value`/`error`. Uses the same
+ * `promiseAllowedOutputHandles` helper `effectivePorts.ts`'s `computeEffectiveOutputs` uses
+ * for rendering, so a pin that's about to disappear from the canvas never keeps a dangling
+ * edge reference. Mirrors `setFunctionUsage` (§3 of Phase 36 plan).
+ */
+export function setPromiseAwaited(
+  nodeId: string,
+  awaited: boolean,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const allowedOutputs = promiseAllowedOutputHandles(awaited);
+  return {
+    nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, awaited } } : n)),
+    edges: edges.filter((e) => {
+      if (e.source === nodeId && e.sourceHandle && !allowedOutputs.has(e.sourceHandle)) return false;
+      return true;
+    }),
+  };
 }

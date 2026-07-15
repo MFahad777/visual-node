@@ -1,6 +1,7 @@
 import type { FlowEdge, FlowNode } from "../schema/node.types.js";
 import { requireNodeDefinition, type EmitContext, type LoopShape, type NodeDefinition, type PortDefinition } from "../schema/node-registry.js";
 import { resolveValuePin } from "./value-pins.js";
+import { commentBlockFor } from "./node-comment.js";
 
 /**
  * Deliberately duplicated from `emit-function-graph.ts`'s identical helper rather than
@@ -11,6 +12,46 @@ import { resolveValuePin } from "./value-pins.js";
 function sanitizeIdentifier(id: string): string {
   const cleaned = id.replace(/[^A-Za-z0-9_$]/g, "_");
   return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
+}
+
+/**
+ * The `resolve`/`reject` identifiers used for a `logic.promise` node's own executor, unique
+ * per node instance. Only used for **blueprint-mode** promises — code-mode executor bodies are
+ * raw text the user hand-typed assuming the literal parameter names "resolve"/"reject" (per the
+ * node's own config-panel hint), so those keep the bare literals unchanged.
+ *
+ * Blueprint mode needs uniqueness because a `logic.promise` node can itself contain another
+ * `logic.promise` node inside its executor's blueprint graph (its Then/Catch arm is compiled
+ * with the SAME `ctx`/ScopeGraph as the outer executor — see the `logic.promise` branch below).
+ * If every executor's arrow function used the bare literals "resolve"/"reject", the inner
+ * node's own `(resolve, reject) => {...}` parameters would lexically shadow the outer
+ * executor's identically-named parameters — silently breaking any inner arm that wires to the
+ * OUTER graph-entry's "resolve"/"reject" pin intending to settle the OUTER Promise instead of
+ * the inner one. `promise.node.ts`'s `promiseExecutor` passes this same pair into
+ * `emitFunctionGraphBody` so `logic.graphEntry`'s `resultIdentifier` hands back these exact
+ * names instead of the bare handle strings.
+ */
+export function promiseExecutorParamNames(nodeId: string): { resolve: string; reject: string } {
+  const suffix = sanitizeIdentifier(nodeId);
+  return { resolve: `resolve_${suffix}`, reject: `reject_${suffix}` };
+}
+
+/**
+ * The enclosing-promise-scope chain a nested `logic.promise` node's OWN blueprint executor
+ * graph should inherit from `ctx`, the context the outer `logic.promise` node is itself being
+ * emitted under. If `ctx` is itself a `logic.promise` executor scope (`ctx.promiseExecutorParams`
+ * set), that becomes the new nearest enclosing level, with whatever already enclosed `ctx`
+ * pushed one level further out; otherwise `ctx`'s own enclosing chain (if any, from further out
+ * still) passes straight through unchanged. Only ever called from `promise.node.ts`'s
+ * `promiseExecutor` — a `logic.promise` can only ever nest inside another `logic.promise`
+ * (`logic.function`/`logic.handlerFunction` are never addable inside a blueprint sub-canvas at
+ * all, so there's no intervening scope to pass this through for).
+ */
+export function mergeEnclosingPromiseParams(ctx: EmitContext): Array<{ resolve: string; reject: string }> | undefined {
+  if (ctx.promiseExecutorParams) {
+    return [ctx.promiseExecutorParams, ...(ctx.enclosingPromiseExecutorParams ?? [])];
+  }
+  return ctx.enclosingPromiseExecutorParams;
 }
 
 interface ForkArm {
@@ -227,8 +268,11 @@ function hoistValueDepsCore(nodeId: string, ctx: EmitContext, emitted: Set<strin
     if (emitted.has(sourceId)) continue; // a sibling edge's recursive hoist may have just emitted it
 
     const sourceNode = ctx.getNode(sourceId);
-    if (sourceNode && requireNodeDefinition(sourceNode.type).requiresAsync === true) {
-      requiresAsync = true;
+    if (sourceNode) {
+      const ra = requireNodeDefinition(sourceNode.type).requiresAsync;
+      if (typeof ra === "function" ? ra(sourceNode) : ra === true) {
+        requiresAsync = true;
+      }
     }
 
     const emittedCode = ctx.emitNode(sourceId);
@@ -266,6 +310,16 @@ interface EmitBlockResult {
    * nodes, never handler-chain-nested ones — so a chain-nested node's imports had nowhere to go.
    */
   imports: string[];
+  /**
+   * True if any `logic.promise` node emitted in this block (directly, or in a nested fork/loop
+   * arm) is awaited AND has its own `data.wrapInIife === false` — a per-instance opt-out from
+   * `logic.begin`'s default fire-and-forget `(async () => { ... })();` wrapper. Only
+   * `logic.begin` ever reads this (it's the only exec-chain owner with no async-capable
+   * function scope of its own to bubble `requiresAsync` into — Route/Function/Handler Function
+   * each have their own "Async" checkbox instead, so a wrapper never applies there regardless
+   * of this flag). Ignored (and irrelevant) when `requiresAsync` is false.
+   */
+  suppressIifeWrap: boolean;
 }
 
 function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited: ReadonlySet<string>): EmitBlockResult {
@@ -273,6 +327,7 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
   const statements: string[] = [];
   const imports: string[] = [];
   let requiresAsync = false;
+  let suppressIifeWrap = false;
   let currentId = startNodeId;
 
   while (currentId) {
@@ -288,8 +343,104 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
     statements.push(...hoisted.statements);
     imports.push(...hoisted.imports);
     if (hoisted.requiresAsync) requiresAsync = true;
-    if (requireNodeDefinition(node.type).requiresAsync === true) requiresAsync = true;
+    const ra = requireNodeDefinition(node.type).requiresAsync;
+    if (typeof ra === "function" ? ra(node) : ra === true) {
+      requiresAsync = true;
+    }
     emitted.add(currentId);
+
+    if (node.type === "logic.promise") {
+      const def = requireNodeDefinition(node.type);
+      const data = node.data as Record<string, unknown> | undefined;
+      const awaited = data?.awaited === true;
+      const isBlueprint = data?.mode === "blueprint";
+
+      const executor = def.promiseExecutor!(node, ctx);
+      imports.push(...executor.imports);
+      // If the executor body itself needs `await` (e.g. a nested awaited Promise), the
+      // executor function is declared `async` — same as a hand-written
+      // `new Promise(async (resolve, reject) => { await ... })`. Note: an error thrown
+      // after an `await` in here that isn't manually caught and passed to `reject()`
+      // becomes an unhandled rejection instead of rejecting this Promise, since the
+      // Promise constructor discards whatever the async executor function returns — a
+      // known JS gotcha (ESLint's `no-async-promise-executor`), deliberately not papered
+      // over with an auto-generated try/catch; the user is expected to call `reject()`
+      // explicitly on any error path they care about.
+      const executorPrefix = executor.requiresAsync ? "async " : "";
+      // Blueprint-mode executors use per-instance-unique parameter names (see
+      // `promiseExecutorParamNames`) so a `logic.promise` node nested inside another
+      // blueprint-mode Promise's own executor graph never lexically shadows the outer
+      // executor's "resolve"/"reject". Code-mode executors keep the bare literals — that
+      // body is raw text the user hand-typed assuming those exact names.
+      const { resolve: resolveParam, reject: rejectParam } = isBlueprint
+        ? promiseExecutorParamNames(currentId)
+        : { resolve: "resolve", reject: "reject" };
+      let expr = `new Promise(${executorPrefix}(${resolveParam}, ${rejectParam}) => {\n${indent(executor.code)}\n})`;
+
+      if (awaited) {
+        expr = `await ${expr}`;
+        requiresAsync = true; // bubbles normally — this DOES need the enclosing scope async
+        if ((node.data as Record<string, unknown> | undefined)?.wrapInIife === false) {
+          suppressIifeWrap = true;
+        }
+      } else {
+        const thenEdge = ctx.getOutgoing(currentId, "then")[0];
+        if (thenEdge) {
+          const sub = emitBlock(thenEdge.target, ctx, emitted);
+          if (sub.requiresAsync) {
+            throw new Error(`Promise node "${currentId}"'s Then arm requires "await" support ` +
+              `the Then callback does not have — restructure to avoid needing await here.`);
+          }
+          imports.push(...sub.imports);
+          expr += `\n  .then((value) => {\n${indent(sub.code)}\n  })`;
+          // NOTE: sub.requiresAsync is deliberately NOT bubbled into the outer `requiresAsync`
+          // — Then is a real new function boundary, unlike Branch/Switch/Sequence arms which
+          // are plain `{}` blocks in the same function scope.
+        }
+        const catchEdge = ctx.getOutgoing(currentId, "catch")[0];
+        if (catchEdge) {
+          const sub = emitBlock(catchEdge.target, ctx, emitted);
+          if (sub.requiresAsync) {
+            throw new Error(`Promise node "${currentId}"'s Catch arm requires "await" support ` +
+              `the Catch callback does not have — restructure to avoid needing await here.`);
+          }
+          imports.push(...sub.imports);
+          expr += `\n  .catch((error) => {\n${indent(sub.code)}\n  })`;
+        }
+      }
+
+      const assignEdge = ctx.getOutgoing(currentId, "assign")[0];
+      let nextId: string | undefined;
+      if (assignEdge) {
+        const setNode = ctx.getNode(assignEdge.target);
+        if (!setNode || setNode.type !== "variable.set") {
+          throw new Error(`Promise node "${currentId}"'s Assign pin must be wired to a Set Variable node.`);
+        }
+        const outEdge = ctx.getOutgoing(currentId, "out")[0];
+        if (!outEdge || outEdge.target !== setNode.id) {
+          throw new Error(`Promise node "${currentId}"'s Assign pin target must be the node ` +
+            `immediately following it on the "Out" pin.`);
+        }
+        const variable = (ctx.flow.variables ?? []).find(
+          (v) => v.id === (setNode.data as Record<string, unknown> | undefined)?.variableId
+        );
+        if (!variable) {
+          throw new Error(`Set Variable node "${setNode.id}" references an unknown variable.`);
+        }
+        const stmt = variable.keyword === "const" ? `const ${variable.name} = ${expr};` : `${variable.name} = ${expr};`;
+        const commentBlock = commentBlockFor(node);
+        statements.push(commentBlock ? `${commentBlock}\n${stmt}` : stmt);
+        emitted.add(setNode.id); // absorbed — never independently processed
+        nextId = ctx.getOutgoing(setNode.id, "out")[0]?.target;
+      } else {
+        const commentBlock = commentBlockFor(node);
+        statements.push(commentBlock ? `${commentBlock}\n${expr};` : `${expr};`);
+        nextId = ctx.getOutgoing(currentId, "out")[0]?.target;
+      }
+
+      currentId = nextId;
+      continue;
+    }
 
     const armPinIds = getForkArmPinIds(node);
     if (armPinIds) {
@@ -298,6 +449,7 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
         if (!edge) return { pinId, code: "", wired: false };
         const sub = emitBlock(edge.target, ctx, emitted);
         if (sub.requiresAsync) requiresAsync = true;
+        if (sub.suppressIifeWrap) suppressIifeWrap = true;
         imports.push(...sub.imports);
         return { pinId, code: sub.code, wired: true };
       });
@@ -312,7 +464,7 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
             ? assembleSwitchStatement(resolveValuePin(node, ctx, "selection", { defaultLiteral: "0" }), getSwitchCases(node), arms)
             : assembleSequence(arms); // controlFlow.sequence
       statements.push(assembled);
-      return { code: statements.join("\n"), emitted, requiresAsync, imports }; // fork nodes are always block-terminal
+      return { code: statements.join("\n"), emitted, requiresAsync, suppressIifeWrap, imports }; // fork nodes are always block-terminal
     }
 
     const def = requireNodeDefinition(node.type);
@@ -325,6 +477,7 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
         // ignoring the node's own unwired-fallback `emit()` (raw callback-text mode) entirely.
         const sub = emitBlock(bodyEdge.target, ctx, emitted);
         if (sub.requiresAsync) requiresAsync = true;
+        if (sub.suppressIifeWrap) suppressIifeWrap = true;
         imports.push(...sub.imports);
         statements.push(assembleWiredLoopCall(node, ctx, loop, def, sub.code));
       } else {
@@ -347,7 +500,7 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
     currentId = ctx.getOutgoing(currentId, "out")[0]?.target;
   }
 
-  return { code: statements.join("\n"), emitted, requiresAsync, imports };
+  return { code: statements.join("\n"), emitted, requiresAsync, suppressIifeWrap, imports };
 }
 
 /**

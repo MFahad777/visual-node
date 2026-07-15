@@ -294,6 +294,91 @@
       }
     ]
   },
+  "logic.promise": {
+    "type": "logic.promise",
+    "category": "logic",
+    "label": "Promise",
+    "description": "Construct and handle promises with optional await, then/catch arms, or variable binding",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      },
+      {
+        "id": "then",
+        "label": "Then",
+        "kind": "exec"
+      },
+      {
+        "id": "catch",
+        "label": "Catch",
+        "kind": "exec"
+      },
+      {
+        "id": "assign",
+        "label": "Assign",
+        "kind": "value"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      },
+      {
+        "id": "error",
+        "label": "Error",
+        "kind": "value"
+      }
+    ],
+    "configSchema": [
+      {
+        "key": "mode",
+        "label": "Authoring Mode",
+        "type": "select",
+        "options": [
+          "code",
+          "blueprint"
+        ],
+        "default": "code"
+      },
+      {
+        "key": "body",
+        "label": "Executor Body",
+        "type": "code",
+        "default": "",
+        "hint": "Code mode only. Must call resolve() or reject() to complete the promise."
+      },
+      {
+        "key": "npmDependencies",
+        "label": "npm Dependencies",
+        "type": "text",
+        "default": "",
+        "hint": "Code mode only. Comma-separated package names."
+      },
+      {
+        "key": "awaited",
+        "label": "Await",
+        "type": "boolean",
+        "default": false,
+        "hint": "When enabled, this Promise will be awaited inline. When disabled, wire Then/Catch arms."
+      },
+      {
+        "key": "wrapInIife",
+        "label": "Wrap In IIFE",
+        "type": "boolean",
+        "default": true,
+        "hint": "Await-only. Only matters when this chain has no async-capable enclosing function to bubble into (e.g. hanging off a Begin node) — Route/Function/Handler Function nodes already have their own Async checkbox instead. When off, the awaited expression is emitted bare, with no fire-and-forget wrapper — only valid where the enclosing scope is already async."
+      }
+    ]
+  },
   "logic.export": {
     "type": "logic.export",
     "category": "logic",

@@ -95,7 +95,13 @@ describe("logic.callback (Phase 20)", () => {
       args: [{ id: "0" }, { id: "1" }],
       literals: { function: "(x, y) => x + y", "arg-0": "3", "arg-1": "4" },
     });
-    const emitted = def.emit(node, emptyCtx);
+    // Result pin wired downstream — declares its `_cbresult_` binding rather than a bare
+    // call statement (see the "unused result" test below for the opposite case).
+    const resultWiredCtx: EmitContext = {
+      ...emptyCtx,
+      getOutgoing: (_nodeId, handle) => (handle === "result" ? [{ id: "e1", source: "cb1", target: "x" }] : []),
+    };
+    const emitted = def.emit(node, resultWiredCtx);
     expect(emitted.body).toContain("const _cbresult_cb1 = ((x, y) => x + y)((3), (4));");
     const result = runEmitted("", emitted.body!, "_cbresult_cb1");
     expect(result).toBe(7);
@@ -105,7 +111,15 @@ describe("logic.callback (Phase 20)", () => {
     const def = getNodeDefinition("logic.callback")!;
     const node = callbackNode({ args: [{ id: "0" }] });
     const emitted = def.emit(node, emptyCtx);
-    expect(emitted.body).toContain("const _cbresult_cb1 = (undefined)((undefined));");
+    expect(emitted.body).toContain("(undefined)((undefined));");
+  });
+
+  it("does not declare an unused _cbresult_ binding when the Result pin isn't wired to anything", () => {
+    const def = getNodeDefinition("logic.callback")!;
+    const node = callbackNode({ literals: { function: "() => {}" } });
+    const emitted = def.emit(node, emptyCtx);
+    expect(emitted.body).toBe("(() => {})();");
+    expect(emitted.body).not.toContain("_cbresult_");
   });
 
   it("resultIdentifier exposes the same _cbresult_<id> the emitted body declares", () => {

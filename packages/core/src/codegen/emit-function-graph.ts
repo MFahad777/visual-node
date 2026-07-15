@@ -65,7 +65,12 @@ export function resultIdentifierFor(node: FlowNode, handle?: string, ctx?: EmitC
   return identifier;
 }
 
-function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): EmitContext {
+function buildGraphEmitContext(
+  graph: FunctionGraph,
+  outerVariables: VariableDeclaration[] = [],
+  promiseExecutorParams?: { resolve: string; reject: string },
+  enclosingPromiseExecutorParams?: Array<{ resolve: string; reject: string }>,
+): EmitContext {
   // Filter out comment nodes and other nodes with invalid types (UI-only annotations, not executable)
   const validNodes = graph.nodes.filter((n) => {
     if (!n.type) return false;
@@ -95,6 +100,8 @@ function buildGraphEmitContext(graph: FunctionGraph, outerVariables: VariableDec
     getNode: (nodeId) => nodesById.get(nodeId),
     getIncoming: (nodeId, handle) => graph.edges.filter((e) => e.target === nodeId && matchesHandle(e, "target", handle)),
     getOutgoing: (nodeId, handle) => graph.edges.filter((e) => e.source === nodeId && matchesHandle(e, "source", handle)),
+    promiseExecutorParams,
+    enclosingPromiseExecutorParams,
     emitNode: (nodeId) => {
       const cached = cache.get(nodeId);
       if (cached) return cached;
@@ -128,6 +135,8 @@ export interface FunctionGraphBodyResult {
    * graph instead of a Route's chain.
    */
   imports: string[];
+  /** True if any node in this graph requires an async-capable enclosing scope. */
+  requiresAsync: boolean;
 }
 
 /**
@@ -139,8 +148,26 @@ export interface FunctionGraphBodyResult {
  * canvas's route handler chains (`exec-chain.ts`), starting from whatever the entry node's
  * "out" pin is wired to — this is what lets a Branch/Switch node placed inside a function's
  * blueprint graph compile into a real `if`/`switch` block instead of flat statement soup.
+ *
+ * `promiseExecutorParams`, when passed, marks this graph as a `logic.promise` node's
+ * blueprint-mode executor body — it's this graph's `logic.graphEntry`'s unique per-instance
+ * `resolve`/`reject` identifiers (see `exec-chain.ts`'s `promiseExecutorParamNames`), so a
+ * Callback wired to this entry's "resolve"/"reject" pin resolves to the same identifier the
+ * enclosing `new Promise((resolve_X, reject_X) => ...)` actually declares, instead of the bare
+ * literal "resolve"/"reject" that would collide with a `logic.promise` node nested inside this
+ * very graph.
+ *
+ * `enclosingPromiseExecutorParams`, when passed, is every ANCESTOR `logic.promise` executor
+ * scope enclosing this graph (see `exec-chain.ts`'s `mergeEnclosingPromiseParams`) — lets this
+ * graph's `logic.graphEntry` resolve "outerResolve"/"outerReject" (and numbered-suffix
+ * variants for deeper nesting) to an outer Promise's own resolve/reject.
  */
-export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: VariableDeclaration[] = []): FunctionGraphBodyResult {
+export function emitFunctionGraphBody(
+  graph: FunctionGraph,
+  outerVariables: VariableDeclaration[] = [],
+  promiseExecutorParams?: { resolve: string; reject: string },
+  enclosingPromiseExecutorParams?: Array<{ resolve: string; reject: string }>,
+): FunctionGraphBodyResult {
   // Filter out comment nodes and other nodes with invalid types (UI-only annotations, not executable)
   const validNodes = graph.nodes.filter((n) => {
     if (!n.type) return false;
@@ -170,7 +197,7 @@ export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: Vari
     throw err;
   }
 
-  const ctx = buildGraphEmitContext(graph, outerVariables);
+  const ctx = buildGraphEmitContext(graph, outerVariables, promiseExecutorParams, enclosingPromiseExecutorParams);
   const entry = validNodes.find((n) => n.type === "logic.graphEntry");
   const startNodeId = entry ? ctx.getOutgoing(entry.id, "out")[0]?.target : undefined;
 
@@ -223,5 +250,5 @@ export function emitFunctionGraphBody(graph: FunctionGraph, outerVariables: Vari
     }
   }
 
-  return { code: statements.join("\n"), imports };
+  return { code: statements.join("\n"), imports, requiresAsync: trunk.requiresAsync };
 }

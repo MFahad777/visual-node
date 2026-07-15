@@ -6,6 +6,7 @@ import { customMiddlewareNode } from "./middleware/custom-code.node.js";
 import { routeNode } from "./routing/route.node.js";
 import { sendJsonNode } from "./handler/send-json.node.js";
 import { logicFunctionNode } from "./logic/function.node.js";
+import logicPromiseNode from "./logic/promise.node.js";
 import { handlerFunctionNode } from "./logic/handler-function.node.js";
 import { logicExportNode } from "./logic/export.node.js";
 import { logicRequireNode } from "./logic/require.node.js";
@@ -65,6 +66,7 @@ const BUILTIN_NODES = [
   // code/blueprint dual mode, wired from Route nodes.
   handlerFunctionNode,
   logicFunctionNode,
+  logicPromiseNode,
   logicExportNode,
   logicRequireNode,
   logicFunctionCallNode,
@@ -149,6 +151,7 @@ export {
   sendJsonNode,
   handlerFunctionNode,
   logicFunctionNode,
+  logicPromiseNode,
   logicExportNode,
   logicRequireNode,
   logicFunctionCallNode,

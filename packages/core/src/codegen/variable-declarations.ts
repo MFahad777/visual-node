@@ -46,6 +46,7 @@ export function validateVariableDeclaration(variable: VariableDeclaration): stri
       return null;
 
     case "object":
+    case "any":
       // Accept any raw JavaScript object syntax (allows functions, computed properties, etc.)
       // No validation — trust the user to provide valid JS
       return null;
@@ -178,6 +179,7 @@ export function formatLiteralForType(dataType: VariableDataType, raw: string): s
     case "number":
     case "boolean":
     case "object":
+    case "any":
     case "array":
     case "null":
     case "undefined":

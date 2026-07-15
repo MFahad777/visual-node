@@ -181,6 +181,14 @@ export function functionAllowedOutputHandles(usage: FunctionUsage | undefined): 
   return new Set(["out", "value"]);
 }
 
+/** Output pin ids a `logic.promise` instance has when awaited — hides then/catch/value/error,
+ * leaving only out and assign visible (the exec-continuation and variable-binding pins).
+ * When awaited is false, all pins remain visible. */
+export function promiseAllowedOutputHandles(awaited: boolean): Set<string> {
+  if (awaited) return new Set(["out", "assign"]);
+  return new Set(["out", "then", "catch", "assign", "value", "error"]);
+}
+
 export interface CallbackArg {
   id: string;
 }
@@ -296,6 +304,15 @@ export function computeEffectiveOutputs(
     // matching pre-this-feature behavior.
     const usage = data?.usage as FunctionUsage | undefined;
     const allowed = functionAllowedOutputHandles(usage);
+    return definition.outputs.filter((p) => allowed.has(p.id));
+  }
+
+  if (type === "logic.promise") {
+    // When awaited, hide then/catch/value/error pins, leaving only out and assign visible.
+    // When not awaited, show all pins. Mirrors logic.function's usage-gated filtering.
+    const awaited = (data as Record<string, unknown> | undefined)?.awaited === true;
+    if (!awaited) return definition.outputs;
+    const allowed = promiseAllowedOutputHandles(awaited);
     return definition.outputs.filter((p) => allowed.has(p.id));
   }
 

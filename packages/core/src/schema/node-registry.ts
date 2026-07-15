@@ -55,6 +55,33 @@ export interface EmitContext {
   getNode: (nodeId: string) => FlowNode | undefined;
   /** Emits a single node in isolation (used to pull a handler chain's `body` into an owning route). */
   emitNode: (nodeId: string) => EmittedCode;
+  /**
+   * Set only when this ctx was built to compile a `logic.promise` node's blueprint-mode
+   * executor graph (see `emitFunctionGraphBody`'s optional third parameter). Gives
+   * `logic.graphEntry`'s `resultIdentifier` the promise-instance-unique `resolve`/`reject`
+   * identifiers to hand back instead of the bare literal strings "resolve"/"reject" — see
+   * `codegen/exec-chain.ts`'s `promiseExecutorParamNames` for why the bare literals can't be
+   * reused: a `logic.promise` node nested inside another `logic.promise`'s own blueprint
+   * executor graph would otherwise have its executor's `(resolve, reject) => {...}` parameters
+   * lexically shadow the outer executor's identically-named parameters, silently breaking any
+   * inner arm (e.g. a Callback in a nested Promise's Then arm) that wires to the OUTER
+   * graph-entry's "resolve"/"reject" pin intending to settle the outer Promise.
+   */
+  promiseExecutorParams?: { resolve: string; reject: string };
+  /**
+   * Every ANCESTOR `logic.promise` blueprint executor scope enclosing this graph, nearest
+   * first — distinct from `promiseExecutorParams` above, which is this graph's OWN promise
+   * (if any). Populated by `mergeEnclosingPromiseParams` (`codegen/exec-chain.ts`) and passed
+   * to `emitFunctionGraphBody`'s fourth parameter by `logic.promise`'s own `promiseExecutor` —
+   * `logic.function`/`logic.handlerFunction` never set or forward this, since neither is ever
+   * addable inside another blueprint sub-canvas (`FUNCTION_GRAPH_NODE_DEFINITIONS` excludes
+   * both), so a `logic.promise` can only ever nest inside another `logic.promise`. Lets an
+   * arbitrarily-deep nested Promise still reach an outer Promise's resolve/reject:
+   * `logic.graphEntry`'s `resultIdentifier` resolves the handle "outerResolve"/"outerReject" to
+   * `enclosingPromiseExecutorParams[0]` (the nearest enclosing Promise), "outerResolve_2"/
+   * "outerReject_2" to index 1, and so on.
+   */
+  enclosingPromiseExecutorParams?: Array<{ resolve: string; reject: string }>;
 }
 
 /**
@@ -96,6 +123,17 @@ export interface NodeDefinition {
   /** See `LoopShape`. Only set by loop-container array node types (map/filter/forEach/etc.). */
   loopShape?: LoopShape;
   /**
+   * For nodes whose own "body" must be compiled independently of the normal emit() contract
+   * (currently only logic.promise's executor). Returns the compiled inner body plus anything
+   * that needs to bubble (imports, requiresAsync) — NOT wrapped in any statement/assignment;
+   * the caller (exec-chain.ts) decides how to splice it in. Optional; only set by logic.promise.
+   */
+  promiseExecutor?: (node: FlowNode, ctx: EmitContext) => {
+    code: string;
+    imports: string[];
+    requiresAsync: boolean;
+  };
+  /**
    * Fixed, node-TYPE-level npm dependencies always needed when any instance of this type is
    * placed on canvas (distinct from per-instance dependency declarations elsewhere). Optional;
    * no builtin node currently sets this.
@@ -103,9 +141,10 @@ export interface NodeDefinition {
   npmDependencies?: Record<string, string>;
   /**
    * True if this node type's emit() output requires an `await`-capable (async) enclosing
-   * function scope. Optional; no builtin node currently sets this to true.
+   * function scope. Optional; can be a boolean constant or a function that checks the
+   * specific node instance (e.g. based on a checkbox in node.data).
    */
-  requiresAsync?: boolean;
+  requiresAsync?: boolean | ((node: FlowNode) => boolean);
   /**
    * True if this "logic"-category node must be unconditionally top-level-collected by
    * `graph-walker.ts`'s collectLogicNodes() even though it declares an exec-entry input

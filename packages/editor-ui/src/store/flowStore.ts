@@ -29,6 +29,7 @@ import {
   addCallbackArg as addCallbackArgHelper,
   removeCallbackArg as removeCallbackArgHelper,
   setFunctionUsage as setFunctionUsageHelper,
+  setPromiseAwaited as setPromiseAwaitedHelper,
 } from "./variadicPins.js";
 import { defaultLiteralsFor, type FunctionUsage } from "../canvas/effectivePorts.js";
 import { translateWaypoints } from "../canvas/edgeWaypoints.js";
@@ -116,6 +117,33 @@ function generateUniqueResultVariable(functionName: string, nodes: Node[]): stri
   return `${base}${suffix}`;
 }
 
+/**
+ * `logic.promise` has no user-facing "Name" concept in codegen (the executor is an anonymous
+ * callback) — the Function Details sidebar's Name field is purely a display label so multiple
+ * Promise nodes stay distinguishable at a glance. Auto-seeded at creation time so it's never
+ * blank, unique against every other Promise node in the given pool. Exported (and loosely typed
+ * — just `type`/`data`, not a full `@xyflow/react` `Node`) so `FunctionGraphNodePicker.tsx` and
+ * `FunctionGraphSidePanel.tsx` can reuse the exact same generation/uniqueness logic for Promise
+ * nodes created or renamed inside a nested Blueprint graph, instead of duplicating it.
+ *
+ * Uses a random suffix rather than a sequential counter: a nested Blueprint graph's node pool
+ * starts empty, independent of its parent's, so a sequential `promise_1`, `promise_2`, ...
+ * counter would restart from `promise_1` in every nested graph and collide with an ancestor's
+ * name in the tab breadcrumb (e.g. "promise_1 > promise_1"). A random suffix makes that
+ * collision very unlikely without needing cross-scope name coordination.
+ */
+export function generateUniquePromiseName(nodes: Array<{ type?: string; data?: Record<string, unknown> }>): string {
+  const existing = new Set(
+    nodes.filter((n) => n.type === "logic.promise").map((n) => String(n.data?.name ?? "").trim()),
+  );
+  const makeName = () => `promise_${Date.now()}_${Math.floor(Math.random() * 90000 + 10000)}`;
+  let name = makeName();
+  while (existing.has(name)) {
+    name = makeName();
+  }
+  return name;
+}
+
 export interface FlowStoreState {
   nodes: Node[];
   edges: Edge[];
@@ -191,6 +219,7 @@ export interface FlowStoreState {
   addCallbackArg: (nodeId: string) => void;
   removeCallbackArg: (nodeId: string, argId: string) => void;
   setFunctionUsage: (nodeId: string, usage: FunctionUsage) => void;
+  setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
   selectNode: (nodeId: string | null) => void;
   setZoom: (zoom: number) => void;
   deleteSelectedNode: () => void;
@@ -455,6 +484,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     // defaultLiteralsFor doc comment for why this matters for validation).
     const literals = defaultLiteralsFor(type, definition);
     if (literals) data.literals = literals;
+    if (type === "logic.promise") data.name = generateUniquePromiseName(get().nodes);
     // `extraData` (e.g. `logic.function`'s `{ usage: "callback" | "standalone" }` from
     // FunctionUsageMenu) overrides configSchema defaults — applied last so it always wins.
     if (extraData) Object.assign(data, extraData);
@@ -611,6 +641,12 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   setFunctionUsage: (nodeId, usage) => {
     const { nodes, edges } = setFunctionUsageHelper(nodeId, usage, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
+  setPromiseAwaited: (nodeId, awaited) => {
+    const { nodes, edges } = setPromiseAwaitedHelper(nodeId, awaited, get().nodes, get().edges);
     set({ nodes, edges, isDirty: true });
     get().runValidation();
   },

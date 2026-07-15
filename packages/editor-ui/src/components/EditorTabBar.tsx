@@ -1,5 +1,29 @@
+import type { Node } from "@xyflow/react";
 import { useFlowStore } from "../store/flowStore.js";
-import { useEditorTabsStore } from "../store/editorTabsStore.js";
+import { useEditorTabsStore, type FunctionGraphTab } from "../store/editorTabsStore.js";
+
+/** Resolves a tab's own display name from whichever store actually owns its outer node —
+ * `flowStore` for a "main"-parented tab, or the parent tab's own graph store for a
+ * recursively-nested one (a Promise node opened from inside another tab's canvas). */
+function resolveTabLabel(tab: FunctionGraphTab, tabs: FunctionGraphTab[], mainNodes: Node[]): string {
+  if (tab.parentTabId === "main") {
+    return String(mainNodes.find((n) => n.id === tab.functionNodeId)?.data?.name ?? "(unnamed)");
+  }
+  const parentTab = tabs.find((t) => t.functionNodeId === tab.parentTabId);
+  const node = parentTab?.store.getState().nodes.find((n) => n.id === tab.functionNodeId);
+  return String(node?.data?.name ?? "(unnamed)");
+}
+
+/** The full chain of tab labels from the Main Graph down to `tab`, for the breadcrumb row. */
+function ancestorChainLabels(tab: FunctionGraphTab, tabs: FunctionGraphTab[], mainNodes: Node[]): string[] {
+  const labels: string[] = [];
+  let current: FunctionGraphTab | undefined = tab;
+  while (current) {
+    labels.unshift(resolveTabLabel(current, tabs, mainNodes));
+    current = current.parentTabId === "main" ? undefined : tabs.find((t) => t.functionNodeId === current!.parentTabId);
+  }
+  return labels;
+}
 
 /**
  * Phase 21: replaces the old `FunctionGraphModal` overlay with an Unreal-Engine-Blueprint-
@@ -23,10 +47,8 @@ export function EditorTabBar() {
 
   const fileName = currentFilePath ? currentFilePath.split(/[\\/]/).pop() ?? currentFilePath : "No file open";
 
-  const activeFunctionName =
-    activeTabId !== "main"
-      ? String(nodes.find((n) => n.id === activeTabId)?.data?.name ?? "function")
-      : null;
+  const activeTab = functionGraphTabs.find((t) => t.functionNodeId === activeTabId);
+  const activeBreadcrumb = activeTab ? ancestorChainLabels(activeTab, functionGraphTabs, nodes).join(" > ") : null;
 
   return (
     <div className="flex flex-col border-b border-black/60 bg-[#202020]">
@@ -53,8 +75,7 @@ export function EditorTabBar() {
         <TabButton label="Main Graph" isActive={activeTabId === "main"} onClick={() => navigateTo("main")} />
 
         {functionGraphTabs.map((tab) => {
-          const functionNode = nodes.find((n) => n.id === tab.functionNodeId);
-          const label = String(functionNode?.data?.name ?? "(unnamed)");
+          const label = resolveTabLabel(tab, functionGraphTabs, nodes);
           return (
             <TabButton
               key={tab.functionNodeId}
@@ -69,10 +90,10 @@ export function EditorTabBar() {
 
       <div className="flex h-6 items-center gap-1 border-t border-black/40 px-3 text-[11px] text-neutral-400">
         <span>{fileName}</span>
-        {activeFunctionName && (
+        {activeBreadcrumb && (
           <>
             <span className="text-neutral-700">&gt;</span>
-            <span className="text-neutral-300">{activeFunctionName} (Blueprint Graph)</span>
+            <span className="text-neutral-300">{activeBreadcrumb} (Blueprint Graph)</span>
           </>
         )}
       </div>

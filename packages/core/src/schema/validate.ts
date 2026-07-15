@@ -376,6 +376,50 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
 }
 
 /**
+ * Phase 36: Check if any node reachable from startNodeId (via execution edges only)
+ * requires async support. Returns null if no node requires async, or an error message
+ * if async is needed but the enclosing context can't support it.
+ */
+function checkPromiseArmRequiresAsync(
+  startNodeId: string,
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  visited: Set<string>
+): string | null {
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+
+  const checkNode = (id: string): string | null => {
+    if (visited.has(id)) return null;
+    visited.add(id);
+
+    const node = nodesById.get(id);
+    if (!node) return null;
+
+    const def = requireNodeDefinition(node.type);
+    // Check if this node itself requires async
+    const ra = def.requiresAsync;
+    if (typeof ra === "function" ? ra(node) : ra === true) {
+      return `requires async support (node type "${node.type}")`;
+    }
+
+    // Follow the execution chain from this node
+    const outHandle = node.type === "logic.promise" ? "out" : (def.outputs.find((p) => p.kind === "exec") ?? def.outputs.find((p) => p.id === "out"))?.id;
+    if (outHandle === undefined) return null;
+
+    for (const e of edges) {
+      if (e.source === id && (e.sourceHandle === outHandle || (e.sourceHandle === undefined && def.outputs.length === 1))) {
+        const result = checkNode(e.target);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  };
+
+  return checkNode(startNodeId);
+}
+
+/**
  * Phase 10 checks for a `VariableDeclaration[]` list, shared by both `validateFlow` (scoped to
  * top-level `flow.variables`) and `validateFunctionGraph` (scoped to a single Function's own
  * `graph.variables`) — same "same checks, different attribution" pattern already used for
@@ -482,6 +526,7 @@ function validateOperatorsAndControlFlow(
   makeError: (nodeId: string, message: string) => ValidationError,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
 
   // Mirrors codegen/value-pins.ts's resolveValuePin: `undefined` or an all-whitespace string
   // is "no literal" (not just a literal `undefined`), so the two can never quietly disagree
@@ -675,6 +720,87 @@ function validateOperatorsAndControlFlow(
         errors.push(makeError(node.id, `Return node "${node.id}" input "value" is not connected and has no literal value`));
       }
     }
+
+    // Phase 36: Promise structural checks
+    if (node.type === "logic.promise") {
+      const awaited = (node.data as Record<string, unknown> | undefined)?.awaited === true;
+
+      // 1. Awaited stale-pin check: if awaited=true, any edge on then/catch/value/error is stale
+      if (awaited) {
+        const stalePins = ["then", "catch", "value", "error"];
+        for (const pinId of stalePins) {
+          const staleEdges = edges.filter(
+            (e) => (e.source === node.id && e.sourceHandle === pinId) || (e.target === node.id && e.targetHandle === pinId)
+          );
+          for (const _ of staleEdges) {
+            errors.push(
+              makeError(
+                node.id,
+                `Promise node "${node.id}" is Awaited, but has stale wiring on ${stalePins.map((s) => `"${s}"`).join("/")} pin(s) which only exist when not awaited`
+              )
+            );
+            break; // report once per promise node, not once per stale edge
+          }
+          if (staleEdges.length > 0) break;
+        }
+      }
+
+      // 2. Assign-pin topology check: if assign is wired, target must be variable.set and the immediate "out" successor
+      const assignEdges = edges.filter((e) => e.source === node.id && e.sourceHandle === "assign");
+      if (assignEdges.length > 0) {
+        const assignEdge = assignEdges[0];
+        const assignTarget = nodes.find((n) => n.id === assignEdge.target);
+
+        if (!assignTarget || assignTarget.type !== "variable.set") {
+          errors.push(
+            makeError(
+              node.id,
+              `Promise node "${node.id}"'s Assign pin must be wired to a Set Variable node, got "${assignTarget?.type ?? "unknown"}"`
+            )
+          );
+        }
+
+        const outEdges = edges.filter((e) => e.source === node.id && e.sourceHandle === "out");
+        if (outEdges.length === 0 || outEdges[0].target !== assignEdge.target) {
+          errors.push(
+            makeError(
+              node.id,
+              `Promise node "${node.id}"'s Assign pin target must also be the node immediately following it on the "Out" pin`
+            )
+          );
+        }
+      }
+
+      // 5. Async-support pre-check: Check if executor/Then/Catch reach any requiresAsync-true node
+      // and surface the error before a compile attempt.
+      const thenEdge = edges.find((e) => e.source === node.id && e.sourceHandle === "then");
+      if (thenEdge) {
+        const visited = new Set<string>();
+        const asyncError = checkPromiseArmRequiresAsync(thenEdge.target, nodes, edges, visited);
+        if (asyncError) {
+          errors.push(
+            makeError(
+              node.id,
+              `Promise node "${node.id}"'s Then arm ${asyncError}, but Then callbacks cannot be made async — restructure to avoid needing await here`
+            )
+          );
+        }
+      }
+
+      const catchEdge = edges.find((e) => e.source === node.id && e.sourceHandle === "catch");
+      if (catchEdge) {
+        const visited = new Set<string>();
+        const asyncError = checkPromiseArmRequiresAsync(catchEdge.target, nodes, edges, visited);
+        if (asyncError) {
+          errors.push(
+            makeError(
+              node.id,
+              `Promise node "${node.id}"'s Catch arm ${asyncError}, but Catch callbacks cannot be made async — restructure to avoid needing await here`
+            )
+          );
+        }
+      }
+    }
   }
 
   return errors;
@@ -823,6 +949,43 @@ function computeExecArmPaths(nodes: FlowNode[], edges: FlowEdge[], seedIds?: str
       continue;
     }
 
+    // Phase 36: Promise nodes with awaited=false have two nested-arm pins (then, catch)
+    // and one continuation pin (out) that continues in the same path, mirroring
+    // the loop-shape pattern below.
+    if (node.type === "logic.promise") {
+      const awaited = (node.data as Record<string, unknown> | undefined)?.awaited === true;
+      if (!awaited) {
+        // then/catch are nested arms (append to path)
+        for (const e of edges) {
+          if (e.source === next.id && e.sourceHandle === "then") {
+            queue.push({ id: e.target, path: [...next.path, `${next.id}.then`] });
+          }
+        }
+        for (const e of edges) {
+          if (e.source === next.id && e.sourceHandle === "catch") {
+            queue.push({ id: e.target, path: [...next.path, `${next.id}.catch`] });
+          }
+        }
+        // out continues in the same path (no append)
+        for (const e of edges) {
+          if (e.source === next.id && e.sourceHandle === "out") {
+            queue.push({ id: e.target, path: next.path });
+          }
+        }
+      } else {
+        // When awaited, Promise is just a normal node with a single "out" continuation
+        const outHandle = execOutputHandle(defs.get(next.id)!);
+        if (outHandle !== undefined) {
+          for (const e of edges) {
+            if (e.source === next.id && (e.sourceHandle === outHandle || (e.sourceHandle === undefined && defs.get(next.id)!.outputs.length === 1))) {
+              queue.push({ id: e.target, path: next.path });
+            }
+          }
+        }
+      }
+      continue;
+    }
+
     // Loop-container array nodes (map/filter/reduce/etc.) differ from Branch/Switch/Sequence:
     // `bodyPin`'s target is a nested arm (repeats per element, like a fork arm), but
     // `completedPin`'s target continues in the SAME scope as the loop node itself — after the
@@ -891,6 +1054,31 @@ function loopContextArmPath(sourceId: string, sourceHandle: string | undefined, 
   return [...basePath, `${sourceId}.${loop.bodyPin}`];
 }
 
+/**
+ * Phase 36: Promise nodes with awaited=false have two arm-scoped value pins
+ * ("value" for the Then arm, "error" for the Catch arm) that enforce their
+ * own scope constraints. Given a Promise source node's id/handle and basePath,
+ * returns the effective scope path a reader of this specific pin should be
+ * checked against — nested into the appropriate arm for value/error, or null
+ * for every other handle (meaning: use basePath unchanged). Similar to
+ * loopContextArmPath but for Promise instead of loop nodes.
+ */
+function promiseArmPath(sourceId: string, sourceHandle: string | undefined, sourceNode: FlowNode): string[] | null {
+  // "value"/"error" are generic pin ids reused by other node types (logic.function's
+  // function-as-value pin, variable.get, logic.graphReturn, array mutators, console log) —
+  // this arm-scoping rule only applies to a real Promise node's own pins.
+  if (sourceNode.type !== "logic.promise") return null;
+  const awaited = (sourceNode.data as Record<string, unknown> | undefined)?.awaited === true;
+  if (awaited) return null; // No arm-scoped pins when awaited
+  if (sourceHandle === "value") {
+    return [`${sourceId}.then`]; // "value" is Then-arm-scoped
+  }
+  if (sourceHandle === "error") {
+    return [`${sourceId}.catch`]; // "error" is Catch-arm-scoped
+  }
+  return null;
+}
+
 function resolveArmPath(
   nodeId: string,
   nodesById: Map<string, FlowNode>,
@@ -944,6 +1132,9 @@ function resolveArmPath(
  * wired into both arms' consumers" pattern, safe because `hoistValueDeps` re-hoists it
  * independently per arm.
  *
+ * Phase 36: Also checks that Promise's arm-scoped value pins ("value" in Then arm,
+ * "error" in Catch arm) are only read from their respective arms.
+ *
  * Deliberately does NOT trace through a chain of several pure nodes to find the ultimate
  * exec-owned source in every possible topology beyond what `resolveArmPath`'s recursive join
  * already covers — this is the "partial/simplified" version explicitly permitted for this
@@ -971,6 +1162,31 @@ function checkCrossArmValueReferences(
 
       const targetDef = requireNodeDefinition(targetNode.type);
       if (isExecInputHandle(targetDef, edge.targetHandle)) continue; // structural edge, not a value read
+
+      // Phase 36: Check Promise value/error arm-scoping constraints.
+      // A Promise's "value" pin (True result) is only valid inside its Then arm,
+      // and "error" pin (rejection) is only valid inside its Catch arm.
+      const promisePath = promiseArmPath(edge.source, edge.sourceHandle, sourceNode);
+      if (promisePath !== null) {
+        // This is a Promise value/error pin — apply the arm-scoping rule.
+        const targetPath = resolve(edge.target);
+        // The target must be inside the Promise's expected arm.
+        // promisePath is either [sourceId.then] or [sourceId.catch], which is the
+        // minimum prefix required. We check that targetPath starts with this prefix.
+        if (!isPrefixOf(promisePath, targetPath)) {
+          const expectedArm = promisePath[0];
+          const message =
+            edge.sourceHandle === "value"
+              ? `Node "${targetNode.id}" reads Promise node "${sourceNode.id}"'s "Value" pin, which is only available inside the Promise's Then arm ("${expectedArm}")`
+              : `Node "${targetNode.id}" reads Promise node "${sourceNode.id}"'s "Error" pin, which is only available inside the Promise's Catch arm ("${expectedArm}")`;
+          const key = `${targetNode.id}:${sourceNode.id}:${edge.sourceHandle}`;
+          if (!reported.has(key)) {
+            reported.add(key);
+            errors.push(makeError(targetNode.id, message));
+          }
+        }
+        continue; // Promise pins are checked above; don't apply the generic cross-arm logic.
+      }
 
       // See `loopContextArmPath`'s doc comment: a loop node's context pins (element/index/
       // arrayRef/accumulator) resolve to its nested body-arm path, not its own (trunk) path.

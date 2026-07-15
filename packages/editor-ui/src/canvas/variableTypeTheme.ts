@@ -32,9 +32,10 @@ export const VARIABLE_TYPE_THEME: Record<VariableDataType, VariableTypeTheme> = 
   buffer: { label: "Buffer", color: "#a97c50" },
   url: { label: "URL", color: "#4a7fd6" },
   function: { label: "Function", color: "#e0a83c" },
+  any: { label: "Any", color: "#b0b0b0" },
 };
 
-/** All 15 dataTypes in a stable display order, for `<select>` option lists. */
+/** All 16 dataTypes in a stable display order, for `<select>` option lists. */
 export const VARIABLE_DATA_TYPES: VariableDataType[] = [
   "string",
   "number",
@@ -51,6 +52,7 @@ export const VARIABLE_DATA_TYPES: VariableDataType[] = [
   "function",
   "null",
   "undefined",
+  "any",
 ];
 
 export function getVariableTypeColor(dataType: VariableDataType): string {

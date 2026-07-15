@@ -43,6 +43,7 @@ import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
 import { pathExtractorNode } from "./logic/path-extractor.node.js";
 import { callbackNode } from "./logic/callback.node.js";
+import logicPromiseNode from "./logic/promise.node.js";
 
 /**
  * Node types offered inside a Function or Handler Function node's blueprint body sub-canvas — deliberately kept
@@ -123,6 +124,10 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   // Phase 20: Callback — ordinary statement-producing node with no req/res dependency, same
   // "full main-canvas/Function-Graph parity" reasoning as operators/array/Path Extractor above.
   callbackNode,
+  // Phase 36: Promise — construct and handle promises with optional await, then/catch arms,
+  // or variable binding. Full main-canvas/Function-Graph parity; also usable recursively
+  // inside another Promise's own executor blueprint body.
+  logicPromiseNode,
 ];
 
 /**

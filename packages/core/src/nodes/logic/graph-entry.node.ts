@@ -29,9 +29,30 @@ export const logicGraphEntryNode: NodeDefinition = {
   outputs: [{ id: "out", label: "Next" }],
   configSchema: [],
   emit: () => ({ order: 0 }),
-  resultIdentifier: (node, handle) => {
+  resultIdentifier: (node, handle, ctx) => {
     if (!handle) {
       throw new FunctionGraphError(`Node "${node.id}" (logic.graphEntry) requires a source handle to resolve a value`, node.id);
+    }
+    // Inside a `logic.promise` blueprint executor graph, "resolve"/"reject" resolve to the
+    // promise-instance-unique identifiers the enclosing `new Promise((resolve_X, reject_X) =>
+    // ...)` actually declares (see `exec-chain.ts`'s `promiseExecutorParamNames`), not the bare
+    // handle string — otherwise a `logic.promise` node nested inside this same graph would
+    // lexically shadow the outer executor's "resolve"/"reject" and silently settle the wrong
+    // Promise.
+    if (ctx?.promiseExecutorParams && (handle === "resolve" || handle === "reject")) {
+      return ctx.promiseExecutorParams[handle];
+    }
+    // "outerResolve"/"outerReject" (and numbered-suffix variants "outerResolve_2"/
+    // "outerReject_2", ...) let a nested `logic.promise`'s own blueprint graph reach an
+    // ENCLOSING Promise's resolve/reject — see `exec-chain.ts`'s `mergeEnclosingPromiseParams`
+    // and `EmitContext.enclosingPromiseExecutorParams`. Depth 1 (no suffix) is the nearest
+    // enclosing Promise, `enclosingPromiseExecutorParams[0]`; "_N" is index N-1.
+    const outerMatch = /^outer(Resolve|Reject)(?:_(\d+))?$/.exec(handle);
+    if (outerMatch && ctx?.enclosingPromiseExecutorParams) {
+      const key = outerMatch[1] === "Resolve" ? "resolve" : "reject";
+      const depthIndex = outerMatch[2] ? Number(outerMatch[2]) - 1 : 0;
+      const params = ctx.enclosingPromiseExecutorParams[depthIndex];
+      if (params) return params[key];
     }
     return handle;
   },
