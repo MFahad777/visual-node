@@ -1,0 +1,65 @@
+---
+title: Function
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Function — `logic.function`
+
+Declares a named JavaScript function at the top level of the current file.
+
+<NodePreview type="logic.function" data={{ params: "a, b, c" }} height={260} width={320} />
+
+- **Inputs**: one dynamic value pin per declared parameter (see "Default parameter
+  values" below)
+- **Outputs**: `out` — "Function" (call it directly); `value` — "Assign / Parameter"
+  (wire the function itself out as a value — see "Usage" below)
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | text | `myFunction` | Must be a valid JS identifier. Also the property name seen on the imported module if exported. |
+| `params` | text | `""` | Comma-separated parameter names, e.g. `"date, format"`. Blank for no parameters. |
+| `mode` | select | `code` | `"code"` uses the Function Body field below; `"blueprint"` compiles this function from a nested node graph instead — see [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode). |
+| `body` | code | `""` | Only used in `"code"` mode. Available: the declared parameter names. Use `return` to produce a value. |
+| `isAsync` | boolean | `false` | Enable to use `await` inside this function's body. |
+| `npmDependencies` | text | `""` | Comma-separated npm packages (code mode only). |
+| `usage` | select | *(none — full pin set)* | "For Calling / Callback" or "Standalone Function" — see below. Leave unset to keep every pin visible. |
+
+Multiple Function nodes are expected in one file, each named and configured
+independently. A Function left unconnected to an Export node just stays a private,
+still-emitted helper within that file.
+
+```js
+function formatDate(date) {
+  return date.toISOString();
+}
+```
+
+## Usage: Calling/Callback vs. Standalone
+
+The config panel's **Usage** toggle controls which pins the node shows, so its face
+matches how you're actually using it:
+
+- **For Calling / Callback** — hides the "Function" execution-out pin. Keeps "Assign /
+  Parameter" (so you can wire the function into a **Callback** node or assign it to a
+  variable) and the per-parameter default-value pins.
+- **Standalone Function** — the original, pre-Callback behavior: hides "Assign /
+  Parameter" and every default-value parameter pin. Keeps "Function," for wiring
+  directly into an Export node or a Function Call. Parameters revert to plain,
+  non-wireable text.
+
+Leaving Usage unset keeps every pin from both modes visible at once — existing Function
+nodes created before this setting existed are unaffected.
+
+## Default parameter values
+
+Each declared parameter gets its own wireable input pin (`param-<i>`), letting you give
+it a default value — either typed directly on the pin, or wired in from elsewhere — used
+whenever a caller omits that argument:
+
+```js
+function greet(name = "world") {
+  return `Hello, ${name}!`;
+}
+```

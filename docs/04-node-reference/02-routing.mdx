@@ -8,7 +8,7 @@ import NodePreview from '@site/src/components/NodePreview';
 
 ## Route — `express.route`
 
-Defines an HTTP route and attaches a [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)
+Defines an HTTP route and attaches a [Handler Function](/node-reference/logic/handler-function)
 to it.
 
 <NodePreview type="express.route" height={200} width={280} />
@@ -42,5 +42,5 @@ app.get("/hello", handler);
 Wiring a chain of Handler Functions — `Route → Handler Function A → Handler Function B`
 — compiles to `app.get(path, handlerA, handlerB)`, with each handler declared separately
 above; every handler but the last must call `next()` in its body to reach the next one.
-See the [Logic reference](/node-reference/logic#handler-function--logichandlerfunction)
+See the [Logic reference](/node-reference/logic/handler-function)
 for the Handler Function node itself.

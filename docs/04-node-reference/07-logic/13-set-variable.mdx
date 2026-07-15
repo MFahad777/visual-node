@@ -1,0 +1,31 @@
+---
+title: Set Variable
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Set Variable — `variable.set`
+
+Assigns a new value to a declared variable, then continues to the next node.
+
+<NodePreview type="variable.set" height={200} width={280} />
+
+- **Inputs**: `in` (exec) — "Exec"; `value` (value) — "Value"
+- **Outputs**: `out` (exec) — "Next"
+- **Config fields**: none (same variable-bound-at-creation model as Get Variable; the
+  Value pin's literal editor lives on the pin itself)
+
+An unwired literal is formatted according to the variable's declared data type (a string
+variable gets `JSON.stringify`-ed, a Map/Set/WeakSet variable gets wrapped in
+`new Map(...)`/`new Set(...)`/`new WeakSet(...)`, and so on) — a *wired* value is never
+reformatted, since it's already a proper expression.
+
+```js
+// let target
+counter = 1;
+
+// const target — always its own scoped redeclaration, since const can't be reassigned
+const counter = 1;
+```
+
+Usable both on the main canvas and inside a Function Graph.

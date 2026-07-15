@@ -1,0 +1,35 @@
+---
+title: Callback
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Callback — `logic.callback`
+
+Calls a wired-in function *reference* — not a named function you pick from a list, but
+whatever function value happens to be wired into it (from a Function node in "For
+Calling / Callback" usage, a `"function"`-typed variable, or any other node that
+produces a function value) — with however many arguments you give it, and captures the
+result.
+
+<NodePreview type="logic.callback" data={{ args: [{id:"0"},{id:"1"},{id:"2"}] }} height={320} width={360} />
+
+- **Inputs**: `in` (exec) — "In"; `function` (value) — "Function"; plus dynamic
+  `arg-<id>` value pins, each with inline free-form literal editing when unwired
+- **Outputs**: `out` (exec) — "Next"; `result` (value) — "Result"
+- **Config fields**: none
+
+Grow or shrink the argument list with the **"+ Add Arg"**/**"×"** buttons rendered
+directly on the node face — unlike Path Extractor's parameters, an argument can be
+removed from anywhere in the list, not just the end.
+
+```js
+// "function" wired from a variable holding a function value, two arguments
+const result = onComplete(orderId, "shipped");
+```
+
+**Use case**: invoke a function that was handed to you as a value — for example, a
+callback stored in a variable or passed in from elsewhere — without knowing in advance
+which specific function it'll be at compile time.
+
+Usable both on the main canvas and inside a Function Graph.

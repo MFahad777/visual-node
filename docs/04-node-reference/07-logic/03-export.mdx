@@ -1,0 +1,41 @@
+---
+title: Export
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Export — `logic.export`
+
+Marks which Function node(s) and/or variable(s) in this file are exported.
+
+<NodePreview type="logic.export" height={200} width={280} />
+
+- **Inputs**: `in` — "Functions" — accepts **multiple** incoming edges, one per exported
+  function; `variables` (value) — "Variables" — accepts **multiple** incoming edges, one
+  per exported variable, wired from `variable.get` nodes
+- **Outputs**: none
+- **Config fields**: none
+- **Constraints**: every "Functions" wire's source must be a Function node; every
+  "Variables" wire's source must be a `variable.get` node bound to a variable that is
+  **not** a `const` with no default value (see Notes below); the same function or
+  variable may not be wired into Export more than once; **at most one** Export node per
+  file.
+
+```js
+module.exports = { formatDate, otherHelper, appVersion };
+```
+
+## Why a bare `const` with no default can't be exported
+
+`emit-express.ts` only unconditionally emits a top-level (module-scope) declaration for
+`let`/`var` variables and for `const` variables that already have a default value. A
+`const` with no default has no such guarantee — its only declaration point is wherever
+its `variable.set` node's execution chain happens to land, which could be nested inside a
+route handler or a Branch/Switch arm, or never emitted at all if unreachable. Exporting
+such a variable could reference an undeclared identifier or the wrong scoped binding, so
+it's rejected at validation time instead of silently compiling broken output.
+
+Reading an exported variable from another file needs no special mechanism — it works via
+`requireVarName.exportedName` inside any raw-code field (Custom Code, Expression, Path
+Extractor's object pin, etc.), the same way any exported function property not wrapped in
+a `logic.functionCall` is already consumed.

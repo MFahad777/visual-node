@@ -27,6 +27,13 @@ automatically** the moment you make it, straight back into the outer Function no
 there's no Save/Save & Close/Cancel step, and nothing is lost by switching tabs or
 closing one.
 
+This isn't limited to one level below the main canvas: a tab's own graph can contain
+another blueprint-mode node (a Function, a Handler Function, or a Promise — see
+"Promises can nest inside each other" below), and double-clicking that opens **its**
+graph as a further-nested tab, to arbitrary depth. The breadcrumb row shows the full
+ancestor chain (e.g. `FunctionA > SomeNestedThing > AnotherNestedThing`), live-sync
+keeps working at every level, and closing a tab also closes all of its descendant tabs.
+
 ## The nested graph's own entry and exit
 
 A function's blueprint graph has its own entry/exit concept, distinct from the main
@@ -102,6 +109,26 @@ side panel — drag one out the same way you'd drag a local variable to drop a G
 node for it. Editing a module variable from inside the graph (renaming it, changing its
 type, adding or removing one) updates the main canvas immediately, since it's the exact
 same underlying list, not a copy.
+
+## Promises can nest inside each other
+
+A `logic.promise` ("Promise") node's executor — the code that eventually resolves or
+rejects it — can be authored in `"blueprint"` mode, exactly like a Function's body: it's
+opened and edited through the same tab system described above, with the same automatic
+live-sync back into the owning Promise node.
+
+Because a Promise's executor graph is just another blueprint graph, it can itself
+contain another Promise node, whose own executor can also be blueprint-mode, and so on
+to arbitrary depth — this is the concrete case that makes the arbitrary-depth tab
+nesting described above actually matter. Double-clicking a blueprint-mode Promise node
+inside any already-open tab opens its executor graph as a further-nested tab.
+
+One wrinkle specific to nested Promises, since it's the same kind of cross-scope access
+the "Module Variables" section above describes for variables: a Promise nested inside
+another Promise's executor graph can resolve or reject the **enclosing** Promise
+directly, not just its own — its graph's Start node grows extra "Outer Resolve"/"Outer
+Reject" pins when this applies. Full details are on the [Promise node
+reference](/node-reference/logic/promise).
 
 ## A worked example
 

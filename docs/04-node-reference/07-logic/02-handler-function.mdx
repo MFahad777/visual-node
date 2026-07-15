@@ -1,0 +1,55 @@
+---
+title: Handler Function
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Handler Function — `logic.handlerFunction`
+
+Declares a named Express request handler with fixed `req`, `res`, `next` parameters.
+Routes attach to a Handler Function instead of embedding a handler inline — this is the
+node every route needs at least one of.
+
+<NodePreview type="logic.handlerFunction" height={200} width={280} />
+
+- **Inputs**: `in` — "Attach" (exec) — wire a Route's "Handler" output here
+- **Outputs**: `out` — "Next" (exec) — wire to another Handler Function to chain them
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | text | `handler` | Must be a valid JS identifier — the function name Express will call. |
+| `body` | code | `""` | Only used in `"code"` mode. Available: `req`, `res`, `next`. Call `res.json(...)`/`res.send(...)` to respond, `next()` to continue. |
+| `mode` | select | `code` | `"code"` uses the Function Body field above; `"blueprint"` compiles this handler from a nested node graph instead — see [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode). |
+| `isAsync` | boolean | `false` | Enable to use `await` inside this handler's body. |
+| `npmDependencies` | text | `""` | Comma-separated npm packages (code mode only), e.g. `"axios, lodash@^4.17.0"`. |
+
+```js
+function handler(req, res, next) {
+  res.status(200).json({ message: "Hello World" });
+}
+
+app.get("/hello", handler);
+```
+
+## Chaining multiple handlers on one route
+
+Wire a Handler Function's "Next" output into another Handler Function's "Attach" input
+to register both on the same route — every handler but the last must call `next()` in
+its body to reach the next one:
+
+```js
+app.get("/orders", requireAuth, listOrders);
+```
+
+The same Handler Function node can also be reused across multiple routes; it just
+appears more than once as `app.METHOD(path, handlerName)`.
+
+## Blueprint mode and variable access
+
+In `"blueprint"` mode, a Handler Function's body is a nested visual graph, same as a
+Function's — see [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode).
+Inside that graph, a [Send JSON](/node-reference/handler) node is the way to respond,
+and `variable.get`/`variable.set` nodes can read and write both the graph's own local
+variables and the main canvas's module-level variables (visible and editable from the
+graph's **Module Variables** panel).

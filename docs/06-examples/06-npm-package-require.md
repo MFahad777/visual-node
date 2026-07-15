@@ -5,7 +5,7 @@ title: npm Package Require
 # npm Package Require
 
 A flow that requires an installed npm package (`axios`) and uses it inside a code-mode
-[Handler Function](/node-reference/logic#handler-function--logichandlerfunction).
+[Handler Function](/node-reference/logic/handler-function).
 Demonstrates how to declare npm dependencies and reference them by their require
 variable name.
 

@@ -1,0 +1,31 @@
+---
+title: Require
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Require — `logic.require`
+
+Imports another blueprint file's exports, or an installed npm package, exactly like
+Node's own `require()`.
+
+<NodePreview type="logic.require" height={140} width={240} />
+
+- **Inputs / Outputs**: none — it's a pure declaration, referenced elsewhere by the bare
+  variable name you give it, not by wiring.
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `sourceType` | select | `local` | `"local"` or `"npm"`. |
+| `path` | text | `""` | Local: relative path without extension, e.g. `"../helpers/dateFormatter"`. npm: package name, e.g. `"axios"` or `"@org/pkg"`. |
+| `variableName` | text | `""` | Must be a valid, unique JS identifier. |
+| `version` | text | `""` | npm mode only, e.g. `"^1.7.0"`. Blank means unpinned. |
+
+```js
+// Local
+const dateHelper = require("../helpers/dateFormatter");
+
+// npm
+const axios = require("axios");
+```

@@ -1,0 +1,137 @@
+---
+title: Promise
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Promise — `logic.promise`
+
+Constructs and handles a JavaScript `Promise`. The executor (the code that eventually
+calls `resolve()`/`reject()`) can be hand-typed or a nested Blueprint graph, and the
+Promise itself can be awaited inline or handled via Then/Catch execution arms.
+
+- **Inputs**: `in` (exec) — "In"
+- **Outputs**: `out` (exec) — "Next"; `then` (exec) — "Then"; `catch` (exec) — "Catch";
+  `assign` (value) — "Assign"; `value` (value) — "Value"; `error` (value) — "Error"
+- **Config fields**:
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `mode` | select | `code` | `"code"` uses the Executor Body field below; `"blueprint"` compiles the executor from a nested node graph instead — see "Code vs. Blueprint executor authoring" below. |
+| `body` | code | `""` | Code mode only. Available: `resolve`, `reject`. Must call one of them to settle the promise. |
+| `npmDependencies` | text | `""` | Code mode only. Comma-separated npm packages. |
+| `awaited` | boolean | `false` | When enabled, this Promise is awaited inline. When disabled, wire the Then/Catch arms instead. |
+| `wrapInIife` | boolean | `true` | Await-only — see "Async executors and the Wrap In IIFE option" below. |
+
+When **Await** is on, only the `out` and `assign` pins stay on the node face — `then`,
+`catch`, `value`, and `error` are hidden, since an inline `await` makes those arms
+meaningless. Turn Await back off and all six pins return. Compare the two states below:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Awaited off — Then/Catch mode (default)</p>
+    <NodePreview type="logic.promise" data={{ awaited: false }} height={320} width={360} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Awaited on — inline await</p>
+    <NodePreview type="logic.promise" data={{ awaited: true }} height={200} width={280} />
+  </div>
+</div>
+
+```js
+// Await off, Then/Catch both left unwired — fire-and-forget
+new Promise((resolve, reject) => {
+  fetchData(resolve, reject);
+});
+
+// Await off, both arms wired
+new Promise((resolve, reject) => {
+  fetchData(resolve, reject);
+})
+  .then((value) => {
+    console.log(value);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+
+// Await on, Assign wired to a `const result` Set Variable node
+const result = await new Promise((resolve, reject) => {
+  resolve(42);
+});
+```
+
+## Capturing the result: the Assign pin
+
+To capture what a Promise resolves to, wire **Assign** straight to a **Set Variable**
+node that is this Promise's own immediate `out`-pin successor — nothing else is
+accepted, and wiring Assign to any other node (or to a Set Variable that isn't the very
+next node) is rejected at compile time. Wired this way, the whole `new Promise(...)`
+expression is inlined directly into that variable's assignment; there's no separate
+intermediate variable:
+
+```js
+// Assign wired to the Set Variable immediately following "Next" (`let result`)
+result = new Promise((resolve, reject) => {
+  resolve(42);
+});
+
+// Assign left unwired — a bare statement, the settled value goes nowhere
+new Promise((resolve, reject) => {
+  resolve(42);
+});
+```
+
+## Value and Error are scoped to their own arm
+
+The **Value** pin (what the Promise resolved to) can only be read by nodes wired
+*inside the Then arm*; the **Error** pin (the rejection reason) can only be read by
+nodes wired *inside the Catch arm*. Wiring either pin to something outside its own arm
+is rejected with a clear error when you save — there's no way to read a Then-arm value
+from the Catch arm or from anywhere else on the canvas.
+
+## Code vs. Blueprint executor authoring
+
+The **Authoring Mode** toggle works the same way it does on Function/Handler Function
+nodes. In `"blueprint"` mode, the executor is a nested visual graph — see [Function
+Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode) — whose own
+Start node exposes `resolve` and `reject` as value outputs, standing in for the
+executor's two parameters. There's no separate "call resolve" node: wire `resolve` or
+`reject` into a **Callback** node's "Function" input (or anywhere else a function value
+is accepted) to actually invoke it, the same way any other function value gets called
+elsewhere in this app.
+
+## Nesting a Promise inside another Promise's executor
+
+When a Promise's `"blueprint"` executor graph itself contains another Promise node in
+blueprint mode, that inner Promise's Start node gains extra output pins beyond its own
+`resolve`/`reject`: `outerResolve`/`outerReject` for the nearest enclosing Promise, then
+`outerResolve_2`/`outerReject_2` one level further out, and so on — one pair per level
+of nesting. Wiring one of these lets a deeply-nested Promise settle an ancestor
+Promise directly, instead of only ever being able to settle its own.
+
+## Async executors and the Wrap In IIFE option
+
+If the executor body itself needs `await` — for example, it awaits another nested
+Promise before deciding whether to resolve or reject — the executor function is
+automatically declared `async`; there's no separate checkbox for this. The Then/Catch
+callbacks are their own separate functions and can't use `await` themselves — wiring an
+arm that needs it is rejected at compile time with a clear error asking you to
+restructure instead.
+
+**Wrap In IIFE** only matters for an *awaited* Promise with no async-capable enclosing
+function to bubble into — the main case being one wired directly off a **Begin** node,
+which has no Async checkbox of its own (Route/Function/Handler Function nodes already
+provide their own async scope via their own Async checkbox). With Wrap In IIFE on (the
+default), the awaited expression is wrapped in a fire-and-forget IIFE:
+
+```js
+(async () => {
+  const result = await new Promise((resolve, reject) => {
+    resolve(42);
+  });
+})();
+```
+
+Turning it off emits the awaited expression bare, with no wrapper — only valid where
+something else already guarantees the enclosing scope is `async`.

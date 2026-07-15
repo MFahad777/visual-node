@@ -5,7 +5,7 @@ title: REST CRUD with Variables
 # REST CRUD with Variables
 
 An in-memory `items` REST API demonstrating the [Variables
-system](/node-reference/logic) alongside [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)'s
+system](/node-reference/logic) alongside [Handler Function](/node-reference/logic/handler-function)'s
 code/blueprint dual authoring mode.
 
 **Nodes involved:** `variable.set`, `variable.get`, `debug.consoleLog`,

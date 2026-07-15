@@ -1,0 +1,22 @@
+---
+title: Get Variable
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Get Variable — `variable.get`
+
+Reads the current value of a declared variable. Bound to a specific variable at creation
+time (dragged from the Variables panel — grab the row by its **⠿** drag handle, not the
+name/type fields, which are separately editable) — its config panel is intentionally
+empty.
+
+<NodePreview type="variable.get" height={140} width={240} />
+
+- **Inputs**: none
+- **Outputs**: `value` (value) — "Value"
+- **Config fields**: none
+
+Pure, value-producing, no execution pins — resolves to the variable's bare identifier
+wherever it's wired. Usable both on the main canvas and inside a Function Graph, each
+scope's variables kept fully independent.

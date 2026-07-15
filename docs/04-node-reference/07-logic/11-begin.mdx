@@ -1,0 +1,42 @@
+---
+title: Begin
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Begin — `logic.begin`
+
+Runs once when this file is loaded, before any request comes in — the visual equivalent
+of top-of-file setup code.
+
+<NodePreview type="logic.begin" height={140} width={240} />
+
+- **Inputs**: none (always a root of its own exec chain)
+- **Outputs**: `out` (exec) — "Then"
+- **Config fields**: none
+- **Constraints**: at most one per flow; an unwired Begin is a harmless no-op, not an
+  error.
+
+Category is deliberately **Logic**, not **Server** — a pure-logic helper file (functions
+and exports only, no routes) can use a Begin node for setup without being forced to also
+add an unrelated `express.init`.
+
+```js
+let counter = 0;
+counter = 1;
+
+const DIR = "/srv/app";
+
+app.get("/hello", (req, res) => {
+  // ...
+});
+```
+
+If the chain wired to Begin needs `await`, it's automatically wrapped in a fire-and-forget
+async IIFE — there's no "Async" checkbox on Begin itself:
+
+```js
+(async () => {
+  await Promise.resolve();
+})();
+```

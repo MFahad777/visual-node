@@ -170,7 +170,7 @@ file is ever saved.
 }
 ```
 
-Place this inside a [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)'s
+Place this inside a [Handler Function](/node-reference/logic/handler-function)'s
 blueprint-mode body and enable that Handler Function's "Async Handler" checkbox — a
 Route's own chain only accepts Handler Function nodes, so a chain-position plugin like
 this one lives inside one of those, not wired directly to the Route.

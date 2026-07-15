@@ -1,0 +1,17 @@
+---
+title: Start
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Start — `logic.graphEntry`
+
+**Function Graph only** — see [Function Graphs & Blueprint
+Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture. Never
+added manually.
+
+<NodePreview type="logic.graphEntry" data={{ params: ["date", "format", "locale"] }} height={260} width={320} />
+
+- **`logic.graphEntry`** ("Start"): no inputs; a static `out` exec output plus one
+  dynamic value output per current function parameter, managed by the Function Graph
+  editor's own panel.

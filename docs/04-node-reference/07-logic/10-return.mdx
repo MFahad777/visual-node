@@ -1,0 +1,46 @@
+---
+title: Return
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Return — `logic.graphReturn`
+
+**Function Graph only** — see [Function Graphs & Blueprint
+Mode](/core-concepts/function-graphs-and-blueprint-mode) for the full picture.
+
+<NodePreview type="logic.graphReturn" height={200} width={280} />
+
+- **Inputs**: `in` (exec) — "In"; `value` (value) — "Value"
+- **Outputs**: none — Return ends the chain it's wired into.
+
+Unlike Start, **any number of Return instances are allowed per graph**, and each one is an
+ordinary node addable from the picker just like Branch/Switch — there's no singleton panel
+managing it. Each instance has its own execution-in pin:
+
+- If a Return's exec-in **is** wired (e.g. from inside a Branch/Switch arm), it emits its
+  `return <expr>;` **in place**, right where it's wired — a real early return.
+- A Return with **no** exec-in wire falls back to the pre-existing trunk-trailing
+  behavior: its `return <expr>;` is appended once after the whole compiled function body.
+  This is the only shape Return could take before it gained an exec-in pin, so every
+  pre-existing `.blueprint` file with a single unwired Return keeps compiling identically.
+
+If "Value" is unwired, the returned Return falls off with no return value emitted for
+that arm; the Value pin also supports typing a literal directly on the pin, the same as
+any other value input.
+
+```js
+// Two Return instances, each wired from inside its own Branch arm — real early returns
+if (score >= 90) {
+  return "A";
+} else {
+  if (score >= 80) {
+    return "B";
+  } else {
+    return "C";
+  }
+}
+```
+
+See [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode)
+for a worked early-return example.

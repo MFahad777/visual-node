@@ -4,7 +4,98 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 1.2.0 (Latest)
+## Version 1.3.0 (Latest)
+
+### New
+
+#### New node: Promise
+A new **[Promise](/node-reference/logic/promise)** node lets you construct
+and handle a JavaScript Promise visually, with three ways to work with it:
+
+- **Awaited** — the result is awaited inline and assigned to a variable or used directly,
+  the same way you'd write `await` in hand-written code.
+- **Then/Catch** — wire separate **Then** and **Catch** arms that run when the promise
+  resolves or rejects, each with its own **Value**/**Error** pin holding the result or the
+  rejection reason.
+- **Fire-and-forget** — create the promise and leave every output unwired to run it in the
+  background without waiting on it.
+
+Author the promise's executor (the code that eventually calls `resolve()`/`reject()`)
+either as hand-typed code or as its own nested Blueprint graph, the same Code/Blueprint
+toggle Functions and Handler Functions already have. A new **"Wrap In IIFE"** option
+controls whether an awaited Promise with nothing above it to bubble into (for example,
+one hanging directly off a **Begin** node) gets wrapped in a fire-and-forget
+`(async () => { ... })();` so the generated file stays valid — leave it on unless you know
+the surrounding code is already `async`.
+
+**Use case**: Call something asynchronous — an API request, a timer, a database query —
+without writing any raw JavaScript, and decide per-instance whether your flow should wait
+for the result or keep going and react to it later.
+
+#### Promises can be nested inside each other
+A Promise's Blueprint graph can contain another Promise node, to any depth, and each one
+opens in its own tab — the tab system now supports opening a nested graph from *inside*
+any other open tab (a Function, a Handler Function, or another Promise), not just from
+the main canvas. The breadcrumb at the top of the tab shows the full chain, e.g.
+`Function > Promise > Promise`, so it's always clear how deep you are.
+
+From inside a nested Promise, you can now also settle an **enclosing** Promise directly —
+new "Outer Resolve"/"Outer Reject" pins (one pair per level of nesting) show up on the
+graph's **Start** node whenever it's nested inside another Promise's executor, alongside
+its own "Resolve"/"Reject".
+
+**Use case**: Chain several asynchronous steps that each need their own promise, or have
+a deeply-nested step settle an outer, already-in-flight promise directly instead of
+threading the result back up through several layers of Then/Catch.
+
+#### A promise's executor can now `await` something itself
+A Promise whose executor body contains another awaited Promise no longer fails to
+compile — the outer promise's executor is automatically written to support `await`
+internally when it needs to. (Its Then/Catch arms still can't use `await` directly, since
+those run as separate callback functions with no way to opt into that.)
+
+### Improved
+
+- **Every new Promise node gets a unique name automatically** (e.g. `promise_...`), on the
+  main canvas and inside nested Blueprint graphs alike, so you never have to name one
+  yourself just to tell two apart in a breadcrumb or tab title.
+- **A Callback node no longer declares an unused result variable** when its "Result" pin
+  isn't wired to anything — it now just calls the function as a plain statement instead.
+  This is especially handy when calling a Promise's Resolve/Reject directly, since both
+  always return nothing useful anyway.
+
+### Fixed
+
+- **Toggling a Promise node's "Await" checkbox could leave stale wires visibly connected**
+  on canvas, even though those pins no longer applied to the new mode. Toggling Await now
+  correctly cleans up any wires on pins that disappear, everywhere a Promise's settings
+  can be edited.
+- **A Promise nested inside another Promise's executor could settle the wrong one.** In
+  rare cases, resolving or rejecting from inside a nested promise's Then/Catch arm could
+  actually settle the *inner* promise instead of the intended outer one, potentially
+  leaving an awaited outer promise hanging forever. This is now fixed — each nested
+  promise reliably settles the one you actually wired it to.
+- **Comments added to a Promise node were silently left out of the generated code.** Any
+  note you'd added to a Promise node is now included in the generated file, the same as
+  every other node type.
+- **The node picker inside a nested Blueprint graph matched search terms anywhere in a
+  name**, unlike the main canvas's right-click picker, which only matches from the start
+  of the name. Both now search the same way.
+- **A Promise node's settings inside a nested Blueprint graph didn't match the main
+  canvas** — it showed a plain text box instead of the full Name, Await, Wrap In IIFE,
+  Code/Blueprint toggle, and Executor Body controls available everywhere else. It's now
+  the same panel everywhere a Promise node can be configured.
+
+### Documentation
+
+- New [Promise node reference](/node-reference/logic/promise) entry, and the
+  [Function Graphs & Blueprint Mode](/core-concepts/function-graphs-and-blueprint-mode)
+  and [Node Categories](/core-concepts/node-categories) pages are updated for nested
+  Promise graphs and multi-level tab nesting.
+
+---
+
+## Version 1.2.0
 
 ### New
 
@@ -71,7 +162,7 @@ supporting a fixed path typed in ahead of time.
 ### Documentation
 
 - The [Handler reference](/node-reference/handler#send-json--handlersendjson) and
-  [Logic reference](/node-reference/logic#path-extractor--logicpathextractor) pages are
+  [Logic reference](/node-reference/logic/path-extractor) pages are
   updated for Send JSON's and Path Extractor's new wireable input pins.
 
 ---
@@ -115,7 +206,7 @@ owns the response).
 without copy-pasting it, or split one route's work into a chain of small, named,
 independently reusable handlers instead of one long inline block.
 
-See the [Handler Function reference](/node-reference/logic#handler-function--logichandlerfunction)
+See the [Handler Function reference](/node-reference/logic/handler-function)
 and the updated [Routing reference](/node-reference/routing).
 
 #### Module Variables, editable from inside a blueprint graph
@@ -159,7 +250,7 @@ confident about — the rest keep their existing on-disk content.
 
 ### Documentation
 
-- New [Handler Function reference](/node-reference/logic#handler-function--logichandlerfunction)
+- New [Handler Function reference](/node-reference/logic/handler-function)
   entry; the [Routing reference](/node-reference/routing) and [Handler
   reference](/node-reference/handler) pages are updated for the new attach-a-Handler-
   Function model. The [Node Categories](/core-concepts/node-categories) and [Node
@@ -228,8 +319,8 @@ using it, instead of showing every possible pin all the time.
 
 ### Documentation
 
-- New [Callback node reference](/node-reference/logic#callback--logiccallback) entry,
-  and the [Function node reference](/node-reference/logic#function--logicfunction) entry
+- New [Callback node reference](/node-reference/logic/callback) entry,
+  and the [Function node reference](/node-reference/logic/function) entry
   has been updated for the Usage toggle, wireable function output, and default parameter
   values.
 - The [Node Categories](/core-concepts/node-categories) and [Node Reference
@@ -308,7 +399,7 @@ category), covered in full on the [Array node reference](/node-reference/array) 
 adding, and removing items — without writing code.
 
 #### New node: Path Extractor
-A new **[Path Extractor](/node-reference/logic#path-extractor--logicpathextractor)** node
+A new **[Path Extractor](/node-reference/logic/path-extractor)** node
 reads a value from deep inside an object using a simple path, like `items[0].name` or
 `store.getInvoice`, and — if what it finds turns out to be a function — can call it for
 you with the parameters you provide.

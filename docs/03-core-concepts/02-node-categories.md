@@ -38,8 +38,12 @@ available in both places:
   (Return) is no longer Function-Graph-only — it's also usable directly inside an
   `array.*` loop body on the main canvas.
 - **Both, full parity**: `logic.functionCall`, `logic.callback`, `logic.pathExtractor`,
-  `logic.graphReturn`, `variable.get`, `variable.set`, `debug.consoleLog`,
+  `logic.promise`, `logic.graphReturn`, `variable.get`, `variable.set`, `debug.consoleLog`,
   `handler.sendJson`, all 17 `operators.*` nodes, all three `controlFlow.*` nodes
   (`branch`, `switch`, `sequence`), and all 15 `array.*` nodes.
+
+One further exception: `logic.promise` can also be nested inside ANOTHER Promise node's
+own Blueprint executor graph, to any depth — the only node type addable inside a nested
+Blueprint sub-canvas besides the types already listed above for "Both, full parity".
 
 Each node's page in the [Node Reference](/node-reference) notes which of these applies.

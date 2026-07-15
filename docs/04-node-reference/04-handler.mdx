@@ -8,7 +8,7 @@ import NodePreview from '@site/src/components/NodePreview';
 
 :::info Looking for the raw-code handler escape hatch?
 The old `handler.customCode` node has been removed. Raw JavaScript handlers are now
-written in a [Handler Function](/node-reference/logic#handler-function--logichandlerfunction)
+written in a [Handler Function](/node-reference/logic/handler-function)
 node's "code" mode instead — see the [Routing reference](/node-reference/routing) for how
 a Route attaches to one.
 :::
@@ -16,7 +16,7 @@ a Route attaches to one.
 ## Send JSON — `handler.sendJson`
 
 Responds with a JSON body and status code. Used inside a [Handler
-Function](/node-reference/logic#handler-function--logichandlerfunction)'s
+Function](/node-reference/logic/handler-function)'s
 blueprint-mode body — a Route can no longer wire to Send JSON directly, only to a
 Handler Function.
 
