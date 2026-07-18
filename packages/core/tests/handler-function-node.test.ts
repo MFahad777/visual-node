@@ -205,7 +205,7 @@ describe("Route → Handler Function connection", () => {
     );
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.nodeId === "route1" && e.message.includes("Handler Function"))).toBe(true);
+    expect(result.errors.some((e) => e.path.at(-1)?.nodeId === "route1" && e.message.includes("Handler Function"))).toBe(true);
   });
 
   it("allows multiple Routes to share one Handler Function", () => {

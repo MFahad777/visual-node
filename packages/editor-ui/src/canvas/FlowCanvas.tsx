@@ -23,6 +23,7 @@ import { VariableDropMenu } from "./VariableDropMenu.js";
 import { FunctionUsageMenu } from "./FunctionUsageMenu.js";
 import { isValidPinConnection } from "./connectionValidation.js";
 import { bestInsertIndex } from "./edgeWaypoints.js";
+import { registerCanvasInstance } from "./canvasFocus.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
 import type { FunctionUsage } from "./effectivePorts.js";
 
@@ -246,6 +247,11 @@ export function FlowCanvas() {
     return () => document.removeEventListener("keydown", handleDelete);
   }, [isFunctionGraphOpen, deleteSelectedNode]);
 
+  // Phase 38: Register/unregister this canvas instance for diagnostic navigation (canvasFocus.ts).
+  useEffect(() => {
+    return () => registerCanvasInstance("main", null);
+  }, []);
+
   const onNodeDragStop = useCallback(
     (_event: MouseEvent | TouchEvent, node: Node) => {
       // Skip reparenting for comment-group nodes themselves — React Flow handles their
@@ -301,6 +307,7 @@ export function FlowCanvas() {
         // (disabled when function-graph tab is active) and the same input-focus guards.
         deleteKeyCode={null}
         fitView
+        onInit={(inst) => registerCanvasInstance("main", inst)}
       >
         <Background variant={BackgroundVariant.Dots} color="#3a3a3a" gap={18} size={1.5} />
         <Controls />

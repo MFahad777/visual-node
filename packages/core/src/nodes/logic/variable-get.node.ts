@@ -1,4 +1,5 @@
 import type { NodeDefinition } from "../../schema/node-registry.js";
+import { findVariable } from "../../schema/node-display-name.js";
 
 /**
  * Reads the current value of a file-scoped (main canvas) or function-scoped (inside a
@@ -19,7 +20,7 @@ export const variableGetNode: NodeDefinition = {
   emit: () => ({ order: 0 }),
   resultIdentifier: (node, _handle, ctx) => {
     const variableId = (node.data as Record<string, unknown> | undefined)?.variableId;
-    const variable = (ctx?.flow.variables ?? []).find((v) => v.id === variableId);
+    const variable = findVariable(variableId, [ctx?.flow.variables ?? []]);
     if (!variable) {
       throw new Error(`Get Variable node "${node.id}" references unknown variable "${String(variableId)}"`);
     }

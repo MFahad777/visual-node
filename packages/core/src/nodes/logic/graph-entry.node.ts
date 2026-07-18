@@ -1,5 +1,6 @@
 import type { NodeDefinition } from "../../schema/node-registry.js";
-import { FunctionGraphError } from "../../codegen/emit-function-graph.js";
+import { NestedGraphError } from "../../codegen/nested-graph-error.js";
+import { frameForNode } from "../../schema/node-display-name.js";
 
 /**
  * Represents the owning Function node's entry point inside its blueprint body graph —
@@ -31,7 +32,7 @@ export const logicGraphEntryNode: NodeDefinition = {
   emit: () => ({ order: 0 }),
   resultIdentifier: (node, handle, ctx) => {
     if (!handle) {
-      throw new FunctionGraphError(`Node "${node.id}" (logic.graphEntry) requires a source handle to resolve a value`, node.id);
+      throw new NestedGraphError(`Node "${node.id}" (logic.graphEntry) requires a source handle to resolve a value`, [frameForNode(node)]);
     }
     // Inside a `logic.promise` blueprint executor graph, "resolve"/"reject" resolve to the
     // promise-instance-unique identifiers the enclosing `new Promise((resolve_X, reject_X) =>

@@ -28,6 +28,7 @@ import { defaultLiteralsFor } from "../canvas/effectivePorts.js";
 import { isValidPinConnection } from "../canvas/connectionValidation.js";
 import { bestInsertIndex } from "../canvas/edgeWaypoints.js";
 import { FunctionGraphEdgeContext } from "../canvas/functionGraphEdgeContext.js";
+import { registerCanvasInstance } from "../canvas/canvasFocus.js";
 import { VariableDropMenu } from "../canvas/VariableDropMenu.js";
 import { FunctionGraphNodePicker } from "./FunctionGraphNodePicker.js";
 import * as api from "../api/client.js";
@@ -411,6 +412,11 @@ function GraphCanvas({
     return () => document.removeEventListener("keydown", handleDelete);
   }, [isActive, deleteSelectedNode]);
 
+  // Phase 38: Register/unregister this canvas instance for diagnostic navigation (canvasFocus.ts).
+  useEffect(() => {
+    return () => registerCanvasInstance(functionNodeId, null);
+  }, [functionNodeId]);
+
   const onNodeDragStop = useCallback(
     (event: MouseEvent | TouchEvent, node: Node) => {
       if (node.type !== "annotation.commentGroup") {
@@ -463,6 +469,7 @@ function GraphCanvas({
         // (disabled when this tab is not active) and the same input-focus guards.
         deleteKeyCode={null}
         fitView
+        onInit={(inst) => registerCanvasInstance(functionNodeId, inst)}
       >
         <Background variant={BackgroundVariant.Dots} color="#3a3a3a" gap={18} size={1.5} />
         <Controls />

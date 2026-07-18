@@ -220,7 +220,8 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     );
   }
 
-  const hasError = errors.length > 0;
+  const hasError = errors.some((d) => d.severity === "error");
+  const hasWarning = !hasError && errors.some((d) => d.severity === "warning");
   const summary = summarize(
     type ?? "",
     (data ?? {}) as Record<string, unknown>,
@@ -393,12 +394,18 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
       <div
         className={[
           "relative min-w-[190px] overflow-hidden rounded-xl border shadow-lg shadow-black/50",
-          hasError ? "border-red-500 ring-2 ring-red-500" : selected ? "border-sky-400 ring-2 ring-sky-400" : "border-black/60",
+          hasError
+            ? "border-red-500 ring-2 ring-red-500"
+            : hasWarning
+              ? "border-amber-400 ring-2 ring-amber-400"
+              : selected
+                ? "border-sky-400 ring-2 ring-sky-400"
+                : "border-black/60",
         ].join(" ")}
         style={{
           boxShadow: selected ? `0 0 0 1px ${accentHex}55, 0 8px 24px -4px ${accentHex}66` : undefined,
         }}
-        title={hasError ? errors.map((e) => e.message).join("\n") : undefined}
+        title={errors.length > 0 ? errors.map((e) => e.message).join("\n") : undefined}
       >
 
       <div className={`flex items-center gap-1.5 px-2.5 py-1.5 ${headerClass}`}>

@@ -1,7 +1,9 @@
 import type { NodeDefinition, EmitContext } from "../../schema/node-registry.js";
 import type { FlowNode } from "../../schema/node.types.js";
-import { emitFunctionGraphBody, FunctionGraphError, type FunctionGraph } from "../../codegen/emit-function-graph.js";
+import { emitFunctionGraphBody, type FunctionGraph } from "../../codegen/emit-function-graph.js";
 import { resolveValuePin } from "../../codegen/value-pins.js";
+import { wrapNestedGraphError } from "../../codegen/nested-graph-error.js";
+import { frameForNode } from "../../schema/node-display-name.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -12,22 +14,6 @@ function hasParamDefault(node: FlowNode, ctx: EmitContext, pinId: string): boole
   if (ctx.getIncoming(node.id, pinId).length > 0) return true;
   const literal = (node.data as Record<string, any> | undefined)?.literals?.[pinId];
   return literal !== undefined && String(literal).trim() !== "";
-}
-
-/**
- * Thrown when a `mode: "blueprint"` Function node's body graph fails to compile.
- * `functionNodeId` is the outer Function node (the id `compile-project.ts` already knows how
- * to attribute a `ProjectFileError` to); `blueprintNodeId` additionally points at the specific
- * node *inside* the nested graph that caused the failure, when known.
- */
-export class FunctionBodyGraphError extends Error {
-  constructor(
-    message: string,
-    public readonly functionNodeId: string,
-    public readonly blueprintNodeId?: string,
-  ) {
-    super(message);
-  }
 }
 
 export const logicFunctionNode: NodeDefinition = {
@@ -125,8 +111,7 @@ export const logicFunctionNode: NodeDefinition = {
         body = result.code;
         imports = result.imports;
       } catch (err) {
-        const inner = err instanceof FunctionGraphError ? err : new FunctionGraphError(err instanceof Error ? err.message : String(err));
-        throw new FunctionBodyGraphError(`Blueprint graph error in function "${name}": ${inner.message}`, node.id, inner.nodeId);
+        throw wrapNestedGraphError(err, frameForNode(node, [ctx.flow.variables ?? []]));
       }
     } else {
       body = String(node.data?.body ?? "");

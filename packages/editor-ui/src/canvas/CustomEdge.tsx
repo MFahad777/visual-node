@@ -85,7 +85,7 @@ function CustomEdgeImpl({
   const globalTargetNode = useFlowStore((s) => s.nodes.find((n) => n.id === target));
   const globalVariables = useFlowStore((s) => s.variables);
   const globalHasValidationError = useFlowStore((s) =>
-    s.validationErrors.some((e) => e.nodeId === source || e.nodeId === target)
+    s.validationErrors.some((e) => e.path.some((frame) => frame.nodeId === source || frame.nodeId === target))
   );
   const { screenToFlowPosition } = useReactFlow();
 

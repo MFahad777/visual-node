@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { emitExpress } from "../src/codegen/emit-express.js";
-import { emitFunctionGraphBody, FunctionGraphError, type FunctionGraph } from "../src/codegen/emit-function-graph.js";
+import { emitFunctionGraphBody, type FunctionGraph } from "../src/codegen/emit-function-graph.js";
+import { NestedGraphError } from "../src/codegen/nested-graph-error.js";
 import { formatCode } from "../src/codegen/formatter.js";
 import { writeGeneratedFile } from "../src/codegen/file-writer.js";
 import { validateFlow } from "../src/schema/validate.js";
@@ -84,7 +85,7 @@ describe("emitFunctionGraphBody", () => {
     expect(new Function("a", body)(10)).toBeUndefined();
   });
 
-  it("throws FunctionGraphError on a cycle between two Add nodes", () => {
+  it("throws NestedGraphError on a cycle between two Add nodes", () => {
     const graph: FunctionGraph = {
       nodes: [addNode("add1"), addNode("add2")],
       edges: [
@@ -92,7 +93,7 @@ describe("emitFunctionGraphBody", () => {
         { id: "e2", source: "add2", target: "add1", sourceHandle: "result", targetHandle: "b" },
       ],
     };
-    expect(() => emitFunctionGraphBody(graph)).toThrow(FunctionGraphError);
+    expect(() => emitFunctionGraphBody(graph)).toThrow(NestedGraphError);
 
     let caught: unknown;
     try {
@@ -100,8 +101,8 @@ describe("emitFunctionGraphBody", () => {
     } catch (err) {
       caught = err;
     }
-    expect(caught).toBeInstanceOf(FunctionGraphError);
-    expect((caught as FunctionGraphError).nodeId).toBeDefined();
+    expect(caught).toBeInstanceOf(NestedGraphError);
+    expect((caught as NestedGraphError).path[0]?.nodeId).toBeDefined();
   });
 
   it("throws when Return's Value input is not connected", () => {

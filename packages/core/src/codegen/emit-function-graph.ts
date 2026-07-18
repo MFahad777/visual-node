@@ -4,6 +4,8 @@ import { emitExecChain, hoistValueDepsCore } from "./exec-chain.js";
 import { CycleError, topologicalSort } from "./topo-sort.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
 import { withNodeComment } from "./node-comment.js";
+import { NestedGraphError, wrapNestedGraphError } from "./nested-graph-error.js";
+import { frameForNode } from "../schema/node-display-name.js";
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -24,21 +26,6 @@ export interface FunctionGraph {
   comments?: CommentGroup[];
 }
 
-/**
- * Raised while compiling a function's blueprint body graph. `nodeId` (when present) points
- * at the specific node *inside* the nested graph that caused the failure, distinct from the
- * outer Function node's id — callers re-attribute both up the chain (see `function.node.ts`
- * and `ProjectFileError.blueprintNodeId`).
- */
-export class FunctionGraphError extends Error {
-  constructor(
-    message: string,
-    public readonly nodeId?: string,
-  ) {
-    super(message);
-  }
-}
-
 export function sanitizeIdentifier(id: string): string {
   const cleaned = id.replace(/[^A-Za-z0-9_$]/g, "_");
   return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
@@ -56,11 +43,11 @@ export function sanitizeIdentifier(id: string): string {
 export function resultIdentifierFor(node: FlowNode, handle?: string, ctx?: EmitContext): string {
   const def = requireNodeDefinition(node.type);
   if (!def.resultIdentifier) {
-    throw new FunctionGraphError(`Node type "${node.type}" produces no reusable value`, node.id);
+    throw new NestedGraphError(`Node type "${node.type}" produces no reusable value`, [frameForNode(node)]);
   }
   const identifier = def.resultIdentifier(node, handle, ctx);
   if (!IDENTIFIER_RE.test(identifier)) {
-    throw new FunctionGraphError(`Node "${node.id}" (${node.type}) has an invalid identifier "${identifier}"`, node.id);
+    throw new NestedGraphError(`Node "${node.id}" (${node.type}) has an invalid identifier "${identifier}"`, [frameForNode(node)]);
   }
   return identifier;
 }
@@ -106,15 +93,15 @@ function buildGraphEmitContext(
       const cached = cache.get(nodeId);
       if (cached) return cached;
       const node = nodesById.get(nodeId);
-      if (!node) throw new FunctionGraphError(`emitNode: unknown node id "${nodeId}"`);
+      if (!node) throw new NestedGraphError(`emitNode: unknown node id "${nodeId}"`);
       const def = requireNodeDefinition(node.type);
       try {
         const emitted = withNodeComment(node, def.emit(node, ctx));
         cache.set(nodeId, emitted);
         return emitted;
       } catch (err) {
-        if (err instanceof FunctionGraphError) throw err;
-        throw new FunctionGraphError(err instanceof Error ? err.message : String(err), nodeId);
+        if (err instanceof NestedGraphError) throw err;
+        throw new NestedGraphError(err instanceof Error ? err.message : String(err), [frameForNode(node)]);
       }
     },
   };
@@ -192,7 +179,8 @@ export function emitFunctionGraphBody(
     );
   } catch (err) {
     if (err instanceof CycleError) {
-      throw new FunctionGraphError("This function's blueprint graph contains a cycle", err.remainingNodeIds[0]);
+      const cycleNode = validNodes.find((n) => n.id === err.remainingNodeIds[0]);
+      throw new NestedGraphError("This function's blueprint graph contains a cycle", cycleNode ? [frameForNode(cycleNode)] : []);
     }
     throw err;
   }
@@ -205,8 +193,8 @@ export function emitFunctionGraphBody(
   try {
     trunk = emitExecChain(startNodeId, ctx);
   } catch (err) {
-    if (err instanceof FunctionGraphError) throw err;
-    throw new FunctionGraphError(err instanceof Error ? err.message : String(err));
+    if (err instanceof NestedGraphError) throw err;
+    throw new NestedGraphError(err instanceof Error ? err.message : String(err));
   }
 
   const statements: string[] = [];
@@ -219,7 +207,9 @@ export function emitFunctionGraphBody(
       const statement = buildVariableDeclarationStatement(variable);
       if (statement) statements.push(statement);
     } catch (err) {
-      throw new FunctionGraphError(err instanceof Error ? err.message : String(err), variable.id);
+      throw new NestedGraphError(err instanceof Error ? err.message : String(err), [
+        { nodeId: variable.id, nodeType: "variable-declaration", label: `Variable "${variable.name}"` },
+      ]);
     }
   }
 
@@ -245,8 +235,8 @@ export function emitFunctionGraphBody(
       if (emitted.body) statements.push(emitted.body);
       if (emitted.imports) imports.push(...emitted.imports);
     } catch (err) {
-      if (err instanceof FunctionGraphError) throw err;
-      throw new FunctionGraphError(err instanceof Error ? err.message : String(err), returnNode.id);
+      if (err instanceof NestedGraphError) throw err;
+      throw new NestedGraphError(err instanceof Error ? err.message : String(err), [frameForNode(returnNode)]);
     }
   }
 

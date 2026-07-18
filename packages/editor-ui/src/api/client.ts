@@ -1,7 +1,7 @@
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { decodeFlow, encodeFlow } from "@visual-node/core/flatbuffer-flow";
-import type { Flow, FlowEdge, FlowNode, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
+import type { Flow, FlowEdge, FlowNode, NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import { EditorService, FileTreeNode_Kind } from "@visual-node/proto-gen";
 import type {
   ConfigField as ProtoConfigField,
@@ -32,10 +32,24 @@ export interface CompiledFile {
   code: string;
 }
 
-export interface ProjectFileError {
-  relativePath: string;
-  nodeId?: string;
+// ---- Diagnostic types (matching Step 7.1 of Phase 38 plan) ----
+
+export interface DiagnosticFrame {
+  nodeId: string;
+  nodeType: string;
+  label: string;
+}
+
+export type DiagnosticSeverity = "error" | "warning";
+
+export interface ValidationError {
+  severity: DiagnosticSeverity;
   message: string;
+  path: DiagnosticFrame[];
+}
+
+export interface ProjectFileError extends ValidationError {
+  relativePath: string;
 }
 
 export interface WrittenFile {
@@ -50,21 +64,36 @@ export interface ProjectSettings {
 
 // ---- response-reshaping helpers (proto message -> legacy plain-object shape) ----
 
-/** ValidationError (proto) -> core's ValidationError (used by ValidateFlow/GenerateCode/WriteGeneratedCode, which never carry a `relativePath`). */
+/** Map proto severity enum to string union. Proto DiagnosticSeverity enum: 0=UNSPECIFIED, 1=ERROR, 2=WARNING. */
+function fromProtoSeverity(severity: number): DiagnosticSeverity {
+  if (severity === 2) return "warning"; // DIAGNOSTIC_SEVERITY_WARNING = 2
+  return "error"; // DIAGNOSTIC_SEVERITY_ERROR = 1 (default, treats UNSPECIFIED as error)
+}
+
+/** ValidationError (proto) -> this module's local ValidationError (used by ValidateFlow/GenerateCode/WriteGeneratedCode, which never carry a `relativePath`). */
 function fromProtoValidationError(e: ProtoValidationError): ValidationError {
   return {
-    nodeId: e.nodeId || undefined,
-    blueprintNodeId: e.blueprintNodeId || undefined,
+    severity: fromProtoSeverity(e.severity as number),
     message: e.message,
+    path: (e.path as Array<{ nodeId: string; nodeType: string; label: string }>).map((frame) => ({
+      nodeId: frame.nodeId,
+      nodeType: frame.nodeType,
+      label: frame.label,
+    })),
   };
 }
 
-/** ValidationError (proto) -> this module's local ProjectFileError (used by whole-project RPCs: CompileProject/WriteCompiledProject/StartRun's validationFailure — these do carry `relativePath`, but never `blueprintNodeId`, matching the legacy REST shape exactly). */
+/** ValidationError (proto) -> this module's local ProjectFileError (used by whole-project RPCs: CompileProject/WriteCompiledProject/StartRun's validationFailure). */
 function fromProtoProjectFileError(e: ProtoValidationError): ProjectFileError {
   return {
-    relativePath: e.relativePath,
-    nodeId: e.nodeId || undefined,
+    severity: fromProtoSeverity(e.severity as number),
     message: e.message,
+    path: (e.path as Array<{ nodeId: string; nodeType: string; label: string }>).map((frame) => ({
+      nodeId: frame.nodeId,
+      nodeType: frame.nodeType,
+      label: frame.label,
+    })),
+    relativePath: e.relativePath || "",
   };
 }
 
@@ -173,20 +202,20 @@ export async function validateFlowRemote(flow: Flow): Promise<ValidateResult> {
   return { valid: res.valid, errors: res.errors.map(fromProtoValidationError) };
 }
 
-export type GenerateResult = { valid: true; code: string } | { valid: false; errors: ValidationError[] };
+export type GenerateResult = { valid: true; code: string; warnings: ValidationError[] } | { valid: false; errors: ValidationError[] };
 
 export async function generateCode(flow: Flow): Promise<GenerateResult> {
   const res = await client.generateCode({ flatbufferFlow: encodeFlow(flow) });
   if (!res.valid) return { valid: false, errors: res.errors.map(fromProtoValidationError) };
-  return { valid: true, code: res.code };
+  return { valid: true, code: res.code, warnings: res.errors.map(fromProtoValidationError) };
 }
 
-export type WriteResult = { written: true; path: string } | { valid: false; errors: ValidationError[] };
+export type WriteResult = { written: true; path: string; warnings: ValidationError[] } | { valid: false; errors: ValidationError[] };
 
 export async function writeToDisk(flow: Flow): Promise<WriteResult> {
   const res = await client.writeGeneratedCode({ flatbufferFlow: encodeFlow(flow) });
   if (!res.valid) return { valid: false, errors: res.errors.map(fromProtoValidationError) };
-  return { written: true, path: res.path };
+  return { written: true, path: res.path, warnings: res.errors.map(fromProtoValidationError) };
 }
 
 export type StartServerResult =
@@ -304,7 +333,7 @@ export async function deleteFile(path: string): Promise<void> {
 }
 
 export type CompileResult =
-  | { valid: true; results: CompiledFile[] }
+  | { valid: true; results: CompiledFile[]; warnings: ProjectFileError[] }
   | { valid: false; results: CompiledFile[]; errors: ProjectFileError[] };
 
 export async function compileProject(): Promise<CompileResult> {
@@ -313,11 +342,11 @@ export async function compileProject(): Promise<CompileResult> {
   if (!res.valid) {
     return { valid: false, results, errors: res.errors.map(fromProtoProjectFileError) };
   }
-  return { valid: true, results };
+  return { valid: true, results, warnings: res.errors.map(fromProtoProjectFileError) };
 }
 
 export type WriteProjectResult =
-  | { written: true; files: WrittenFile[] }
+  | { written: true; files: WrittenFile[]; warnings: ProjectFileError[] }
   | { valid: false; errors: ProjectFileError[] };
 
 export async function writeProjectToDisk(): Promise<WriteProjectResult> {
@@ -328,11 +357,12 @@ export async function writeProjectToDisk(): Promise<WriteProjectResult> {
   return {
     written: true,
     files: res.files.map((f) => ({ relativePath: f.relativePath, outputPath: f.outputPath })),
+    warnings: res.errors.map(fromProtoProjectFileError),
   };
 }
 
 export type WriteFilesResult =
-  | { written: boolean; files: WrittenFile[]; errors: ProjectFileError[] }
+  | { written: boolean; files: WrittenFile[]; errors: ProjectFileError[]; warnings: ProjectFileError[] }
   | { valid: false; errors: ProjectFileError[] };
 
 // Recompiles/revalidates the whole project (same as writeProjectToDisk — a subset can't
@@ -348,7 +378,8 @@ export async function writeFilesToDisk(relativePaths: string[]): Promise<WriteFi
   return {
     written: res.written,
     files: res.files.map((f) => ({ relativePath: f.relativePath, outputPath: f.outputPath })),
-    errors: res.errors.map(fromProtoProjectFileError),
+    errors: res.errors.map(fromProtoProjectFileError).filter((e) => e.severity === "error"),
+    warnings: res.errors.map(fromProtoProjectFileError).filter((e) => e.severity === "warning"),
   };
 }
 

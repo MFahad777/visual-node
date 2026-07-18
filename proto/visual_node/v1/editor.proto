@@ -82,16 +82,24 @@ service EditorService {
 // Shared messages
 // ---------------------------------------------------------------------------
 
-// Mirrors packages/core/src/schema/validate.ts's ValidationError and
-// packages/core/src/project/compile-project.ts's ProjectFileError (same three optional
-// locator fields plus a message; ProjectFileError additionally carries which file the
-// error came from, via `relative_path`).
-message ValidationError {
+enum DiagnosticSeverity {
+  DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+  DIAGNOSTIC_SEVERITY_ERROR = 1;
+  DIAGNOSTIC_SEVERITY_WARNING = 2;
+}
+
+message DiagnosticFrame {
   string node_id = 1;
-  // Set when the error originates inside a Function node's blueprint body graph,
-  // pointing at the specific node within it.
-  string blueprint_node_id = 2;
-  string message = 3;
+  string node_type = 2;
+  string label = 3;
+}
+
+// Mirrors packages/core/src/schema/validate.ts's ValidationError (renamed to Diagnostic) and
+// packages/core/src/project/compile-project.ts's ProjectFileError (Diagnostic + relative_path).
+message ValidationError {
+  DiagnosticSeverity severity = 1;
+  string message = 2;
+  repeated DiagnosticFrame path = 3;
   // Only meaningful for whole-project compiles (CompileProject/WriteCompiledProject);
   // empty for single-flow validation/generation.
   string relative_path = 4;

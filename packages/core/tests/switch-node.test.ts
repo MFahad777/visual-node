@@ -224,11 +224,11 @@ describe("controlFlow.switch — validation", () => {
     expect(result.errors.some((e) => e.message.includes("references a case that no longer exists"))).toBe(true);
   });
 
-  it("rejects a Switch with both cases and Default completely unwired", () => {
+  it("rejects a Switch with both cases and Default completely unwired (warning, not blocking)", () => {
     const flow = flowWithSwitch(caseList(1, 2), { literals: { selection: 1 } }, [], []);
     const result = validateFlow(flow);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('no outgoing connections on any case or "Default"'))).toBe(true);
+    expect(result.valid).toBe(true); // Warnings don't block
+    expect(result.errors.some((e) => e.severity === "warning" && e.message.includes('no outgoing connections on any case or "Default"'))).toBe(true);
   });
 
   it("rejects a Switch whose selection is unwired and has no literal", () => {

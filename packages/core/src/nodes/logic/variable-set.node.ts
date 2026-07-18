@@ -3,6 +3,7 @@ import type { FlowNode } from "../../schema/node.types.js";
 import { resolveValuePin } from "../../codegen/value-pins.js";
 import { formatLiteralForType } from "../../codegen/variable-declarations.js";
 import { buildFunctionCallExpression, functionCallResultInlinesInto } from "./function-call.node.js";
+import { findVariable } from "../../schema/node-display-name.js";
 
 /**
  * Assigns a new value to a declared variable (see `variable-get.node.ts` for the shared
@@ -27,7 +28,7 @@ export const variableSetNode: NodeDefinition = {
   configSchema: [],
   emit: (node, ctx) => {
     const variableId = (node.data as Record<string, unknown> | undefined)?.variableId;
-    const variable = (ctx.flow.variables ?? []).find((v) => v.id === variableId);
+    const variable = findVariable(variableId, [ctx.flow.variables ?? []]);
     if (!variable) {
       throw new Error(`Set Variable node "${node.id}" references unknown variable "${String(variableId)}"`);
     }

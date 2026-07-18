@@ -181,10 +181,10 @@ describe("controlFlow.sequence — validation", () => {
     );
   }
 
-  it("rejects a Sequence with no pin wired", () => {
+  it("rejects a Sequence with no pin wired (warning, not blocking)", () => {
     const result = validateFlow(flowWithSequence(["p1"], [], []));
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes("would do nothing"))).toBe(true);
+    expect(result.valid).toBe(true); // Warnings don't block
+    expect(result.errors.some((e) => e.severity === "warning" && e.message.includes("would do nothing"))).toBe(true);
   });
 
   it("accepts a Sequence with only then-0 wired", () => {

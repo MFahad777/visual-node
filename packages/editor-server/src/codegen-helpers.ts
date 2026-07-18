@@ -16,16 +16,16 @@ import { listBlueprintFiles } from "./file-tree.js";
 
 const EXPRESS_DEPENDENCY_VERSION = "^4.19.2";
 
-export type CompileResult = { valid: true; code: string } | { valid: false; errors: ValidationError[] };
+export type CompileResult = { valid: true; code: string; warnings: ValidationError[] } | { valid: false; errors: ValidationError[] };
 
 export async function compile(flow: Flow): Promise<CompileResult> {
   const validation = validateFlow(flow);
   if (!validation.valid) {
     return { valid: false, errors: validation.errors };
   }
-  const { code } = emitExpress(flow);
+  const { code, warnings } = emitExpress(flow);
   const formatted = await formatCode(code);
-  return { valid: true, code: formatted };
+  return { valid: true, code: formatted, warnings };
 }
 
 export interface ProjectCompileFromDisk {
@@ -52,7 +52,7 @@ export async function compileProjectFromDisk(projectDir: string): Promise<Projec
     try {
       raw = await readFile(absolutePath);
     } catch (err) {
-      readErrors.push({ relativePath: ref.relativePath, message: `Failed to read file: ${(err as Error).message}` });
+      readErrors.push({ severity: "error" as const, message: `Failed to read file: ${(err as Error).message}`, path: [], relativePath: ref.relativePath });
       continue;
     }
 
@@ -60,15 +60,15 @@ export async function compileProjectFromDisk(projectDir: string): Promise<Projec
       const flow = decodeFlow(new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength));
       files.push({ relativePath: ref.relativePath, flow });
     } catch (err) {
-      readErrors.push({ relativePath: ref.relativePath, message: `Failed to decode: ${(err as Error).message}` });
+      readErrors.push({ severity: "error" as const, message: `Failed to decode: ${(err as Error).message}`, path: [], relativePath: ref.relativePath });
     }
   }
 
   const result = await compileProject(files);
 
   if (readErrors.length === 0) return { sourceFiles: files, result };
-  if (result.valid) return { sourceFiles: files, result: { valid: false, errors: readErrors } };
-  return { sourceFiles: files, result: { valid: false, errors: [...readErrors, ...result.errors] } };
+  if (result.valid) return { sourceFiles: files, result: { valid: false, errors: readErrors, warnings: result.warnings } };
+  return { sourceFiles: files, result: { valid: false, errors: [...readErrors, ...result.errors], warnings: result.warnings } };
 }
 
 /**

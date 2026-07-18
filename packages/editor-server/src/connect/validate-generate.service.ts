@@ -7,9 +7,11 @@ import {
   writeGeneratedFile,
   type Flow,
   type ValidationError as CoreValidationError,
+  type DiagnosticFrame,
 } from "@visual-node/core";
 import {
   EditorService,
+  DiagnosticSeverity,
   type ValidationError as ProtoValidationError,
   type ValidateFlowRequest,
   type ValidateFlowResponse,
@@ -61,13 +63,18 @@ function decodeFlowOrThrow(bytes: Uint8Array): Flow {
   }
 }
 
-function toProtoValidationError(e: CoreValidationError): ProtoValidationError {
+function toProtoValidationError(e: CoreValidationError & { relativePath?: string }): ProtoValidationError {
   return {
     $typeName: "visual_node.v1.ValidationError",
-    nodeId: e.nodeId ?? "",
-    blueprintNodeId: e.blueprintNodeId ?? "",
+    severity: e.severity === "warning" ? DiagnosticSeverity.WARNING : DiagnosticSeverity.ERROR,
     message: e.message,
-    relativePath: "",
+    path: (e.path ?? []).map((frame) => ({
+      $typeName: "visual_node.v1.DiagnosticFrame",
+      nodeId: frame.nodeId,
+      nodeType: frame.nodeType,
+      label: frame.label,
+    })) as any,
+    relativePath: e.relativePath ?? "",
   };
 }
 
@@ -97,7 +104,7 @@ async function generateCodeRpc(req: GenerateCodeRequest): Promise<GenerateCodeRe
     $typeName: "visual_node.v1.GenerateCodeResponse",
     valid: true,
     code: result.code,
-    errors: [],
+    errors: result.warnings.map(toProtoValidationError),
   };
 }
 
@@ -128,6 +135,6 @@ async function writeGeneratedCodeRpc(
     valid: true,
     written: true,
     path: serverPath,
-    errors: [],
+    errors: result.warnings.map(toProtoValidationError),
   };
 }

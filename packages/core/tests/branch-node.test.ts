@@ -275,11 +275,11 @@ describe("controlFlow.branch — validation", () => {
     );
   }
 
-  it("rejects a Branch with neither True nor False wired", () => {
+  it("rejects a Branch with neither True nor False wired (warning, not blocking)", () => {
     const flow = flowWithBranch({ literals: { condition: true } }, [], []);
     const result = validateFlow(flow);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes("no outgoing connection on either"))).toBe(true);
+    expect(result.valid).toBe(true); // Warnings don't block
+    expect(result.errors.some((e) => e.severity === "warning" && e.message.includes("no outgoing connection on either"))).toBe(true);
   });
 
   it("accepts a Branch with only True wired", () => {

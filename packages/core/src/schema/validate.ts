@@ -3,18 +3,17 @@ import { getNodeDefinition, requireNodeDefinition, type LoopShape, type NodeDefi
 import { CycleError, topologicalSort } from "../codegen/topo-sort.js";
 import { execEntryPort, getForkArmPinIds } from "../codegen/exec-chain.js";
 import { validateVariableDeclaration } from "../codegen/variable-declarations.js";
+import type { Diagnostic, DiagnosticFrame, DiagnosticSeverity } from "./diagnostics.js";
+import { frameForNode, resolveNodeDisplayName } from "./node-display-name.js";
 
-export interface ValidationError {
-  nodeId?: string;
-  /** Set when the error originates inside a Function node's blueprint body graph, pointing at the specific node within it. */
-  blueprintNodeId?: string;
-  message: string;
-}
+export interface ValidationError extends Diagnostic {}
 
 export interface ValidationResult {
   valid: boolean;
   errors: ValidationError[];
 }
+
+type MakeError = (node: FlowNode, message: string, severity?: DiagnosticSeverity) => ValidationError;
 
 /**
  * Structural validation of a flow graph, independent of any target (Express/Fastify).
@@ -27,45 +26,79 @@ export function validateFlow(flow: Flow): ValidationResult {
 
   for (const edge of flow.edges) {
     if (!nodesById.has(edge.source)) {
-      errors.push({ nodeId: edge.source, message: `Edge "${edge.id}" references unknown source node "${edge.source}"` });
+      const sourceNode = flow.nodes.find((n) => n.id === edge.source);
+      if (!sourceNode) {
+        errors.push({
+          severity: "error",
+          message: `Edge "${edge.id}" references unknown source node "${edge.source}"`,
+          path: [],
+        });
+      }
     }
     if (!nodesById.has(edge.target)) {
-      errors.push({ nodeId: edge.target, message: `Edge "${edge.id}" references unknown target node "${edge.target}"` });
+      const targetNode = flow.nodes.find((n) => n.id === edge.target);
+      if (!targetNode) {
+        errors.push({
+          severity: "error",
+          message: `Edge "${edge.id}" references unknown target node "${edge.target}"`,
+          path: [],
+        });
+      }
     }
   }
 
   for (const node of flow.nodes) {
     if (!getNodeDefinition(node.type)) {
-      errors.push({ nodeId: node.id, message: `Unknown node type "${node.type}"` });
+      errors.push({
+        severity: "error",
+        message: `Unknown node type "${node.type}"`,
+        path: [{ nodeId: node.id, nodeType: node.type, label: "Unknown" }],
+      });
     }
   }
   if (errors.length > 0) {
     // Can't reason about routing/cycles once a node type is unrecognized.
-    return { valid: false, errors };
+    return { valid: errors.every((e) => e.severity !== "error"), errors };
   }
 
   const STRUCTURAL_CATEGORIES = new Set(["server", "routing", "middleware"]);
   const usesAppChain = flow.nodes.some((n) => STRUCTURAL_CATEGORIES.has(requireNodeDefinition(n.type).category));
   const initNodes = flow.nodes.filter((n) => n.type === "express.init");
   if (usesAppChain && initNodes.length === 0) {
-    errors.push({ message: 'Flow must contain exactly one "express.init" node (found 0)' });
+    errors.push({
+      severity: "error",
+      message: 'Flow must contain exactly one "express.init" node (found 0)',
+      path: [],
+    });
   } else if (initNodes.length > 1) {
     for (const n of initNodes) {
-      errors.push({ nodeId: n.id, message: 'Only one "express.init" node is allowed per flow' });
+      errors.push({
+        severity: "error",
+        message: 'Only one "express.init" node is allowed per flow',
+        path: [frameForNode(n, [flow.variables ?? []])],
+      });
     }
   }
 
   const beginNodes = flow.nodes.filter((n) => n.type === "logic.begin");
   if (beginNodes.length > 1) {
     for (const n of beginNodes) {
-      errors.push({ nodeId: n.id, message: 'Only one "logic.begin" node is allowed per flow' });
+      errors.push({
+        severity: "error",
+        message: 'Only one "logic.begin" node is allowed per flow',
+        path: [frameForNode(n, [flow.variables ?? []])],
+      });
     }
   }
 
   const exportNodes = flow.nodes.filter((n) => n.type === "logic.export");
   if (exportNodes.length > 1) {
     for (const n of exportNodes) {
-      errors.push({ nodeId: n.id, message: 'Only one "logic.export" node is allowed per flow' });
+      errors.push({
+        severity: "error",
+        message: 'Only one "logic.export" node is allowed per flow',
+        path: [frameForNode(n, [flow.variables ?? []])],
+      });
     }
   }
   const exportVariablesById = new Map((flow.variables ?? []).map((v) => [v.id, v]));
@@ -78,8 +111,9 @@ export function validateFlow(flow: Flow): ValidationResult {
       if (edge.targetHandle === "variables") {
         if (source.type !== "variable.get") {
           errors.push({
-            nodeId: exp.id,
-            message: `Export node's "Variables" input can only be connected to Get Variable nodes, got "${source.type}"`,
+            severity: "error",
+            message: `"Variables" input can only be connected to Get Variable nodes, got "${source.type}"`,
+            path: [frameForNode(exp, [flow.variables ?? []])],
           });
           continue;
         }
@@ -88,27 +122,34 @@ export function validateFlow(flow: Flow): ValidationResult {
         if (typeof variableId === "string") {
           if (seenVariableIds.has(variableId)) {
             errors.push({
-              nodeId: exp.id,
-              message: `Export node cannot export variable "${variable?.name ?? variableId}" more than once — remove the duplicate connection.`,
+              severity: "error",
+              message: `cannot export variable "${variable?.name ?? variableId}" more than once — remove the duplicate connection.`,
+              path: [frameForNode(exp, [flow.variables ?? []])],
             });
           }
           seenVariableIds.add(variableId);
         }
         if (variable && variable.keyword === "const" && !(variable.defaultValue?.trim().length ?? 0) && variable.dataType !== "function") {
           errors.push({
-            nodeId: exp.id,
+            severity: "error",
             message:
               `Cannot export variable "${variable.name}": it is declared "const" with no default value, so it has ` +
               `no guaranteed top-level declaration in the generated file. Give it a default value, or change it to "let"/"var".`,
+            path: [frameForNode(exp, [flow.variables ?? []])],
           });
         }
       } else if (source.type !== "logic.function") {
-        errors.push({ nodeId: exp.id, message: `Export node can only be connected to Function nodes, got "${source.type}"` });
+        errors.push({
+          severity: "error",
+          message: `can only be connected to Function nodes, got "${source.type}"`,
+          path: [frameForNode(exp, [flow.variables ?? []])],
+        });
       } else {
         if (seenFunctionSourceIds.has(source.id)) {
           errors.push({
-            nodeId: exp.id,
-            message: `Export node cannot export function "${String(source.data?.name ?? source.id)}" more than once — remove the duplicate connection.`,
+            severity: "error",
+            message: `cannot export function "${String(source.data?.name ?? source.id)}" more than once — remove the duplicate connection.`,
+            path: [frameForNode(exp, [flow.variables ?? []])],
           });
         }
         seenFunctionSourceIds.add(source.id);
@@ -128,7 +169,14 @@ export function validateFlow(flow: Flow): ValidationResult {
   for (const [name, ids] of bindingNames) {
     if (ids.length > 1) {
       for (const id of ids) {
-        errors.push({ nodeId: id, message: `Top-level name "${name}" is declared more than once in this file` });
+        const node = nodesById.get(id);
+        if (node) {
+          errors.push({
+            severity: "error",
+            message: `Top-level name "${name}" is declared more than once in this file`,
+            path: [frameForNode(node, [flow.variables ?? []])],
+          });
+        }
       }
     }
   }
@@ -141,8 +189,9 @@ export function validateFlow(flow: Flow): ValidationResult {
     const variableName = String(call.data?.variableName ?? "").trim();
     if (!requireVariableNames.has(variableName)) {
       errors.push({
-        nodeId: call.id,
-        message: `Function Call node references variable "${variableName}", but no Require node in this file defines it`,
+        severity: "error",
+        message: `References variable "${variableName}", but no Require node in this file defines it`,
+        path: [frameForNode(call, [flow.variables ?? []])],
       });
     }
 
@@ -153,7 +202,11 @@ export function validateFlow(flow: Flow): ValidationResult {
     params.forEach((_, i) => {
       const incoming = flow.edges.filter((e) => e.target === call.id && e.targetHandle === `param-${i}`);
       if (incoming.length > 1) {
-        errors.push({ nodeId: call.id, message: `Function Call node's parameter ${i} has more than one incoming connection` });
+        errors.push({
+          severity: "error",
+          message: `Parameter ${i} has more than one incoming connection`,
+          path: [frameForNode(call, [flow.variables ?? []])],
+        });
         return;
       }
       const edge = incoming[0];
@@ -161,8 +214,9 @@ export function validateFlow(flow: Flow): ValidationResult {
       const source = nodesById.get(edge.source);
       if (source && source.type !== "logic.functionCall") {
         errors.push({
-          nodeId: call.id,
-          message: `Function Call node's parameter ${i} can only be connected to another Function Call node, got "${source.type}"`,
+          severity: "error",
+          message: `Parameter ${i} can only be connected to another Function Call node, got "${source.type}"`,
+          path: [frameForNode(call, [flow.variables ?? []])],
         });
       }
     });
@@ -172,25 +226,40 @@ export function validateFlow(flow: Flow): ValidationResult {
   for (const route of routeNodes) {
     const outgoing = flow.edges.filter((e) => e.source === route.id);
     if (outgoing.length === 0) {
-      errors.push({ nodeId: route.id, message: `Route "${route.data?.method ?? "?"} ${route.data?.path ?? "?"}" has no handler attached` });
+      errors.push({
+        severity: "error",
+        message: `Has no handler attached`,
+        path: [frameForNode(route, [flow.variables ?? []])],
+      });
       continue;
     }
     if (outgoing.length > 1) {
-      errors.push({ nodeId: route.id, message: "Route has more than one outgoing connection; only a single handler is supported" });
+      errors.push({
+        severity: "error",
+        message: "Has more than one outgoing connection; only a single handler is supported",
+        path: [frameForNode(route, [flow.variables ?? []])],
+      });
     }
     const target = nodesById.get(outgoing[0].target);
     if (target?.type !== "logic.handlerFunction") {
       errors.push({
-        nodeId: route.id,
-        message: `Route must be wired to a Handler Function node, got "${target?.type ?? "unknown"}"`,
+        severity: "error",
+        message: `Must be wired to a Handler Function node, got "${target?.type ?? "unknown"}"`,
+        path: [frameForNode(route, [flow.variables ?? []])],
       });
     }
   }
 
-  errors.push(...validateOperatorsAndControlFlow(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
-  errors.push(...checkCrossArmValueReferences(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
-  errors.push(...validateExecOutputArity(flow.nodes, flow.edges, (nodeId, message) => ({ nodeId, message })));
-  errors.push(...validateVariables(flow.nodes, flow.variables ?? [], (nodeId, message) => ({ nodeId, message })));
+  const makeError: MakeError = (node, message, severity = "error") => ({
+    severity,
+    message,
+    path: [frameForNode(node, [flow.variables ?? []])],
+  });
+
+  errors.push(...validateOperatorsAndControlFlow(flow.nodes, flow.edges, makeError));
+  errors.push(...checkCrossArmValueReferences(flow.nodes, flow.edges, makeError));
+  errors.push(...validateExecOutputArity(flow.nodes, flow.edges, makeError));
+  errors.push(...validateVariables(flow.nodes, flow.variables ?? [], makeError));
 
   const cycleError = detectCycle(flow);
   if (cycleError) errors.push(cycleError);
@@ -199,7 +268,7 @@ export function validateFlow(flow: Flow): ValidationResult {
     errors.push(...validateFunctionGraph(flow, fn));
   }
 
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.every((e) => e.severity !== "error"), errors };
 }
 
 /**
@@ -236,9 +305,15 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   const graphVariables = graph.variables ?? [];
   const functionName = String(functionNode.data?.name ?? functionNode.id);
 
+  const functionFrame = frameForNode(functionNode, [flow.variables ?? []]);
+
   for (const n of graphNodes) {
     if (!getNodeDefinition(n.type)) {
-      errors.push({ nodeId: functionNode.id, blueprintNodeId: n.id, message: `Function "${functionName}" blueprint graph references unknown node type "${n.type}"` });
+      errors.push({
+        severity: "error",
+        message: `Blueprint graph references unknown node type "${n.type}"`,
+        path: [functionFrame, { nodeId: n.id, nodeType: n.type, label: `Unknown node type` }],
+      });
     }
   }
   if (errors.length > 0) return errors;
@@ -246,7 +321,11 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   const nodesById = new Map(graphNodes.map((n) => [n.id, n]));
   for (const edge of graphEdges) {
     if (!nodesById.has(edge.source) || !nodesById.has(edge.target)) {
-      errors.push({ nodeId: functionNode.id, message: `Function "${functionName}" blueprint graph has an edge referencing a missing node` });
+      errors.push({
+        severity: "error",
+        message: `Blueprint graph has an edge referencing a missing node`,
+        path: [functionFrame],
+      });
     }
   }
 
@@ -255,9 +334,9 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   if (entryNodes.length > 1) {
     for (const n of entryNodes) {
       errors.push({
-        nodeId: functionNode.id,
-        blueprintNodeId: n.id,
-        message: `Function "${functionName}" blueprint graph can have at most one Start node`,
+        severity: "error",
+        message: `Blueprint graph can have at most one Start node`,
+        path: [functionFrame, { nodeId: n.id, nodeType: n.type, label: "Start" }],
       });
     }
   }
@@ -267,9 +346,9 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
       if (handle === "out") continue;
       if (!paramNames.has(handle)) {
         errors.push({
-          nodeId: functionNode.id,
-          blueprintNodeId: n.id,
-          message: `Function "${functionName}" blueprint graph references undeclared parameter "${handle}"`,
+          severity: "error",
+          message: `Blueprint graph references undeclared parameter "${handle}"`,
+          path: [functionFrame, { nodeId: n.id, nodeType: n.type, label: "Start" }],
         });
       }
     }
@@ -289,18 +368,18 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
       const calledFunctionName = String(call.data?.functionName ?? "").trim();
       if (!sameFileFunctionNames.has(calledFunctionName)) {
         errors.push({
-          nodeId: functionNode.id,
-          blueprintNodeId: call.id,
-          message: `Function "${functionName}" blueprint graph's Function Call node calls "${calledFunctionName}", but no Function node with that name exists in this file`,
+          severity: "error",
+          message: `Calls "${calledFunctionName}", but no Function node with that name exists in this file`,
+          path: [functionFrame, { nodeId: call.id, nodeType: call.type, label: "Function Call" }],
         });
       }
     } else {
       const variableName = String(call.data?.variableName ?? "").trim();
       if (!requireVariableNames.has(variableName)) {
         errors.push({
-          nodeId: functionNode.id,
-          blueprintNodeId: call.id,
-          message: `Function "${functionName}" blueprint graph's Function Call node references variable "${variableName}", but no Require node in this file defines it`,
+          severity: "error",
+          message: `References variable "${variableName}", but no Require node in this file defines it`,
+          path: [functionFrame, { nodeId: call.id, nodeType: call.type, label: "Function Call" }],
         });
       }
     }
@@ -315,9 +394,9 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
       const hasLiteral = String((call.data as Record<string, unknown> | undefined)?.[`arg-${i}`] ?? "").trim().length > 0;
       if (!hasWiredInput && !hasLiteral) {
         errors.push({
-          nodeId: functionNode.id,
-          blueprintNodeId: call.id,
-          message: `Function "${functionName}" blueprint graph's Function Call node's parameter "${paramNames[i]}" is not wired to a value`,
+          severity: "error",
+          message: `parameter "${paramNames[i]}" is not wired to a value`,
+          path: [functionFrame, { nodeId: call.id, nodeType: call.type, label: "Function Call" }],
         });
       }
     }
@@ -332,11 +411,11 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
     if (paramNames.has(name) || ids.length > 1) {
       for (const id of ids) {
         errors.push({
-          nodeId: functionNode.id,
-          blueprintNodeId: id,
+          severity: "error",
           message: paramNames.has(name)
-            ? `Function "${functionName}" blueprint graph's Function Call result variable "${name}" collides with a parameter of the same name`
-            : `Function "${functionName}" blueprint graph has more than one Function Call node using result variable "${name}"`,
+            ? `Result variable "${name}" collides with a parameter of the same name`
+            : `More than one Function Call node uses result variable "${name}"`,
+          path: [functionFrame, { nodeId: id, nodeType: "logic.functionCall", label: "Function Call" }],
         });
       }
     }
@@ -347,7 +426,11 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
     topologicalSort(emittableIds, graphEdges);
   } catch (err) {
     if (err instanceof CycleError) {
-      errors.push({ nodeId: functionNode.id, message: `Function "${functionName}" blueprint graph contains a cycle` });
+      errors.push({
+        severity: "error",
+        message: `Blueprint graph contains a cycle`,
+        path: [functionFrame],
+      });
     } else {
       throw err;
     }
@@ -357,10 +440,10 @@ function validateFunctionGraph(flow: Flow, functionNode: FlowNode): ValidationEr
   // same way every other check in this function is — mirrors the top-level calls in
   // validateFlow() above, following the existing Expression/FunctionCall parallel-checks
   // pattern (same checks, same helper, different attribution).
-  const attribute = (nodeId: string, message: string): ValidationError => ({
-    nodeId: functionNode.id,
-    blueprintNodeId: nodeId,
-    message: `Function "${functionName}" blueprint graph: ${message}`,
+  const attribute: MakeError = (node, message, severity = "error") => ({
+    severity,
+    message,
+    path: [functionFrame, frameForNode(node, [graphVariables, flow.variables ?? []])],
   });
   errors.push(...validateOperatorsAndControlFlow(graphNodes, graphEdges, attribute));
   errors.push(...checkCrossArmValueReferences(graphNodes, graphEdges, attribute));
@@ -453,7 +536,7 @@ function checkPromiseArmRequiresAsync(
 function validateVariables(
   nodes: FlowNode[],
   variables: VariableDeclaration[],
-  makeError: (nodeId: string, message: string) => ValidationError,
+  makeError: MakeError,
   additionalLookupVariables: VariableDeclaration[] = [],
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -461,13 +544,24 @@ function validateVariables(
   const namesSeen = new Map<string, string[]>();
   for (const v of variables) {
     const error = validateVariableDeclaration(v);
-    if (error) errors.push(makeError(v.id, error));
+    if (error) {
+      errors.push({
+        severity: "error",
+        message: error,
+        path: [{ nodeId: v.id, nodeType: "variable-declaration", label: `Variable "${v.name}"` }],
+      });
+    }
     namesSeen.set(v.name, [...(namesSeen.get(v.name) ?? []), v.id]);
   }
   for (const [name, ids] of namesSeen) {
     if (ids.length > 1) {
       for (const id of ids) {
-        errors.push(makeError(id, `Variable name "${name}" is declared more than once`));
+        const variable = variables.find((v) => v.id === id);
+        errors.push({
+          severity: "error",
+          message: `Variable name "${name}" is declared more than once`,
+          path: [{ nodeId: id, nodeType: "variable-declaration", label: `Variable "${name}"` }],
+        });
       }
     }
   }
@@ -483,9 +577,8 @@ function validateVariables(
     if (node.type !== "variable.get" && node.type !== "variable.set") continue;
     const variableId = (node.data as Record<string, unknown> | undefined)?.variableId;
     const variable = typeof variableId === "string" ? variablesById.get(variableId) : undefined;
-    const label = node.type === "variable.get" ? "Get Variable" : "Set Variable";
     if (!variable) {
-      errors.push(makeError(node.id, `${label} node "${node.id}" references unknown variable "${String(variableId)}"`));
+      errors.push(makeError(node, `References variable id "${variableId}", which no longer exists in this file's Variables panel (it may have been renamed or deleted).`));
       continue;
     }
   }
@@ -523,7 +616,7 @@ function validateVariables(
 function validateOperatorsAndControlFlow(
   nodes: FlowNode[],
   edges: FlowEdge[],
-  makeError: (nodeId: string, message: string) => ValidationError,
+  makeError: MakeError,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
@@ -549,9 +642,9 @@ function validateOperatorsAndControlFlow(
         const seen = new Set<string>();
         for (const name of extraInputs) {
           if (name === "a" || name === "b") {
-            errors.push(makeError(node.id, `${def.label} node "${node.id}" declares an extra input named "${name}", which collides with its built-in "a"/"b" pins`));
+            errors.push(makeError(node, `Declares an extra input named "${name}", which collides with its built-in "a"/"b" pins`));
           } else if (seen.has(name)) {
-            errors.push(makeError(node.id, `${def.label} node "${node.id}" declares the extra input "${name}" more than once`));
+            errors.push(makeError(node, `Declares the extra input "${name}" more than once`));
           }
           seen.add(name);
         }
@@ -561,9 +654,9 @@ function validateOperatorsAndControlFlow(
       for (const pinId of pinIds) {
         const incoming = edges.filter((e) => e.target === node.id && e.targetHandle === pinId);
         if (incoming.length > 1) {
-          errors.push(makeError(node.id, `${def.label} node "${node.id}" input "${pinId}" has more than one incoming connection`));
+          errors.push(makeError(node, `input "${pinId}" has more than one incoming connection`));
         } else if (incoming.length === 0 && !hasLiteral(node, pinId)) {
-          errors.push(makeError(node.id, `${def.label} node "${node.id}" input "${pinId}" is not connected and has no literal value`));
+          errors.push(makeError(node, `input "${pinId}" is not connected and has no literal value`));
         }
       }
     }
@@ -571,15 +664,15 @@ function validateOperatorsAndControlFlow(
     if (node.type === "controlFlow.branch") {
       const conditionIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "condition");
       if (conditionIncoming.length > 1) {
-        errors.push(makeError(node.id, `Branch node "${node.id}" input "condition" has more than one incoming connection`));
+        errors.push(makeError(node, `input "condition" has more than one incoming connection`));
       } else if (conditionIncoming.length === 0 && !hasLiteral(node, "condition")) {
-        errors.push(makeError(node.id, `Branch node "${node.id}" input "condition" is not connected and has no literal value`));
+        errors.push(makeError(node, `input "condition" is not connected and has no literal value`));
       }
 
       const trueWired = edges.some((e) => e.source === node.id && e.sourceHandle === "true");
       const falseWired = edges.some((e) => e.source === node.id && e.sourceHandle === "false");
       if (!trueWired && !falseWired) {
-        errors.push(makeError(node.id, `Branch node "${node.id}" has no outgoing connection on either "True" or "False" — it would do nothing`));
+        errors.push(makeError(node, `Has no outgoing connection on either "True" or "False" — it would do nothing`, "warning"));
       }
     }
 
@@ -587,7 +680,7 @@ function validateOperatorsAndControlFlow(
       const tryWired = edges.some((e) => e.source === node.id && e.sourceHandle === "try");
       const catchWired = edges.some((e) => e.source === node.id && e.sourceHandle === "catch");
       if (!tryWired && !catchWired) {
-        errors.push(makeError(node.id, `Try Catch node "${node.id}" has no outgoing connection on either "Try Body" or "Catch Body" — it would do nothing`));
+        errors.push(makeError(node, `Has no outgoing connection on either "Try Body" or "Catch Body" — it would do nothing`, "warning"));
       }
     }
 
@@ -596,7 +689,7 @@ function validateOperatorsAndControlFlow(
       const casesArray = Array.isArray(rawCases) ? (rawCases as unknown[]) : undefined;
       const validCases: Array<{ id: string; value: string | number | boolean }> = [];
       if (!casesArray) {
-        errors.push(makeError(node.id, `Switch node "${node.id}" has an invalid "cases" list (must be an array)`));
+        errors.push(makeError(node, `Has an invalid "cases" list (must be an array)`));
       } else {
         const seenIds = new Set<string>();
         // Dedup key incorporates the JS type, not just the value, since a switch's `===`
@@ -608,17 +701,17 @@ function validateOperatorsAndControlFlow(
           const value = c?.value;
           const isPrimitive = typeof value === "string" || typeof value === "number" || typeof value === "boolean";
           if (!id || !isPrimitive || (typeof value === "number" && !Number.isFinite(value))) {
-            errors.push(makeError(node.id, `Switch node "${node.id}" has an invalid case entry (needs a string "id" and a string/number/boolean "value")`));
+            errors.push(makeError(node, `Has an invalid case entry (needs a string "id" and a string/number/boolean "value")`));
             continue;
           }
           if (seenIds.has(id)) {
-            errors.push(makeError(node.id, `Switch node "${node.id}" has duplicate case id "${id}"`));
+            errors.push(makeError(node, `Has duplicate case id "${id}"`));
             continue;
           }
           seenIds.add(id);
           const valueKey = `${typeof value}:${value}`;
           if (seenValues.has(valueKey)) {
-            errors.push(makeError(node.id, `Switch node "${node.id}" has duplicate case value ${JSON.stringify(value)}`));
+            errors.push(makeError(node, `Has duplicate case value ${JSON.stringify(value)}`));
           }
           seenValues.add(valueKey);
           validCases.push({ id, value });
@@ -629,18 +722,18 @@ function validateOperatorsAndControlFlow(
       const outgoing = edges.filter((e) => e.source === node.id);
       for (const e of outgoing) {
         if (!validHandles.has(e.sourceHandle ?? "")) {
-          errors.push(makeError(node.id, `Switch node "${node.id}" has an outgoing connection ("${e.sourceHandle ?? ""}") that references a case that no longer exists`));
+          errors.push(makeError(node, `Has an outgoing connection ("${e.sourceHandle ?? ""}") that references a case that no longer exists`));
         }
       }
       if (!outgoing.some((e) => validHandles.has(e.sourceHandle ?? ""))) {
-        errors.push(makeError(node.id, `Switch node "${node.id}" has no outgoing connections on any case or "Default" — it would do nothing`));
+        errors.push(makeError(node, `Has no outgoing connections on any case or "Default" — it would do nothing`, "warning"));
       }
 
       const selectionIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "selection");
       if (selectionIncoming.length > 1) {
-        errors.push(makeError(node.id, `Switch node "${node.id}" input "selection" has more than one incoming connection`));
+        errors.push(makeError(node, `input "selection" has more than one incoming connection`));
       } else if (selectionIncoming.length === 0 && !hasLiteral(node, "selection")) {
-        errors.push(makeError(node.id, `Switch node "${node.id}" input "selection" is not connected and has no literal value`));
+        errors.push(makeError(node, `input "selection" is not connected and has no literal value`));
       }
     }
 
@@ -649,18 +742,18 @@ function validateOperatorsAndControlFlow(
       const pinsArray = rawPins === undefined ? [] : Array.isArray(rawPins) ? (rawPins as unknown[]) : undefined;
       const validPins: string[] = [];
       if (!pinsArray) {
-        errors.push(makeError(node.id, `Sequence node "${node.id}" has an invalid "pins" list (must be an array)`));
+        errors.push(makeError(node, `Has an invalid "pins" list (must be an array)`));
       } else {
         const seenIds = new Set<string>();
         for (const entry of pinsArray) {
           const p = entry as { id?: unknown } | undefined;
           const id = typeof p?.id === "string" ? p.id : undefined;
           if (!id) {
-            errors.push(makeError(node.id, `Sequence node "${node.id}" has an invalid pin entry (needs a string "id")`));
+            errors.push(makeError(node, `Has an invalid pin entry (needs a string "id")`));
             continue;
           }
           if (seenIds.has(id)) {
-            errors.push(makeError(node.id, `Sequence node "${node.id}" has duplicate pin id "${id}"`));
+            errors.push(makeError(node, `Has duplicate pin id "${id}"`));
             continue;
           }
           seenIds.add(id);
@@ -672,11 +765,11 @@ function validateOperatorsAndControlFlow(
       const outgoing = edges.filter((e) => e.source === node.id);
       for (const e of outgoing) {
         if (!validHandles.has(e.sourceHandle ?? "")) {
-          errors.push(makeError(node.id, `Sequence node "${node.id}" has an outgoing connection ("${e.sourceHandle ?? ""}") that references a pin that no longer exists`));
+          errors.push(makeError(node, `Has an outgoing connection ("${e.sourceHandle ?? ""}") that references a pin that no longer exists`));
         }
       }
       if (!outgoing.some((e) => validHandles.has(e.sourceHandle ?? ""))) {
-        errors.push(makeError(node.id, `Sequence node "${node.id}" has no outgoing connections on any "Then" pin — it would do nothing`));
+        errors.push(makeError(node, `Has no outgoing connections on any "Then" pin — it would do nothing`, "warning"));
       }
     }
 
@@ -688,18 +781,18 @@ function validateOperatorsAndControlFlow(
       const argsArray = rawArgs === undefined ? [] : Array.isArray(rawArgs) ? (rawArgs as unknown[]) : undefined;
       const validArgs: string[] = [];
       if (!argsArray) {
-        errors.push(makeError(node.id, `Callback node "${node.id}" has an invalid "args" list (must be an array)`));
+        errors.push(makeError(node, `Has an invalid "args" list (must be an array)`));
       } else {
         const seenIds = new Set<string>();
         for (const entry of argsArray) {
           const a = entry as { id?: unknown } | undefined;
           const id = typeof a?.id === "string" ? a.id : undefined;
           if (!id) {
-            errors.push(makeError(node.id, `Callback node "${node.id}" has an invalid arg entry (needs a string "id")`));
+            errors.push(makeError(node, `Has an invalid arg entry (needs a string "id")`));
             continue;
           }
           if (seenIds.has(id)) {
-            errors.push(makeError(node.id, `Callback node "${node.id}" has duplicate arg id "${id}"`));
+            errors.push(makeError(node, `Has duplicate arg id "${id}"`));
             continue;
           }
           seenIds.add(id);
@@ -711,7 +804,7 @@ function validateOperatorsAndControlFlow(
       const incoming = edges.filter((e) => e.target === node.id);
       for (const e of incoming) {
         if (!validHandles.has(e.targetHandle ?? "")) {
-          errors.push(makeError(node.id, `Callback node "${node.id}" has an incoming connection ("${e.targetHandle ?? ""}") that references a pin that no longer exists`));
+          errors.push(makeError(node, `Has an incoming connection ("${e.targetHandle ?? ""}") that references a pin that no longer exists`));
         }
       }
     }
@@ -723,18 +816,18 @@ function validateOperatorsAndControlFlow(
     if (node.type === "logic.graphReturn") {
       const valueIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "value");
       if (valueIncoming.length > 1) {
-        errors.push(makeError(node.id, `Return node "${node.id}" input "value" has more than one incoming connection`));
+        errors.push(makeError(node, `input "value" has more than one incoming connection`));
       } else if (valueIncoming.length === 0 && !hasLiteral(node, "value")) {
-        errors.push(makeError(node.id, `Return node "${node.id}" input "value" is not connected and has no literal value`));
+        errors.push(makeError(node, `input "value" is not connected and has no literal value`));
       }
     }
 
     if (node.type === "error.throw") {
       const valueIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "value");
       if (valueIncoming.length > 1) {
-        errors.push(makeError(node.id, `Throw node "${node.id}" input "value" has more than one incoming connection`));
+        errors.push(makeError(node, `input "value" has more than one incoming connection`));
       } else if (valueIncoming.length === 0 && !hasLiteral(node, "value")) {
-        errors.push(makeError(node.id, `Throw node "${node.id}" input "value" is not connected and has no literal value`));
+        errors.push(makeError(node, `input "value" is not connected and has no literal value`));
       }
     }
 
@@ -752,8 +845,8 @@ function validateOperatorsAndControlFlow(
           for (const _ of staleEdges) {
             errors.push(
               makeError(
-                node.id,
-                `Promise node "${node.id}" is Awaited, but has stale wiring on ${stalePins.map((s) => `"${s}"`).join("/")} pin(s) which only exist when not awaited`
+                node,
+                `Is Awaited, but has stale wiring on ${stalePins.map((s) => `"${s}"`).join("/")} pin(s) which only exist when not awaited`
               )
             );
             break; // report once per promise node, not once per stale edge
@@ -771,8 +864,8 @@ function validateOperatorsAndControlFlow(
         if (!assignTarget || assignTarget.type !== "variable.set") {
           errors.push(
             makeError(
-              node.id,
-              `Promise node "${node.id}"'s Assign pin must be wired to a Set Variable node, got "${assignTarget?.type ?? "unknown"}"`
+              node,
+              `Assign pin must be wired to a Set Variable node, got "${assignTarget?.type ?? "unknown"}"`
             )
           );
         }
@@ -781,8 +874,8 @@ function validateOperatorsAndControlFlow(
         if (outEdges.length === 0 || outEdges[0].target !== assignEdge.target) {
           errors.push(
             makeError(
-              node.id,
-              `Promise node "${node.id}"'s Assign pin target must also be the node immediately following it on the "Out" pin`
+              node,
+              `Assign pin target must also be the node immediately following it on the "Out" pin`
             )
           );
         }
@@ -797,8 +890,8 @@ function validateOperatorsAndControlFlow(
         if (asyncError) {
           errors.push(
             makeError(
-              node.id,
-              `Promise node "${node.id}"'s Then arm ${asyncError}, but Then callbacks cannot be made async — restructure to avoid needing await here`
+              node,
+              `Then arm ${asyncError}, but Then callbacks cannot be made async — restructure to avoid needing await here`
             )
           );
         }
@@ -811,8 +904,8 @@ function validateOperatorsAndControlFlow(
         if (asyncError) {
           errors.push(
             makeError(
-              node.id,
-              `Promise node "${node.id}"'s Catch arm ${asyncError}, but Catch callbacks cannot be made async — restructure to avoid needing await here`
+              node,
+              `Catch arm ${asyncError}, but Catch callbacks cannot be made async — restructure to avoid needing await here`
             )
           );
         }
@@ -844,7 +937,7 @@ function validateOperatorsAndControlFlow(
 function validateExecOutputArity(
   nodes: FlowNode[],
   edges: FlowEdge[],
-  makeError: (nodeId: string, message: string) => ValidationError,
+  makeError: MakeError,
 ): ValidationError[] {
   const STRUCTURAL_CATEGORIES = new Set(["server", "routing", "middleware"]);
   const errors: ValidationError[] = [];
@@ -868,8 +961,8 @@ function validateExecOutputArity(
       if (matching.length > 1) {
         errors.push(
           makeError(
-            node.id,
-            `Node "${node.id}" has more than one outgoing connection from its "${pinId}" execution output — only the first one wired would ever run`,
+            node,
+            `Has more than one outgoing connection from its "${pinId}" execution output — only the first one wired would ever run`,
           ),
         );
       }
@@ -1167,7 +1260,7 @@ function resolveArmPath(
 function checkCrossArmValueReferences(
   nodes: FlowNode[],
   edges: FlowEdge[],
-  makeError: (nodeId: string, message: string) => ValidationError,
+  makeError: MakeError,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   try {
@@ -1200,12 +1293,12 @@ function checkCrossArmValueReferences(
           const expectedArm = promisePath[0];
           const message =
             edge.sourceHandle === "value"
-              ? `Node "${targetNode.id}" reads Promise node "${sourceNode.id}"'s "Value" pin, which is only available inside the Promise's Then arm ("${expectedArm}")`
-              : `Node "${targetNode.id}" reads Promise node "${sourceNode.id}"'s "Error" pin, which is only available inside the Promise's Catch arm ("${expectedArm}")`;
+              ? `Reads Promise node's "Value" pin, which is only available inside the Promise's Then arm ("${expectedArm}")`
+              : `Reads Promise node's "Error" pin, which is only available inside the Promise's Catch arm ("${expectedArm}")`;
           const key = `${targetNode.id}:${sourceNode.id}:${edge.sourceHandle}`;
           if (!reported.has(key)) {
             reported.add(key);
-            errors.push(makeError(targetNode.id, message));
+            errors.push(makeError(targetNode, message));
           }
         }
         continue; // Promise pins are checked above; don't apply the generic cross-arm logic.
@@ -1220,8 +1313,8 @@ function checkCrossArmValueReferences(
             reported.add(key);
             errors.push(
               makeError(
-                targetNode.id,
-                `Node "${targetNode.id}" reads Try Catch node "${sourceNode.id}"'s "Error" pin, which is only available inside its Catch arm ("${tryCatchPath[0]}")`,
+                targetNode,
+                `Reads Try Catch node's "Error" pin, which is only available inside its Catch arm ("${tryCatchPath[0]}")`,
               ),
             );
           }
@@ -1238,13 +1331,13 @@ function checkCrossArmValueReferences(
 
       const armLabel = sourcePath.join(" > ");
       const message =
-        `Node "${targetNode.id}" reads a value from node "${sourceNode.id}", which is computed only inside Branch/Switch ` +
-        `arm "${armLabel}" that "${targetNode.id}" isn't part of.`;
+        `Reads a value from ${resolveNodeDisplayName(sourceNode)}, which is computed only inside Branch/Switch ` +
+        `arm "${armLabel}" that this node isn't part of.`;
 
       const key = `${targetNode.id}:${sourceNode.id}:${message}`;
       if (reported.has(key)) continue;
       reported.add(key);
-      errors.push(makeError(targetNode.id, message));
+      errors.push(makeError(targetNode, message));
     }
   } catch {
     // Supplementary, best-effort check — never let an unexpected node/edge shape here block
@@ -1319,7 +1412,11 @@ function detectCycle(flow: Flow): ValidationError | null {
 
   for (const node of flow.nodes) {
     if (color.get(node.id) === WHITE && visit(node.id)) {
-      return { message: "Flow graph contains a cycle; backend flows must be acyclic (DAG)" };
+      return {
+        severity: "error",
+        message: "Flow graph contains a cycle; backend flows must be acyclic (DAG)",
+        path: [],
+      };
     }
   }
   return null;

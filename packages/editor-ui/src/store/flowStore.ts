@@ -10,9 +10,9 @@ import {
   type Connection,
   type XYPosition,
 } from "@xyflow/react";
-import type { EdgeWaypoint, Flow, NodeDefinition, ValidationError, VariableDeclaration } from "@visual-node/core";
+import type { EdgeWaypoint, Flow, NodeDefinition, VariableDeclaration } from "@visual-node/core";
 import * as api from "../api/client.js";
-import type { CompiledFile, ProjectFileError, WrittenFile, ProjectSettings } from "../api/client.js";
+import type { CompiledFile, ProjectFileError, WrittenFile, ProjectSettings, ValidationError } from "../api/client.js";
 import { flowToGraph, graphToFlow } from "./adapters.js";
 import { useEditorTabsStore } from "./editorTabsStore.js";
 import type { ResolvedFunction } from "../lib/resolveRequiredFunctions.js";
@@ -269,14 +269,15 @@ export interface FlowStoreState {
 /** A2: group validation errors by node ID into a Map for O(1) lookup per node, avoiding the
  * allocation of a fresh array on every GenericNode render and defeating Zustand's
  * reference-equality selector bailout. */
-function groupErrorsByNodeId(errors: ValidationError[]): Map<string, ValidationError[]> {
+function groupDiagnosticsByNodeId(diags: ValidationError[]): Map<string, ValidationError[]> {
   const grouped = new Map<string, ValidationError[]>();
-  for (const error of errors) {
-    const nodeId = error.nodeId || "";
-    if (!grouped.has(nodeId)) {
-      grouped.set(nodeId, []);
+  for (const d of diags) {
+    for (const frame of d.path) {
+      if (!grouped.has(frame.nodeId)) {
+        grouped.set(frame.nodeId, []);
+      }
+      grouped.get(frame.nodeId)!.push(d);
     }
-    grouped.get(nodeId)!.push(error);
   }
   return grouped;
 }
@@ -858,7 +859,7 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
           const result = await api.validateFlowRemote(graphToFlow(nodes, edges, meta, variables));
           set({
             validationErrors: result.errors,
-            validationErrorsByNodeId: groupErrorsByNodeId(result.errors),
+            validationErrorsByNodeId: groupDiagnosticsByNodeId(result.errors),
           });
         } catch {
           // Live validation is best-effort; a transient failure shouldn't block editing.

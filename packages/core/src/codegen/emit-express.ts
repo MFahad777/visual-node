@@ -1,12 +1,20 @@
 import type { Flow, FlowEdge } from "../schema/node.types.js";
 import { requireNodeDefinition, type EmitContext, type EmittedCode } from "../schema/node-registry.js";
-import { validateFlow, getConstVariablesOverriddenFromBegin } from "../schema/validate.js";
+import { validateFlow, getConstVariablesOverriddenFromBegin, type ValidationError } from "../schema/validate.js";
 import { topologicalSortStructuralNodes, collectLogicNodes } from "./graph-walker.js";
 import { buildVariableDeclarationStatement } from "./variable-declarations.js";
 import { withNodeComment } from "./node-comment.js";
+import { NestedGraphError, wrapNestedGraphError } from "./nested-graph-error.js";
+import { frameForNode } from "../schema/node-display-name.js";
 
 export interface EmitResult {
   code: string;
+  warnings: ValidationError[];
+}
+
+export function formatDiagnosticForThrow(d: ValidationError): string {
+  const breadcrumb = d.path.map((f) => f.label).join(" > ");
+  return breadcrumb ? `${breadcrumb}: ${d.message}` : d.message;
 }
 
 function buildEmitContext(flow: Flow): EmitContext {
@@ -29,9 +37,14 @@ function buildEmitContext(flow: Flow): EmitContext {
       const node = nodesById.get(nodeId);
       if (!node) throw new Error(`emitNode: unknown node id "${nodeId}"`);
       const def = requireNodeDefinition(node.type);
-      const emitted = withNodeComment(node, def.emit(node, ctx));
-      cache.set(nodeId, emitted);
-      return emitted;
+      try {
+        const emitted = withNodeComment(node, def.emit(node, ctx));
+        cache.set(nodeId, emitted);
+        return emitted;
+      } catch (err) {
+        if (err instanceof NestedGraphError) throw err;
+        throw new NestedGraphError(err instanceof Error ? err.message : String(err), [frameForNode(node)]);
+      }
     },
   };
 
@@ -44,8 +57,9 @@ function buildEmitContext(flow: Flow): EmitContext {
  */
 export function emitExpress(flow: Flow): EmitResult {
   const validation = validateFlow(flow);
-  if (!validation.valid) {
-    const details = validation.errors.map((e) => (e.nodeId ? `[${e.nodeId}] ${e.message}` : e.message)).join("\n");
+  const blocking = validation.errors.filter((e) => e.severity === "error");
+  if (blocking.length > 0) {
+    const details = blocking.map(formatDiagnosticForThrow).join("\n");
     throw new Error(`Cannot generate code: flow is invalid.\n${details}`);
   }
 
@@ -82,5 +96,7 @@ export function emitExpress(flow: Flow): EmitResult {
     setupFragments.map((f) => f.setup).join("\n\n"),
   ].filter((s) => s.length > 0);
 
-  return { code: sections.join("\n\n") + "\n" };
+  const warnings = validation.errors.filter((e) => e.severity === "warning");
+
+  return { code: sections.join("\n\n") + "\n", warnings };
 }

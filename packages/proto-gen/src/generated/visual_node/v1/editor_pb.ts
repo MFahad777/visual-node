@@ -12,34 +12,56 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file visual_node/v1/editor.proto.
  */
 export const file_visual_node_v1_editor: GenFile = /*@__PURE__*/
-  fileDesc("Cht2aXN1YWxfbm9kZS92MS9lZGl0b3IucHJvdG8SDnZpc3VhbF9ub2RlLnYxImUKD1ZhbGlkYXRpb25FcnJvchIPCgdub2RlX2lkGAEgASgJEhkKEWJsdWVwcmludF9ub2RlX2lkGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSFQoNcmVsYXRpdmVfcGF0aBgEIAEoCSI5Cg5Qb3J0RGVmaW5pdGlvbhIKCgJpZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIMCgRraW5kGAMgASgJIoUBCgtDb25maWdGaWVsZBILCgNrZXkYASABKAkSDQoFbGFiZWwYAiABKAkSDAoEdHlwZRgDIAEoCRIPCgdvcHRpb25zGAQgAygJEi0KDWRlZmF1bHRfdmFsdWUYBSABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSDAoEaGludBgGIAEoCSLpAQoOTm9kZURlZmluaXRpb24SDAoEdHlwZRgBIAEoCRIQCghjYXRlZ29yeRgCIAEoCRINCgVsYWJlbBgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIuCgZpbnB1dHMYBSADKAsyHi52aXN1YWxfbm9kZS52MS5Qb3J0RGVmaW5pdGlvbhIvCgdvdXRwdXRzGAYgAygLMh4udmlzdWFsX25vZGUudjEuUG9ydERlZmluaXRpb24SMgoNY29uZmlnX3NjaGVtYRgHIAMoCzIbLnZpc3VhbF9ub2RlLnYxLkNvbmZpZ0ZpZWxkIicKFkdldE5vZGVSZWdpc3RyeVJlcXVlc3QSDQoFc2NvcGUYASABKAkiYwoXR2V0Tm9kZVJlZ2lzdHJ5UmVzcG9uc2USMwoLZGVmaW5pdGlvbnMYASADKAsyHi52aXN1YWxfbm9kZS52MS5Ob2RlRGVmaW5pdGlvbhITCgtwcm9qZWN0X2RpchgCIAEoCSIQCg5HZXRGbG93UmVxdWVzdCI5Cg9HZXRGbG93UmVzcG9uc2USDQoFZm91bmQYASABKAgSFwoPZmxhdGJ1ZmZlcl9mbG93GAIgASgMIioKD1NhdmVGbG93UmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiHgoQU2F2ZUZsb3dSZXNwb25zZRIKCgJvaxgBIAEoCCIuChNWYWxpZGF0ZUZsb3dSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJWChRWYWxpZGF0ZUZsb3dSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIvCgZlcnJvcnMYAiADKAsyHy52aXN1YWxfbm9kZS52MS5WYWxpZGF0aW9uRXJyb3IiLgoTR2VuZXJhdGVDb2RlUmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiZAoUR2VuZXJhdGVDb2RlUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDAoEY29kZRgCIAEoCRIvCgZlcnJvcnMYAyADKAsyHy52aXN1YWxfbm9kZS52MS5WYWxpZGF0aW9uRXJyb3IiNAoZV3JpdGVHZW5lcmF0ZWRDb2RlUmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiewoaV3JpdGVHZW5lcmF0ZWRDb2RlUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHd3JpdHRlbhgCIAEoCBIMCgRwYXRoGAMgASgJEi8KBmVycm9ycxgEIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciIzCg9Qcm9qZWN0U2V0dGluZ3MSDAoEbW9kZRgBIAEoCRISCgplbnRyeV9maWxlGAIgASgJIhsKGUdldFByb2plY3RTZXR0aW5nc1JlcXVlc3QiTwoaR2V0UHJvamVjdFNldHRpbmdzUmVzcG9uc2USMQoIc2V0dGluZ3MYASABKAsyHy52aXN1YWxfbm9kZS52MS5Qcm9qZWN0U2V0dGluZ3MiUQocVXBkYXRlUHJvamVjdFNldHRpbmdzUmVxdWVzdBIxCghzZXR0aW5ncxgBIAEoCzIfLnZpc3VhbF9ub2RlLnYxLlByb2plY3RTZXR0aW5ncyI7Ch1VcGRhdGVQcm9qZWN0U2V0dGluZ3NSZXNwb25zZRIKCgJvaxgBIAEoCBIOCgZlcnJvcnMYAiADKAkiJgoPU3RhcnRSdW5SZXF1ZXN0EhMKC3RhcmdldF9maWxlGAEgASgJIh0KClJ1blN0YXJ0ZWQSDwoHcnVubmluZxgBIAEoCCJHChRSdW5WYWxpZGF0aW9uRmFpbHVyZRIvCgZlcnJvcnMYASADKAsyHy52aXN1YWxfbm9kZS52MS5WYWxpZGF0aW9uRXJyb3IioAEKEFN0YXJ0UnVuUmVzcG9uc2USLQoHc3RhcnRlZBgBIAEoCzIaLnZpc3VhbF9ub2RlLnYxLlJ1blN0YXJ0ZWRIABJCChJ2YWxpZGF0aW9uX2ZhaWx1cmUYAiABKAsyJC52aXN1YWxfbm9kZS52MS5SdW5WYWxpZGF0aW9uRmFpbHVyZUgAEg8KBWVycm9yGAMgASgJSABCCAoGcmVzdWx0IhAKDlN0b3BSdW5SZXF1ZXN0IiIKD1N0b3BSdW5SZXNwb25zZRIPCgdydW5uaW5nGAEgASgIIhUKE0dldFJ1blN0YXR1c1JlcXVlc3QiJwoUR2V0UnVuU3RhdHVzUmVzcG9uc2USDwoHcnVubmluZxgBIAEoCCIQCg5SdW5Mb2dzUmVxdWVzdCInCglFeGl0RXZlbnQSEQoEY29kZRgBIAEoBUgAiAEBQgcKBV9jb2RlIlQKD1J1bkxvZ3NSZXNwb25zZRINCgNsb2cYASABKAlIABIpCgRleGl0GAIgASgLMhkudmlzdWFsX25vZGUudjEuRXhpdEV2ZW50SABCBwoFZXZlbnQi0gEKDEZpbGVUcmVlTm9kZRIvCgRraW5kGAEgASgOMiEudmlzdWFsX25vZGUudjEuRmlsZVRyZWVOb2RlLktpbmQSDAoEbmFtZRgCIAEoCRIVCg1yZWxhdGl2ZV9wYXRoGAMgASgJEi4KCGNoaWxkcmVuGAQgAygLMhwudmlzdWFsX25vZGUudjEuRmlsZVRyZWVOb2RlIjwKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg0KCUtJTkRfRklMRRABEg8KC0tJTkRfRk9MREVSEAIiEgoQTGlzdEZpbGVzUmVxdWVzdCI/ChFMaXN0RmlsZXNSZXNwb25zZRIqCgR0cmVlGAEgAygLMhwudmlzdWFsX25vZGUudjEuRmlsZVRyZWVOb2RlIiMKE0NyZWF0ZUZvbGRlclJlcXVlc3QSDAoEcGF0aBgBIAEoCSIwChRDcmVhdGVGb2xkZXJSZXNwb25zZRIKCgJvaxgBIAEoCBIMCgRwYXRoGAIgASgJIiYKFkNyZWF0ZUJsdWVwcmludFJlcXVlc3QSDAoEcGF0aBgBIAEoCSJMChdDcmVhdGVCbHVlcHJpbnRSZXNwb25zZRIKCgJvaxgBIAEoCBIMCgRwYXRoGAIgASgJEhcKD2ZsYXRidWZmZXJfZmxvdxgDIAEoDCIjChNHZXRCbHVlcHJpbnRSZXF1ZXN0EgwKBHBhdGgYASABKAkiLwoUR2V0Qmx1ZXByaW50UmVzcG9uc2USFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMIj0KFFNhdmVCbHVlcHJpbnRSZXF1ZXN0EgwKBHBhdGgYASABKAkSFwoPZmxhdGJ1ZmZlcl9mbG93GAIgASgMIiMKFVNhdmVCbHVlcHJpbnRSZXNwb25zZRIKCgJvaxgBIAEoCCItChFSZW5hbWVQYXRoUmVxdWVzdBIMCgRmcm9tGAEgASgJEgoKAnRvGAIgASgJIiAKElJlbmFtZVBhdGhSZXNwb25zZRIKCgJvaxgBIAEoCCIhChFEZWxldGVQYXRoUmVxdWVzdBIMCgRwYXRoGAEgASgJIiAKEkRlbGV0ZVBhdGhSZXNwb25zZRIKCgJvaxgBIAEoCCI6ChNDb21waWxlZFByb2plY3RGaWxlEhUKDXJlbGF0aXZlX3BhdGgYASABKAkSDAoEY29kZRgCIAEoCSIXChVDb21waWxlUHJvamVjdFJlcXVlc3QijgEKFkNvbXBpbGVQcm9qZWN0UmVzcG9uc2USDQoFdmFsaWQYASABKAgSNAoHcmVzdWx0cxgCIAMoCzIjLnZpc3VhbF9ub2RlLnYxLkNvbXBpbGVkUHJvamVjdEZpbGUSLwoGZXJyb3JzGAMgAygLMh8udmlzdWFsX25vZGUudjEuVmFsaWRhdGlvbkVycm9yIkAKEldyaXR0ZW5Qcm9qZWN0RmlsZRIVCg1yZWxhdGl2ZV9wYXRoGAEgASgJEhMKC291dHB1dF9wYXRoGAIgASgJIh0KG1dyaXRlQ29tcGlsZWRQcm9qZWN0UmVxdWVzdCKiAQocV3JpdGVDb21waWxlZFByb2plY3RSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgd3cml0dGVuGAIgASgIEjEKBWZpbGVzGAMgAygLMiIudmlzdWFsX25vZGUudjEuV3JpdHRlblByb2plY3RGaWxlEi8KBmVycm9ycxgEIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciIzChlXcml0ZUNvbXBpbGVkRmlsZXNSZXF1ZXN0EhYKDnJlbGF0aXZlX3BhdGhzGAEgAygJIqABChpXcml0ZUNvbXBpbGVkRmlsZXNSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgd3cml0dGVuGAIgASgIEjEKBWZpbGVzGAMgAygLMiIudmlzdWFsX25vZGUudjEuV3JpdHRlblByb2plY3RGaWxlEi8KBmVycm9ycxgEIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciJGChhGdW5jdGlvbkdyYXBoRXJyb3JEZXRhaWwSDwoHbWVzc2FnZRgBIAEoCRIZChFibHVlcHJpbnRfbm9kZV9pZBgCIAEoCSI2ChtQcmV2aWV3RnVuY3Rpb25HcmFwaFJlcXVlc3QSFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMInMKHFByZXZpZXdGdW5jdGlvbkdyYXBoUmVzcG9uc2USDgoEYm9keRgBIAEoCUgAEjkKBWVycm9yGAIgASgLMigudmlzdWFsX25vZGUudjEuRnVuY3Rpb25HcmFwaEVycm9yRGV0YWlsSABCCAoGcmVzdWx0IisKFEluc3RhbGxQbHVnaW5SZXF1ZXN0EhMKC3BsdWdpbl9qc29uGAEgASgMIlgKFUluc3RhbGxQbHVnaW5SZXNwb25zZRIKCgJvaxgBIAEoCBIMCgR0eXBlGAIgASgJEhUKDXJlbGF0aXZlX3BhdGgYAyABKAkSDgoGZXJyb3JzGAQgAygJMt4RCg1FZGl0b3JTZXJ2aWNlEmIKD0dldE5vZGVSZWdpc3RyeRImLnZpc3VhbF9ub2RlLnYxLkdldE5vZGVSZWdpc3RyeVJlcXVlc3QaJy52aXN1YWxfbm9kZS52MS5HZXROb2RlUmVnaXN0cnlSZXNwb25zZRJKCgdHZXRGbG93Eh4udmlzdWFsX25vZGUudjEuR2V0Rmxvd1JlcXVlc3QaHy52aXN1YWxfbm9kZS52MS5HZXRGbG93UmVzcG9uc2USTQoIU2F2ZUZsb3cSHy52aXN1YWxfbm9kZS52MS5TYXZlRmxvd1JlcXVlc3QaIC52aXN1YWxfbm9kZS52MS5TYXZlRmxvd1Jlc3BvbnNlElkKDFZhbGlkYXRlRmxvdxIjLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRlRmxvd1JlcXVlc3QaJC52aXN1YWxfbm9kZS52MS5WYWxpZGF0ZUZsb3dSZXNwb25zZRJZCgxHZW5lcmF0ZUNvZGUSIy52aXN1YWxfbm9kZS52MS5HZW5lcmF0ZUNvZGVSZXF1ZXN0GiQudmlzdWFsX25vZGUudjEuR2VuZXJhdGVDb2RlUmVzcG9uc2USawoSV3JpdGVHZW5lcmF0ZWRDb2RlEikudmlzdWFsX25vZGUudjEuV3JpdGVHZW5lcmF0ZWRDb2RlUmVxdWVzdBoqLnZpc3VhbF9ub2RlLnYxLldyaXRlR2VuZXJhdGVkQ29kZVJlc3BvbnNlEmsKEkdldFByb2plY3RTZXR0aW5ncxIpLnZpc3VhbF9ub2RlLnYxLkdldFByb2plY3RTZXR0aW5nc1JlcXVlc3QaKi52aXN1YWxfbm9kZS52MS5HZXRQcm9qZWN0U2V0dGluZ3NSZXNwb25zZRJ0ChVVcGRhdGVQcm9qZWN0U2V0dGluZ3MSLC52aXN1YWxfbm9kZS52MS5VcGRhdGVQcm9qZWN0U2V0dGluZ3NSZXF1ZXN0Gi0udmlzdWFsX25vZGUudjEuVXBkYXRlUHJvamVjdFNldHRpbmdzUmVzcG9uc2USTQoIU3RhcnRSdW4SHy52aXN1YWxfbm9kZS52MS5TdGFydFJ1blJlcXVlc3QaIC52aXN1YWxfbm9kZS52MS5TdGFydFJ1blJlc3BvbnNlEkoKB1N0b3BSdW4SHi52aXN1YWxfbm9kZS52MS5TdG9wUnVuUmVxdWVzdBofLnZpc3VhbF9ub2RlLnYxLlN0b3BSdW5SZXNwb25zZRJZCgxHZXRSdW5TdGF0dXMSIy52aXN1YWxfbm9kZS52MS5HZXRSdW5TdGF0dXNSZXF1ZXN0GiQudmlzdWFsX25vZGUudjEuR2V0UnVuU3RhdHVzUmVzcG9uc2USTAoHUnVuTG9ncxIeLnZpc3VhbF9ub2RlLnYxLlJ1bkxvZ3NSZXF1ZXN0Gh8udmlzdWFsX25vZGUudjEuUnVuTG9nc1Jlc3BvbnNlMAESUAoJTGlzdEZpbGVzEiAudmlzdWFsX25vZGUudjEuTGlzdEZpbGVzUmVxdWVzdBohLnZpc3VhbF9ub2RlLnYxLkxpc3RGaWxlc1Jlc3BvbnNlElkKDENyZWF0ZUZvbGRlchIjLnZpc3VhbF9ub2RlLnYxLkNyZWF0ZUZvbGRlclJlcXVlc3QaJC52aXN1YWxfbm9kZS52MS5DcmVhdGVGb2xkZXJSZXNwb25zZRJiCg9DcmVhdGVCbHVlcHJpbnQSJi52aXN1YWxfbm9kZS52MS5DcmVhdGVCbHVlcHJpbnRSZXF1ZXN0GicudmlzdWFsX25vZGUudjEuQ3JlYXRlQmx1ZXByaW50UmVzcG9uc2USWQoMR2V0Qmx1ZXByaW50EiMudmlzdWFsX25vZGUudjEuR2V0Qmx1ZXByaW50UmVxdWVzdBokLnZpc3VhbF9ub2RlLnYxLkdldEJsdWVwcmludFJlc3BvbnNlElwKDVNhdmVCbHVlcHJpbnQSJC52aXN1YWxfbm9kZS52MS5TYXZlQmx1ZXByaW50UmVxdWVzdBolLnZpc3VhbF9ub2RlLnYxLlNhdmVCbHVlcHJpbnRSZXNwb25zZRJTCgpSZW5hbWVQYXRoEiEudmlzdWFsX25vZGUudjEuUmVuYW1lUGF0aFJlcXVlc3QaIi52aXN1YWxfbm9kZS52MS5SZW5hbWVQYXRoUmVzcG9uc2USUwoKRGVsZXRlUGF0aBIhLnZpc3VhbF9ub2RlLnYxLkRlbGV0ZVBhdGhSZXF1ZXN0GiIudmlzdWFsX25vZGUudjEuRGVsZXRlUGF0aFJlc3BvbnNlEl8KDkNvbXBpbGVQcm9qZWN0EiUudmlzdWFsX25vZGUudjEuQ29tcGlsZVByb2plY3RSZXF1ZXN0GiYudmlzdWFsX25vZGUudjEuQ29tcGlsZVByb2plY3RSZXNwb25zZRJxChRXcml0ZUNvbXBpbGVkUHJvamVjdBIrLnZpc3VhbF9ub2RlLnYxLldyaXRlQ29tcGlsZWRQcm9qZWN0UmVxdWVzdBosLnZpc3VhbF9ub2RlLnYxLldyaXRlQ29tcGlsZWRQcm9qZWN0UmVzcG9uc2USawoSV3JpdGVDb21waWxlZEZpbGVzEikudmlzdWFsX25vZGUudjEuV3JpdGVDb21waWxlZEZpbGVzUmVxdWVzdBoqLnZpc3VhbF9ub2RlLnYxLldyaXRlQ29tcGlsZWRGaWxlc1Jlc3BvbnNlEnEKFFByZXZpZXdGdW5jdGlvbkdyYXBoEisudmlzdWFsX25vZGUudjEuUHJldmlld0Z1bmN0aW9uR3JhcGhSZXF1ZXN0GiwudmlzdWFsX25vZGUudjEuUHJldmlld0Z1bmN0aW9uR3JhcGhSZXNwb25zZRJcCg1JbnN0YWxsUGx1Z2luEiQudmlzdWFsX25vZGUudjEuSW5zdGFsbFBsdWdpblJlcXVlc3QaJS52aXN1YWxfbm9kZS52MS5JbnN0YWxsUGx1Z2luUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_struct]);
+  fileDesc("Cht2aXN1YWxfbm9kZS92MS9lZGl0b3IucHJvdG8SDnZpc3VhbF9ub2RlLnYxIkQKD0RpYWdub3N0aWNGcmFtZRIPCgdub2RlX2lkGAEgASgJEhEKCW5vZGVfdHlwZRgCIAEoCRINCgVsYWJlbBgDIAEoCSKeAQoPVmFsaWRhdGlvbkVycm9yEjQKCHNldmVyaXR5GAEgASgOMiIudmlzdWFsX25vZGUudjEuRGlhZ25vc3RpY1NldmVyaXR5Eg8KB21lc3NhZ2UYAiABKAkSLQoEcGF0aBgDIAMoCzIfLnZpc3VhbF9ub2RlLnYxLkRpYWdub3N0aWNGcmFtZRIVCg1yZWxhdGl2ZV9wYXRoGAQgASgJIjkKDlBvcnREZWZpbml0aW9uEgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJEgwKBGtpbmQYAyABKAkihQEKC0NvbmZpZ0ZpZWxkEgsKA2tleRgBIAEoCRINCgVsYWJlbBgCIAEoCRIMCgR0eXBlGAMgASgJEg8KB29wdGlvbnMYBCADKAkSLQoNZGVmYXVsdF92YWx1ZRgFIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIMCgRoaW50GAYgASgJIukBCg5Ob2RlRGVmaW5pdGlvbhIMCgR0eXBlGAEgASgJEhAKCGNhdGVnb3J5GAIgASgJEg0KBWxhYmVsGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEi4KBmlucHV0cxgFIAMoCzIeLnZpc3VhbF9ub2RlLnYxLlBvcnREZWZpbml0aW9uEi8KB291dHB1dHMYBiADKAsyHi52aXN1YWxfbm9kZS52MS5Qb3J0RGVmaW5pdGlvbhIyCg1jb25maWdfc2NoZW1hGAcgAygLMhsudmlzdWFsX25vZGUudjEuQ29uZmlnRmllbGQiJwoWR2V0Tm9kZVJlZ2lzdHJ5UmVxdWVzdBINCgVzY29wZRgBIAEoCSJjChdHZXROb2RlUmVnaXN0cnlSZXNwb25zZRIzCgtkZWZpbml0aW9ucxgBIAMoCzIeLnZpc3VhbF9ub2RlLnYxLk5vZGVEZWZpbml0aW9uEhMKC3Byb2plY3RfZGlyGAIgASgJIhAKDkdldEZsb3dSZXF1ZXN0IjkKD0dldEZsb3dSZXNwb25zZRINCgVmb3VuZBgBIAEoCBIXCg9mbGF0YnVmZmVyX2Zsb3cYAiABKAwiKgoPU2F2ZUZsb3dSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCIeChBTYXZlRmxvd1Jlc3BvbnNlEgoKAm9rGAEgASgIIi4KE1ZhbGlkYXRlRmxvd1JlcXVlc3QSFwoPZmxhdGJ1ZmZlcl9mbG93GAEgASgMIlYKFFZhbGlkYXRlRmxvd1Jlc3BvbnNlEg0KBXZhbGlkGAEgASgIEi8KBmVycm9ycxgCIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciIuChNHZW5lcmF0ZUNvZGVSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJkChRHZW5lcmF0ZUNvZGVSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIMCgRjb2RlGAIgASgJEi8KBmVycm9ycxgDIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciI0ChlXcml0ZUdlbmVyYXRlZENvZGVSZXF1ZXN0EhcKD2ZsYXRidWZmZXJfZmxvdxgBIAEoDCJ7ChpXcml0ZUdlbmVyYXRlZENvZGVSZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgd3cml0dGVuGAIgASgIEgwKBHBhdGgYAyABKAkSLwoGZXJyb3JzGAQgAygLMh8udmlzdWFsX25vZGUudjEuVmFsaWRhdGlvbkVycm9yIjMKD1Byb2plY3RTZXR0aW5ncxIMCgRtb2RlGAEgASgJEhIKCmVudHJ5X2ZpbGUYAiABKAkiGwoZR2V0UHJvamVjdFNldHRpbmdzUmVxdWVzdCJPChpHZXRQcm9qZWN0U2V0dGluZ3NSZXNwb25zZRIxCghzZXR0aW5ncxgBIAEoCzIfLnZpc3VhbF9ub2RlLnYxLlByb2plY3RTZXR0aW5ncyJRChxVcGRhdGVQcm9qZWN0U2V0dGluZ3NSZXF1ZXN0EjEKCHNldHRpbmdzGAEgASgLMh8udmlzdWFsX25vZGUudjEuUHJvamVjdFNldHRpbmdzIjsKHVVwZGF0ZVByb2plY3RTZXR0aW5nc1Jlc3BvbnNlEgoKAm9rGAEgASgIEg4KBmVycm9ycxgCIAMoCSImCg9TdGFydFJ1blJlcXVlc3QSEwoLdGFyZ2V0X2ZpbGUYASABKAkiHQoKUnVuU3RhcnRlZBIPCgdydW5uaW5nGAEgASgIIkcKFFJ1blZhbGlkYXRpb25GYWlsdXJlEi8KBmVycm9ycxgBIAMoCzIfLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRpb25FcnJvciKgAQoQU3RhcnRSdW5SZXNwb25zZRItCgdzdGFydGVkGAEgASgLMhoudmlzdWFsX25vZGUudjEuUnVuU3RhcnRlZEgAEkIKEnZhbGlkYXRpb25fZmFpbHVyZRgCIAEoCzIkLnZpc3VhbF9ub2RlLnYxLlJ1blZhbGlkYXRpb25GYWlsdXJlSAASDwoFZXJyb3IYAyABKAlIAEIICgZyZXN1bHQiEAoOU3RvcFJ1blJlcXVlc3QiIgoPU3RvcFJ1blJlc3BvbnNlEg8KB3J1bm5pbmcYASABKAgiFQoTR2V0UnVuU3RhdHVzUmVxdWVzdCInChRHZXRSdW5TdGF0dXNSZXNwb25zZRIPCgdydW5uaW5nGAEgASgIIhAKDlJ1bkxvZ3NSZXF1ZXN0IicKCUV4aXRFdmVudBIRCgRjb2RlGAEgASgFSACIAQFCBwoFX2NvZGUiVAoPUnVuTG9nc1Jlc3BvbnNlEg0KA2xvZxgBIAEoCUgAEikKBGV4aXQYAiABKAsyGS52aXN1YWxfbm9kZS52MS5FeGl0RXZlbnRIAEIHCgVldmVudCLSAQoMRmlsZVRyZWVOb2RlEi8KBGtpbmQYASABKA4yIS52aXN1YWxfbm9kZS52MS5GaWxlVHJlZU5vZGUuS2luZBIMCgRuYW1lGAIgASgJEhUKDXJlbGF0aXZlX3BhdGgYAyABKAkSLgoIY2hpbGRyZW4YBCADKAsyHC52aXN1YWxfbm9kZS52MS5GaWxlVHJlZU5vZGUiPAoES2luZBIUChBLSU5EX1VOU1BFQ0lGSUVEEAASDQoJS0lORF9GSUxFEAESDwoLS0lORF9GT0xERVIQAiISChBMaXN0RmlsZXNSZXF1ZXN0Ij8KEUxpc3RGaWxlc1Jlc3BvbnNlEioKBHRyZWUYASADKAsyHC52aXN1YWxfbm9kZS52MS5GaWxlVHJlZU5vZGUiIwoTQ3JlYXRlRm9sZGVyUmVxdWVzdBIMCgRwYXRoGAEgASgJIjAKFENyZWF0ZUZvbGRlclJlc3BvbnNlEgoKAm9rGAEgASgIEgwKBHBhdGgYAiABKAkiJgoWQ3JlYXRlQmx1ZXByaW50UmVxdWVzdBIMCgRwYXRoGAEgASgJIkwKF0NyZWF0ZUJsdWVwcmludFJlc3BvbnNlEgoKAm9rGAEgASgIEgwKBHBhdGgYAiABKAkSFwoPZmxhdGJ1ZmZlcl9mbG93GAMgASgMIiMKE0dldEJsdWVwcmludFJlcXVlc3QSDAoEcGF0aBgBIAEoCSIvChRHZXRCbHVlcHJpbnRSZXNwb25zZRIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwiPQoUU2F2ZUJsdWVwcmludFJlcXVlc3QSDAoEcGF0aBgBIAEoCRIXCg9mbGF0YnVmZmVyX2Zsb3cYAiABKAwiIwoVU2F2ZUJsdWVwcmludFJlc3BvbnNlEgoKAm9rGAEgASgIIi0KEVJlbmFtZVBhdGhSZXF1ZXN0EgwKBGZyb20YASABKAkSCgoCdG8YAiABKAkiIAoSUmVuYW1lUGF0aFJlc3BvbnNlEgoKAm9rGAEgASgIIiEKEURlbGV0ZVBhdGhSZXF1ZXN0EgwKBHBhdGgYASABKAkiIAoSRGVsZXRlUGF0aFJlc3BvbnNlEgoKAm9rGAEgASgIIjoKE0NvbXBpbGVkUHJvamVjdEZpbGUSFQoNcmVsYXRpdmVfcGF0aBgBIAEoCRIMCgRjb2RlGAIgASgJIhcKFUNvbXBpbGVQcm9qZWN0UmVxdWVzdCKOAQoWQ29tcGlsZVByb2plY3RSZXNwb25zZRINCgV2YWxpZBgBIAEoCBI0CgdyZXN1bHRzGAIgAygLMiMudmlzdWFsX25vZGUudjEuQ29tcGlsZWRQcm9qZWN0RmlsZRIvCgZlcnJvcnMYAyADKAsyHy52aXN1YWxfbm9kZS52MS5WYWxpZGF0aW9uRXJyb3IiQAoSV3JpdHRlblByb2plY3RGaWxlEhUKDXJlbGF0aXZlX3BhdGgYASABKAkSEwoLb3V0cHV0X3BhdGgYAiABKAkiHQobV3JpdGVDb21waWxlZFByb2plY3RSZXF1ZXN0IqIBChxXcml0ZUNvbXBpbGVkUHJvamVjdFJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB3dyaXR0ZW4YAiABKAgSMQoFZmlsZXMYAyADKAsyIi52aXN1YWxfbm9kZS52MS5Xcml0dGVuUHJvamVjdEZpbGUSLwoGZXJyb3JzGAQgAygLMh8udmlzdWFsX25vZGUudjEuVmFsaWRhdGlvbkVycm9yIjMKGVdyaXRlQ29tcGlsZWRGaWxlc1JlcXVlc3QSFgoOcmVsYXRpdmVfcGF0aHMYASADKAkioAEKGldyaXRlQ29tcGlsZWRGaWxlc1Jlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB3dyaXR0ZW4YAiABKAgSMQoFZmlsZXMYAyADKAsyIi52aXN1YWxfbm9kZS52MS5Xcml0dGVuUHJvamVjdEZpbGUSLwoGZXJyb3JzGAQgAygLMh8udmlzdWFsX25vZGUudjEuVmFsaWRhdGlvbkVycm9yIkYKGEZ1bmN0aW9uR3JhcGhFcnJvckRldGFpbBIPCgdtZXNzYWdlGAEgASgJEhkKEWJsdWVwcmludF9ub2RlX2lkGAIgASgJIjYKG1ByZXZpZXdGdW5jdGlvbkdyYXBoUmVxdWVzdBIXCg9mbGF0YnVmZmVyX2Zsb3cYASABKAwicwocUHJldmlld0Z1bmN0aW9uR3JhcGhSZXNwb25zZRIOCgRib2R5GAEgASgJSAASOQoFZXJyb3IYAiABKAsyKC52aXN1YWxfbm9kZS52MS5GdW5jdGlvbkdyYXBoRXJyb3JEZXRhaWxIAEIICgZyZXN1bHQiKwoUSW5zdGFsbFBsdWdpblJlcXVlc3QSEwoLcGx1Z2luX2pzb24YASABKAwiWAoVSW5zdGFsbFBsdWdpblJlc3BvbnNlEgoKAm9rGAEgASgIEgwKBHR5cGUYAiABKAkSFQoNcmVsYXRpdmVfcGF0aBgDIAEoCRIOCgZlcnJvcnMYBCADKAkqeQoSRGlhZ25vc3RpY1NldmVyaXR5EiMKH0RJQUdOT1NUSUNfU0VWRVJJVFlfVU5TUEVDSUZJRUQQABIdChlESUFHTk9TVElDX1NFVkVSSVRZX0VSUk9SEAESHwobRElBR05PU1RJQ19TRVZFUklUWV9XQVJOSU5HEAIy3hEKDUVkaXRvclNlcnZpY2USYgoPR2V0Tm9kZVJlZ2lzdHJ5EiYudmlzdWFsX25vZGUudjEuR2V0Tm9kZVJlZ2lzdHJ5UmVxdWVzdBonLnZpc3VhbF9ub2RlLnYxLkdldE5vZGVSZWdpc3RyeVJlc3BvbnNlEkoKB0dldEZsb3cSHi52aXN1YWxfbm9kZS52MS5HZXRGbG93UmVxdWVzdBofLnZpc3VhbF9ub2RlLnYxLkdldEZsb3dSZXNwb25zZRJNCghTYXZlRmxvdxIfLnZpc3VhbF9ub2RlLnYxLlNhdmVGbG93UmVxdWVzdBogLnZpc3VhbF9ub2RlLnYxLlNhdmVGbG93UmVzcG9uc2USWQoMVmFsaWRhdGVGbG93EiMudmlzdWFsX25vZGUudjEuVmFsaWRhdGVGbG93UmVxdWVzdBokLnZpc3VhbF9ub2RlLnYxLlZhbGlkYXRlRmxvd1Jlc3BvbnNlElkKDEdlbmVyYXRlQ29kZRIjLnZpc3VhbF9ub2RlLnYxLkdlbmVyYXRlQ29kZVJlcXVlc3QaJC52aXN1YWxfbm9kZS52MS5HZW5lcmF0ZUNvZGVSZXNwb25zZRJrChJXcml0ZUdlbmVyYXRlZENvZGUSKS52aXN1YWxfbm9kZS52MS5Xcml0ZUdlbmVyYXRlZENvZGVSZXF1ZXN0GioudmlzdWFsX25vZGUudjEuV3JpdGVHZW5lcmF0ZWRDb2RlUmVzcG9uc2USawoSR2V0UHJvamVjdFNldHRpbmdzEikudmlzdWFsX25vZGUudjEuR2V0UHJvamVjdFNldHRpbmdzUmVxdWVzdBoqLnZpc3VhbF9ub2RlLnYxLkdldFByb2plY3RTZXR0aW5nc1Jlc3BvbnNlEnQKFVVwZGF0ZVByb2plY3RTZXR0aW5ncxIsLnZpc3VhbF9ub2RlLnYxLlVwZGF0ZVByb2plY3RTZXR0aW5nc1JlcXVlc3QaLS52aXN1YWxfbm9kZS52MS5VcGRhdGVQcm9qZWN0U2V0dGluZ3NSZXNwb25zZRJNCghTdGFydFJ1bhIfLnZpc3VhbF9ub2RlLnYxLlN0YXJ0UnVuUmVxdWVzdBogLnZpc3VhbF9ub2RlLnYxLlN0YXJ0UnVuUmVzcG9uc2USSgoHU3RvcFJ1bhIeLnZpc3VhbF9ub2RlLnYxLlN0b3BSdW5SZXF1ZXN0Gh8udmlzdWFsX25vZGUudjEuU3RvcFJ1blJlc3BvbnNlElkKDEdldFJ1blN0YXR1cxIjLnZpc3VhbF9ub2RlLnYxLkdldFJ1blN0YXR1c1JlcXVlc3QaJC52aXN1YWxfbm9kZS52MS5HZXRSdW5TdGF0dXNSZXNwb25zZRJMCgdSdW5Mb2dzEh4udmlzdWFsX25vZGUudjEuUnVuTG9nc1JlcXVlc3QaHy52aXN1YWxfbm9kZS52MS5SdW5Mb2dzUmVzcG9uc2UwARJQCglMaXN0RmlsZXMSIC52aXN1YWxfbm9kZS52MS5MaXN0RmlsZXNSZXF1ZXN0GiEudmlzdWFsX25vZGUudjEuTGlzdEZpbGVzUmVzcG9uc2USWQoMQ3JlYXRlRm9sZGVyEiMudmlzdWFsX25vZGUudjEuQ3JlYXRlRm9sZGVyUmVxdWVzdBokLnZpc3VhbF9ub2RlLnYxLkNyZWF0ZUZvbGRlclJlc3BvbnNlEmIKD0NyZWF0ZUJsdWVwcmludBImLnZpc3VhbF9ub2RlLnYxLkNyZWF0ZUJsdWVwcmludFJlcXVlc3QaJy52aXN1YWxfbm9kZS52MS5DcmVhdGVCbHVlcHJpbnRSZXNwb25zZRJZCgxHZXRCbHVlcHJpbnQSIy52aXN1YWxfbm9kZS52MS5HZXRCbHVlcHJpbnRSZXF1ZXN0GiQudmlzdWFsX25vZGUudjEuR2V0Qmx1ZXByaW50UmVzcG9uc2USXAoNU2F2ZUJsdWVwcmludBIkLnZpc3VhbF9ub2RlLnYxLlNhdmVCbHVlcHJpbnRSZXF1ZXN0GiUudmlzdWFsX25vZGUudjEuU2F2ZUJsdWVwcmludFJlc3BvbnNlElMKClJlbmFtZVBhdGgSIS52aXN1YWxfbm9kZS52MS5SZW5hbWVQYXRoUmVxdWVzdBoiLnZpc3VhbF9ub2RlLnYxLlJlbmFtZVBhdGhSZXNwb25zZRJTCgpEZWxldGVQYXRoEiEudmlzdWFsX25vZGUudjEuRGVsZXRlUGF0aFJlcXVlc3QaIi52aXN1YWxfbm9kZS52MS5EZWxldGVQYXRoUmVzcG9uc2USXwoOQ29tcGlsZVByb2plY3QSJS52aXN1YWxfbm9kZS52MS5Db21waWxlUHJvamVjdFJlcXVlc3QaJi52aXN1YWxfbm9kZS52MS5Db21waWxlUHJvamVjdFJlc3BvbnNlEnEKFFdyaXRlQ29tcGlsZWRQcm9qZWN0EisudmlzdWFsX25vZGUudjEuV3JpdGVDb21waWxlZFByb2plY3RSZXF1ZXN0GiwudmlzdWFsX25vZGUudjEuV3JpdGVDb21waWxlZFByb2plY3RSZXNwb25zZRJrChJXcml0ZUNvbXBpbGVkRmlsZXMSKS52aXN1YWxfbm9kZS52MS5Xcml0ZUNvbXBpbGVkRmlsZXNSZXF1ZXN0GioudmlzdWFsX25vZGUudjEuV3JpdGVDb21waWxlZEZpbGVzUmVzcG9uc2UScQoUUHJldmlld0Z1bmN0aW9uR3JhcGgSKy52aXN1YWxfbm9kZS52MS5QcmV2aWV3RnVuY3Rpb25HcmFwaFJlcXVlc3QaLC52aXN1YWxfbm9kZS52MS5QcmV2aWV3RnVuY3Rpb25HcmFwaFJlc3BvbnNlElwKDUluc3RhbGxQbHVnaW4SJC52aXN1YWxfbm9kZS52MS5JbnN0YWxsUGx1Z2luUmVxdWVzdBolLnZpc3VhbF9ub2RlLnYxLkluc3RhbGxQbHVnaW5SZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_struct]);
 
 /**
- * Mirrors packages/core/src/schema/validate.ts's ValidationError and
- * packages/core/src/project/compile-project.ts's ProjectFileError (same three optional
- * locator fields plus a message; ProjectFileError additionally carries which file the
- * error came from, via `relative_path`).
- *
- * @generated from message visual_node.v1.ValidationError
+ * @generated from message visual_node.v1.DiagnosticFrame
  */
-export type ValidationError = Message<"visual_node.v1.ValidationError"> & {
+export type DiagnosticFrame = Message<"visual_node.v1.DiagnosticFrame"> & {
   /**
    * @generated from field: string node_id = 1;
    */
   nodeId: string;
 
   /**
-   * Set when the error originates inside a Function node's blueprint body graph,
-   * pointing at the specific node within it.
-   *
-   * @generated from field: string blueprint_node_id = 2;
+   * @generated from field: string node_type = 2;
    */
-  blueprintNodeId: string;
+  nodeType: string;
 
   /**
-   * @generated from field: string message = 3;
+   * @generated from field: string label = 3;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message visual_node.v1.DiagnosticFrame.
+ * Use `create(DiagnosticFrameSchema)` to create a new message.
+ */
+export const DiagnosticFrameSchema: GenMessage<DiagnosticFrame> = /*@__PURE__*/
+  messageDesc(file_visual_node_v1_editor, 0);
+
+/**
+ * Mirrors packages/core/src/schema/validate.ts's ValidationError (renamed to Diagnostic) and
+ * packages/core/src/project/compile-project.ts's ProjectFileError (Diagnostic + relative_path).
+ *
+ * @generated from message visual_node.v1.ValidationError
+ */
+export type ValidationError = Message<"visual_node.v1.ValidationError"> & {
+  /**
+   * @generated from field: visual_node.v1.DiagnosticSeverity severity = 1;
+   */
+  severity: DiagnosticSeverity;
+
+  /**
+   * @generated from field: string message = 2;
    */
   message: string;
+
+  /**
+   * @generated from field: repeated visual_node.v1.DiagnosticFrame path = 3;
+   */
+  path: DiagnosticFrame[];
 
   /**
    * Only meaningful for whole-project compiles (CompileProject/WriteCompiledProject);
@@ -55,7 +77,7 @@ export type ValidationError = Message<"visual_node.v1.ValidationError"> & {
  * Use `create(ValidationErrorSchema)` to create a new message.
  */
 export const ValidationErrorSchema: GenMessage<ValidationError> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 0);
+  messageDesc(file_visual_node_v1_editor, 1);
 
 /**
  * Mirrors packages/core/src/schema/node-registry.ts's PortDefinition.
@@ -87,7 +109,7 @@ export type PortDefinition = Message<"visual_node.v1.PortDefinition"> & {
  * Use `create(PortDefinitionSchema)` to create a new message.
  */
 export const PortDefinitionSchema: GenMessage<PortDefinition> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 1);
+  messageDesc(file_visual_node_v1_editor, 2);
 
 /**
  * Mirrors packages/core/src/schema/node-registry.ts's ConfigField. `default` is
@@ -135,7 +157,7 @@ export type ConfigField = Message<"visual_node.v1.ConfigField"> & {
  * Use `create(ConfigFieldSchema)` to create a new message.
  */
 export const ConfigFieldSchema: GenMessage<ConfigField> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 2);
+  messageDesc(file_visual_node_v1_editor, 3);
 
 /**
  * Mirrors packages/core/src/schema/node-registry.ts's NodeDefinition, minus its
@@ -186,7 +208,7 @@ export type NodeDefinition = Message<"visual_node.v1.NodeDefinition"> & {
  * Use `create(NodeDefinitionSchema)` to create a new message.
  */
 export const NodeDefinitionSchema: GenMessage<NodeDefinition> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 3);
+  messageDesc(file_visual_node_v1_editor, 4);
 
 /**
  * @generated from message visual_node.v1.GetNodeRegistryRequest
@@ -207,7 +229,7 @@ export type GetNodeRegistryRequest = Message<"visual_node.v1.GetNodeRegistryRequ
  * Use `create(GetNodeRegistryRequestSchema)` to create a new message.
  */
 export const GetNodeRegistryRequestSchema: GenMessage<GetNodeRegistryRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 4);
+  messageDesc(file_visual_node_v1_editor, 5);
 
 /**
  * @generated from message visual_node.v1.GetNodeRegistryResponse
@@ -231,7 +253,7 @@ export type GetNodeRegistryResponse = Message<"visual_node.v1.GetNodeRegistryRes
  * Use `create(GetNodeRegistryResponseSchema)` to create a new message.
  */
 export const GetNodeRegistryResponseSchema: GenMessage<GetNodeRegistryResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 5);
+  messageDesc(file_visual_node_v1_editor, 6);
 
 /**
  * @generated from message visual_node.v1.GetFlowRequest
@@ -244,7 +266,7 @@ export type GetFlowRequest = Message<"visual_node.v1.GetFlowRequest"> & {
  * Use `create(GetFlowRequestSchema)` to create a new message.
  */
 export const GetFlowRequestSchema: GenMessage<GetFlowRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 6);
+  messageDesc(file_visual_node_v1_editor, 7);
 
 /**
  * @generated from message visual_node.v1.GetFlowResponse
@@ -272,7 +294,7 @@ export type GetFlowResponse = Message<"visual_node.v1.GetFlowResponse"> & {
  * Use `create(GetFlowResponseSchema)` to create a new message.
  */
 export const GetFlowResponseSchema: GenMessage<GetFlowResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 7);
+  messageDesc(file_visual_node_v1_editor, 8);
 
 /**
  * @generated from message visual_node.v1.SaveFlowRequest
@@ -289,7 +311,7 @@ export type SaveFlowRequest = Message<"visual_node.v1.SaveFlowRequest"> & {
  * Use `create(SaveFlowRequestSchema)` to create a new message.
  */
 export const SaveFlowRequestSchema: GenMessage<SaveFlowRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 8);
+  messageDesc(file_visual_node_v1_editor, 9);
 
 /**
  * @generated from message visual_node.v1.SaveFlowResponse
@@ -306,7 +328,7 @@ export type SaveFlowResponse = Message<"visual_node.v1.SaveFlowResponse"> & {
  * Use `create(SaveFlowResponseSchema)` to create a new message.
  */
 export const SaveFlowResponseSchema: GenMessage<SaveFlowResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 9);
+  messageDesc(file_visual_node_v1_editor, 10);
 
 /**
  * @generated from message visual_node.v1.ValidateFlowRequest
@@ -323,7 +345,7 @@ export type ValidateFlowRequest = Message<"visual_node.v1.ValidateFlowRequest"> 
  * Use `create(ValidateFlowRequestSchema)` to create a new message.
  */
 export const ValidateFlowRequestSchema: GenMessage<ValidateFlowRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 10);
+  messageDesc(file_visual_node_v1_editor, 11);
 
 /**
  * @generated from message visual_node.v1.ValidateFlowResponse
@@ -345,7 +367,7 @@ export type ValidateFlowResponse = Message<"visual_node.v1.ValidateFlowResponse"
  * Use `create(ValidateFlowResponseSchema)` to create a new message.
  */
 export const ValidateFlowResponseSchema: GenMessage<ValidateFlowResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 11);
+  messageDesc(file_visual_node_v1_editor, 12);
 
 /**
  * @generated from message visual_node.v1.GenerateCodeRequest
@@ -362,7 +384,7 @@ export type GenerateCodeRequest = Message<"visual_node.v1.GenerateCodeRequest"> 
  * Use `create(GenerateCodeRequestSchema)` to create a new message.
  */
 export const GenerateCodeRequestSchema: GenMessage<GenerateCodeRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 12);
+  messageDesc(file_visual_node_v1_editor, 13);
 
 /**
  * Mirrors codegen-helpers.ts's CompileResult union: `{ valid: true; code } | { valid:
@@ -392,7 +414,7 @@ export type GenerateCodeResponse = Message<"visual_node.v1.GenerateCodeResponse"
  * Use `create(GenerateCodeResponseSchema)` to create a new message.
  */
 export const GenerateCodeResponseSchema: GenMessage<GenerateCodeResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 13);
+  messageDesc(file_visual_node_v1_editor, 14);
 
 /**
  * @generated from message visual_node.v1.WriteGeneratedCodeRequest
@@ -409,7 +431,7 @@ export type WriteGeneratedCodeRequest = Message<"visual_node.v1.WriteGeneratedCo
  * Use `create(WriteGeneratedCodeRequestSchema)` to create a new message.
  */
 export const WriteGeneratedCodeRequestSchema: GenMessage<WriteGeneratedCodeRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 14);
+  messageDesc(file_visual_node_v1_editor, 15);
 
 /**
  * @generated from message visual_node.v1.WriteGeneratedCodeResponse
@@ -443,7 +465,7 @@ export type WriteGeneratedCodeResponse = Message<"visual_node.v1.WriteGeneratedC
  * Use `create(WriteGeneratedCodeResponseSchema)` to create a new message.
  */
 export const WriteGeneratedCodeResponseSchema: GenMessage<WriteGeneratedCodeResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 15);
+  messageDesc(file_visual_node_v1_editor, 16);
 
 /**
  * @generated from message visual_node.v1.ProjectSettings
@@ -471,7 +493,7 @@ export type ProjectSettings = Message<"visual_node.v1.ProjectSettings"> & {
  * Use `create(ProjectSettingsSchema)` to create a new message.
  */
 export const ProjectSettingsSchema: GenMessage<ProjectSettings> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 16);
+  messageDesc(file_visual_node_v1_editor, 17);
 
 /**
  * @generated from message visual_node.v1.GetProjectSettingsRequest
@@ -484,7 +506,7 @@ export type GetProjectSettingsRequest = Message<"visual_node.v1.GetProjectSettin
  * Use `create(GetProjectSettingsRequestSchema)` to create a new message.
  */
 export const GetProjectSettingsRequestSchema: GenMessage<GetProjectSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 17);
+  messageDesc(file_visual_node_v1_editor, 18);
 
 /**
  * @generated from message visual_node.v1.GetProjectSettingsResponse
@@ -501,7 +523,7 @@ export type GetProjectSettingsResponse = Message<"visual_node.v1.GetProjectSetti
  * Use `create(GetProjectSettingsResponseSchema)` to create a new message.
  */
 export const GetProjectSettingsResponseSchema: GenMessage<GetProjectSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 18);
+  messageDesc(file_visual_node_v1_editor, 19);
 
 /**
  * @generated from message visual_node.v1.UpdateProjectSettingsRequest
@@ -518,7 +540,7 @@ export type UpdateProjectSettingsRequest = Message<"visual_node.v1.UpdateProject
  * Use `create(UpdateProjectSettingsRequestSchema)` to create a new message.
  */
 export const UpdateProjectSettingsRequestSchema: GenMessage<UpdateProjectSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 19);
+  messageDesc(file_visual_node_v1_editor, 20);
 
 /**
  * @generated from message visual_node.v1.UpdateProjectSettingsResponse
@@ -540,7 +562,7 @@ export type UpdateProjectSettingsResponse = Message<"visual_node.v1.UpdateProjec
  * Use `create(UpdateProjectSettingsResponseSchema)` to create a new message.
  */
 export const UpdateProjectSettingsResponseSchema: GenMessage<UpdateProjectSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 20);
+  messageDesc(file_visual_node_v1_editor, 21);
 
 /**
  * @generated from message visual_node.v1.StartRunRequest
@@ -560,7 +582,7 @@ export type StartRunRequest = Message<"visual_node.v1.StartRunRequest"> & {
  * Use `create(StartRunRequestSchema)` to create a new message.
  */
 export const StartRunRequestSchema: GenMessage<StartRunRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 21);
+  messageDesc(file_visual_node_v1_editor, 22);
 
 /**
  * @generated from message visual_node.v1.RunStarted
@@ -577,7 +599,7 @@ export type RunStarted = Message<"visual_node.v1.RunStarted"> & {
  * Use `create(RunStartedSchema)` to create a new message.
  */
 export const RunStartedSchema: GenMessage<RunStarted> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 22);
+  messageDesc(file_visual_node_v1_editor, 23);
 
 /**
  * @generated from message visual_node.v1.RunValidationFailure
@@ -594,7 +616,7 @@ export type RunValidationFailure = Message<"visual_node.v1.RunValidationFailure"
  * Use `create(RunValidationFailureSchema)` to create a new message.
  */
 export const RunValidationFailureSchema: GenMessage<RunValidationFailure> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 23);
+  messageDesc(file_visual_node_v1_editor, 24);
 
 /**
  * run.routes.ts's POST /start has three distinct failure shapes today (422 invalid
@@ -635,7 +657,7 @@ export type StartRunResponse = Message<"visual_node.v1.StartRunResponse"> & {
  * Use `create(StartRunResponseSchema)` to create a new message.
  */
 export const StartRunResponseSchema: GenMessage<StartRunResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 24);
+  messageDesc(file_visual_node_v1_editor, 25);
 
 /**
  * @generated from message visual_node.v1.StopRunRequest
@@ -648,7 +670,7 @@ export type StopRunRequest = Message<"visual_node.v1.StopRunRequest"> & {
  * Use `create(StopRunRequestSchema)` to create a new message.
  */
 export const StopRunRequestSchema: GenMessage<StopRunRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 25);
+  messageDesc(file_visual_node_v1_editor, 26);
 
 /**
  * @generated from message visual_node.v1.StopRunResponse
@@ -665,7 +687,7 @@ export type StopRunResponse = Message<"visual_node.v1.StopRunResponse"> & {
  * Use `create(StopRunResponseSchema)` to create a new message.
  */
 export const StopRunResponseSchema: GenMessage<StopRunResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 26);
+  messageDesc(file_visual_node_v1_editor, 27);
 
 /**
  * @generated from message visual_node.v1.GetRunStatusRequest
@@ -678,7 +700,7 @@ export type GetRunStatusRequest = Message<"visual_node.v1.GetRunStatusRequest"> 
  * Use `create(GetRunStatusRequestSchema)` to create a new message.
  */
 export const GetRunStatusRequestSchema: GenMessage<GetRunStatusRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 27);
+  messageDesc(file_visual_node_v1_editor, 28);
 
 /**
  * @generated from message visual_node.v1.GetRunStatusResponse
@@ -695,7 +717,7 @@ export type GetRunStatusResponse = Message<"visual_node.v1.GetRunStatusResponse"
  * Use `create(GetRunStatusResponseSchema)` to create a new message.
  */
 export const GetRunStatusResponseSchema: GenMessage<GetRunStatusResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 28);
+  messageDesc(file_visual_node_v1_editor, 29);
 
 /**
  * @generated from message visual_node.v1.RunLogsRequest
@@ -708,7 +730,7 @@ export type RunLogsRequest = Message<"visual_node.v1.RunLogsRequest"> & {
  * Use `create(RunLogsRequestSchema)` to create a new message.
  */
 export const RunLogsRequestSchema: GenMessage<RunLogsRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 29);
+  messageDesc(file_visual_node_v1_editor, 30);
 
 /**
  * @generated from message visual_node.v1.ExitEvent
@@ -728,7 +750,7 @@ export type ExitEvent = Message<"visual_node.v1.ExitEvent"> & {
  * Use `create(ExitEventSchema)` to create a new message.
  */
 export const ExitEventSchema: GenMessage<ExitEvent> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 30);
+  messageDesc(file_visual_node_v1_editor, 31);
 
 /**
  * Mirrors run.routes.ts's SSE frames: either a buffered/live stdout+stderr line
@@ -761,7 +783,7 @@ export type RunLogsResponse = Message<"visual_node.v1.RunLogsResponse"> & {
  * Use `create(RunLogsResponseSchema)` to create a new message.
  */
 export const RunLogsResponseSchema: GenMessage<RunLogsResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 31);
+  messageDesc(file_visual_node_v1_editor, 32);
 
 /**
  * Mirrors file-tree.ts's FileTreeNode discriminated union (`type: "file" | "folder"`).
@@ -796,7 +818,7 @@ export type FileTreeNode = Message<"visual_node.v1.FileTreeNode"> & {
  * Use `create(FileTreeNodeSchema)` to create a new message.
  */
 export const FileTreeNodeSchema: GenMessage<FileTreeNode> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 32);
+  messageDesc(file_visual_node_v1_editor, 33);
 
 /**
  * @generated from enum visual_node.v1.FileTreeNode.Kind
@@ -822,7 +844,7 @@ export enum FileTreeNode_Kind {
  * Describes the enum visual_node.v1.FileTreeNode.Kind.
  */
 export const FileTreeNode_KindSchema: GenEnum<FileTreeNode_Kind> = /*@__PURE__*/
-  enumDesc(file_visual_node_v1_editor, 32, 0);
+  enumDesc(file_visual_node_v1_editor, 33, 0);
 
 /**
  * @generated from message visual_node.v1.ListFilesRequest
@@ -835,7 +857,7 @@ export type ListFilesRequest = Message<"visual_node.v1.ListFilesRequest"> & {
  * Use `create(ListFilesRequestSchema)` to create a new message.
  */
 export const ListFilesRequestSchema: GenMessage<ListFilesRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 33);
+  messageDesc(file_visual_node_v1_editor, 34);
 
 /**
  * @generated from message visual_node.v1.ListFilesResponse
@@ -852,7 +874,7 @@ export type ListFilesResponse = Message<"visual_node.v1.ListFilesResponse"> & {
  * Use `create(ListFilesResponseSchema)` to create a new message.
  */
 export const ListFilesResponseSchema: GenMessage<ListFilesResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 34);
+  messageDesc(file_visual_node_v1_editor, 35);
 
 /**
  * @generated from message visual_node.v1.CreateFolderRequest
@@ -869,7 +891,7 @@ export type CreateFolderRequest = Message<"visual_node.v1.CreateFolderRequest"> 
  * Use `create(CreateFolderRequestSchema)` to create a new message.
  */
 export const CreateFolderRequestSchema: GenMessage<CreateFolderRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 35);
+  messageDesc(file_visual_node_v1_editor, 36);
 
 /**
  * @generated from message visual_node.v1.CreateFolderResponse
@@ -891,7 +913,7 @@ export type CreateFolderResponse = Message<"visual_node.v1.CreateFolderResponse"
  * Use `create(CreateFolderResponseSchema)` to create a new message.
  */
 export const CreateFolderResponseSchema: GenMessage<CreateFolderResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 36);
+  messageDesc(file_visual_node_v1_editor, 37);
 
 /**
  * @generated from message visual_node.v1.CreateBlueprintRequest
@@ -910,7 +932,7 @@ export type CreateBlueprintRequest = Message<"visual_node.v1.CreateBlueprintRequ
  * Use `create(CreateBlueprintRequestSchema)` to create a new message.
  */
 export const CreateBlueprintRequestSchema: GenMessage<CreateBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 37);
+  messageDesc(file_visual_node_v1_editor, 38);
 
 /**
  * @generated from message visual_node.v1.CreateBlueprintResponse
@@ -940,7 +962,7 @@ export type CreateBlueprintResponse = Message<"visual_node.v1.CreateBlueprintRes
  * Use `create(CreateBlueprintResponseSchema)` to create a new message.
  */
 export const CreateBlueprintResponseSchema: GenMessage<CreateBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 38);
+  messageDesc(file_visual_node_v1_editor, 39);
 
 /**
  * @generated from message visual_node.v1.GetBlueprintRequest
@@ -959,7 +981,7 @@ export type GetBlueprintRequest = Message<"visual_node.v1.GetBlueprintRequest"> 
  * Use `create(GetBlueprintRequestSchema)` to create a new message.
  */
 export const GetBlueprintRequestSchema: GenMessage<GetBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 39);
+  messageDesc(file_visual_node_v1_editor, 40);
 
 /**
  * @generated from message visual_node.v1.GetBlueprintResponse
@@ -976,7 +998,7 @@ export type GetBlueprintResponse = Message<"visual_node.v1.GetBlueprintResponse"
  * Use `create(GetBlueprintResponseSchema)` to create a new message.
  */
 export const GetBlueprintResponseSchema: GenMessage<GetBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 40);
+  messageDesc(file_visual_node_v1_editor, 41);
 
 /**
  * @generated from message visual_node.v1.SaveBlueprintRequest
@@ -998,7 +1020,7 @@ export type SaveBlueprintRequest = Message<"visual_node.v1.SaveBlueprintRequest"
  * Use `create(SaveBlueprintRequestSchema)` to create a new message.
  */
 export const SaveBlueprintRequestSchema: GenMessage<SaveBlueprintRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 41);
+  messageDesc(file_visual_node_v1_editor, 42);
 
 /**
  * @generated from message visual_node.v1.SaveBlueprintResponse
@@ -1015,7 +1037,7 @@ export type SaveBlueprintResponse = Message<"visual_node.v1.SaveBlueprintRespons
  * Use `create(SaveBlueprintResponseSchema)` to create a new message.
  */
 export const SaveBlueprintResponseSchema: GenMessage<SaveBlueprintResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 42);
+  messageDesc(file_visual_node_v1_editor, 43);
 
 /**
  * @generated from message visual_node.v1.RenamePathRequest
@@ -1037,7 +1059,7 @@ export type RenamePathRequest = Message<"visual_node.v1.RenamePathRequest"> & {
  * Use `create(RenamePathRequestSchema)` to create a new message.
  */
 export const RenamePathRequestSchema: GenMessage<RenamePathRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 43);
+  messageDesc(file_visual_node_v1_editor, 44);
 
 /**
  * @generated from message visual_node.v1.RenamePathResponse
@@ -1054,7 +1076,7 @@ export type RenamePathResponse = Message<"visual_node.v1.RenamePathResponse"> & 
  * Use `create(RenamePathResponseSchema)` to create a new message.
  */
 export const RenamePathResponseSchema: GenMessage<RenamePathResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 44);
+  messageDesc(file_visual_node_v1_editor, 45);
 
 /**
  * @generated from message visual_node.v1.DeletePathRequest
@@ -1071,7 +1093,7 @@ export type DeletePathRequest = Message<"visual_node.v1.DeletePathRequest"> & {
  * Use `create(DeletePathRequestSchema)` to create a new message.
  */
 export const DeletePathRequestSchema: GenMessage<DeletePathRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 45);
+  messageDesc(file_visual_node_v1_editor, 46);
 
 /**
  * @generated from message visual_node.v1.DeletePathResponse
@@ -1088,7 +1110,7 @@ export type DeletePathResponse = Message<"visual_node.v1.DeletePathResponse"> & 
  * Use `create(DeletePathResponseSchema)` to create a new message.
  */
 export const DeletePathResponseSchema: GenMessage<DeletePathResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 46);
+  messageDesc(file_visual_node_v1_editor, 47);
 
 /**
  * Mirrors packages/core/src/project/compile-project.ts's CompiledProjectFile.
@@ -1112,7 +1134,7 @@ export type CompiledProjectFile = Message<"visual_node.v1.CompiledProjectFile"> 
  * Use `create(CompiledProjectFileSchema)` to create a new message.
  */
 export const CompiledProjectFileSchema: GenMessage<CompiledProjectFile> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 47);
+  messageDesc(file_visual_node_v1_editor, 48);
 
 /**
  * @generated from message visual_node.v1.CompileProjectRequest
@@ -1125,7 +1147,7 @@ export type CompileProjectRequest = Message<"visual_node.v1.CompileProjectReques
  * Use `create(CompileProjectRequestSchema)` to create a new message.
  */
 export const CompileProjectRequestSchema: GenMessage<CompileProjectRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 48);
+  messageDesc(file_visual_node_v1_editor, 49);
 
 /**
  * @generated from message visual_node.v1.CompileProjectResponse
@@ -1152,7 +1174,7 @@ export type CompileProjectResponse = Message<"visual_node.v1.CompileProjectRespo
  * Use `create(CompileProjectResponseSchema)` to create a new message.
  */
 export const CompileProjectResponseSchema: GenMessage<CompileProjectResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 49);
+  messageDesc(file_visual_node_v1_editor, 50);
 
 /**
  * Mirrors compile.routes.ts's POST /write response `files: [{ relativePath,
@@ -1178,7 +1200,7 @@ export type WrittenProjectFile = Message<"visual_node.v1.WrittenProjectFile"> & 
  * Use `create(WrittenProjectFileSchema)` to create a new message.
  */
 export const WrittenProjectFileSchema: GenMessage<WrittenProjectFile> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 50);
+  messageDesc(file_visual_node_v1_editor, 51);
 
 /**
  * @generated from message visual_node.v1.WriteCompiledProjectRequest
@@ -1191,7 +1213,7 @@ export type WriteCompiledProjectRequest = Message<"visual_node.v1.WriteCompiledP
  * Use `create(WriteCompiledProjectRequestSchema)` to create a new message.
  */
 export const WriteCompiledProjectRequestSchema: GenMessage<WriteCompiledProjectRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 51);
+  messageDesc(file_visual_node_v1_editor, 52);
 
 /**
  * @generated from message visual_node.v1.WriteCompiledProjectResponse
@@ -1223,7 +1245,7 @@ export type WriteCompiledProjectResponse = Message<"visual_node.v1.WriteCompiled
  * Use `create(WriteCompiledProjectResponseSchema)` to create a new message.
  */
 export const WriteCompiledProjectResponseSchema: GenMessage<WriteCompiledProjectResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 52);
+  messageDesc(file_visual_node_v1_editor, 53);
 
 /**
  * @generated from message visual_node.v1.WriteCompiledFilesRequest
@@ -1245,7 +1267,7 @@ export type WriteCompiledFilesRequest = Message<"visual_node.v1.WriteCompiledFil
  * Use `create(WriteCompiledFilesRequestSchema)` to create a new message.
  */
 export const WriteCompiledFilesRequestSchema: GenMessage<WriteCompiledFilesRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 53);
+  messageDesc(file_visual_node_v1_editor, 54);
 
 /**
  * @generated from message visual_node.v1.WriteCompiledFilesResponse
@@ -1277,7 +1299,7 @@ export type WriteCompiledFilesResponse = Message<"visual_node.v1.WriteCompiledFi
  * Use `create(WriteCompiledFilesResponseSchema)` to create a new message.
  */
 export const WriteCompiledFilesResponseSchema: GenMessage<WriteCompiledFilesResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 54);
+  messageDesc(file_visual_node_v1_editor, 55);
 
 /**
  * function-graph.routes.ts's FunctionGraphError shape: `{ message, blueprintNodeId }`.
@@ -1301,7 +1323,7 @@ export type FunctionGraphErrorDetail = Message<"visual_node.v1.FunctionGraphErro
  * Use `create(FunctionGraphErrorDetailSchema)` to create a new message.
  */
 export const FunctionGraphErrorDetailSchema: GenMessage<FunctionGraphErrorDetail> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 55);
+  messageDesc(file_visual_node_v1_editor, 56);
 
 /**
  * @generated from message visual_node.v1.PreviewFunctionGraphRequest
@@ -1324,7 +1346,7 @@ export type PreviewFunctionGraphRequest = Message<"visual_node.v1.PreviewFunctio
  * Use `create(PreviewFunctionGraphRequestSchema)` to create a new message.
  */
 export const PreviewFunctionGraphRequestSchema: GenMessage<PreviewFunctionGraphRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 56);
+  messageDesc(file_visual_node_v1_editor, 57);
 
 /**
  * Mirrors function-graph.routes.ts's always-200 `{ ok: true; body } | { ok: false;
@@ -1356,7 +1378,7 @@ export type PreviewFunctionGraphResponse = Message<"visual_node.v1.PreviewFuncti
  * Use `create(PreviewFunctionGraphResponseSchema)` to create a new message.
  */
 export const PreviewFunctionGraphResponseSchema: GenMessage<PreviewFunctionGraphResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 57);
+  messageDesc(file_visual_node_v1_editor, 58);
 
 /**
  * @generated from message visual_node.v1.InstallPluginRequest
@@ -1375,7 +1397,7 @@ export type InstallPluginRequest = Message<"visual_node.v1.InstallPluginRequest"
  * Use `create(InstallPluginRequestSchema)` to create a new message.
  */
 export const InstallPluginRequestSchema: GenMessage<InstallPluginRequest> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 58);
+  messageDesc(file_visual_node_v1_editor, 59);
 
 /**
  * Always returns 200/ok:false rather than a ConnectError on an expected failure (malformed
@@ -1416,14 +1438,40 @@ export type InstallPluginResponse = Message<"visual_node.v1.InstallPluginRespons
  * Use `create(InstallPluginResponseSchema)` to create a new message.
  */
 export const InstallPluginResponseSchema: GenMessage<InstallPluginResponse> = /*@__PURE__*/
-  messageDesc(file_visual_node_v1_editor, 59);
+  messageDesc(file_visual_node_v1_editor, 60);
+
+/**
+ * @generated from enum visual_node.v1.DiagnosticSeverity
+ */
+export enum DiagnosticSeverity {
+  /**
+   * @generated from enum value: DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DIAGNOSTIC_SEVERITY_ERROR = 1;
+   */
+  ERROR = 1,
+
+  /**
+   * @generated from enum value: DIAGNOSTIC_SEVERITY_WARNING = 2;
+   */
+  WARNING = 2,
+}
+
+/**
+ * Describes the enum visual_node.v1.DiagnosticSeverity.
+ */
+export const DiagnosticSeveritySchema: GenEnum<DiagnosticSeverity> = /*@__PURE__*/
+  enumDesc(file_visual_node_v1_editor, 0);
 
 /**
  * EditorService mirrors editor-server's 21 REST endpoints
  * (packages/editor-server/src/routes/*.routes.ts) as gRPC-compatible RPCs, served over
  * Buf Connect. See docs/phase8-backend-grpc-flatbuffers-plan.md for the full migration
  * rationale.
- *
+ * 
  * Wherever a request/response currently carries a Visual Node `Flow` object
  * (nodes/edges/meta, packages/core/src/schema/node.types.ts), the field below is
  * `bytes flatbuffer_flow` — an opaque FlatBuffers-encoded `Flow` (see

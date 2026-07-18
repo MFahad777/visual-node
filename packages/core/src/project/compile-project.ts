@@ -1,9 +1,10 @@
 import path from "node:path";
 import { emitExpress } from "../codegen/emit-express.js";
 import { formatCode } from "../codegen/formatter.js";
-import { FunctionBodyGraphError } from "../nodes/logic/function.node.js";
 import { isValidNpmPackageName } from "../nodes/logic/npm-dependency.js";
 import type { Flow, FlowNode } from "../schema/node.types.js";
+import type { Diagnostic } from "../schema/diagnostics.js";
+import { NestedGraphError } from "../codegen/nested-graph-error.js";
 
 export interface ProjectFile {
   /** POSIX-style path relative to the project root, e.g. "helpers/dateFormater.blueprint". */
@@ -11,12 +12,8 @@ export interface ProjectFile {
   flow: Flow;
 }
 
-export interface ProjectFileError {
+export interface ProjectFileError extends Diagnostic {
   relativePath: string;
-  nodeId?: string;
-  /** Set when the error originated inside a Function node's blueprint body graph, pointing at the specific node within it. */
-  blueprintNodeId?: string;
-  message: string;
 }
 
 export interface CompiledProjectFile {
@@ -26,8 +23,8 @@ export interface CompiledProjectFile {
 }
 
 export type ProjectCompileResult =
-  | { valid: true; files: CompiledProjectFile[] }
-  | { valid: false; errors: ProjectFileError[] };
+  | { valid: true; files: CompiledProjectFile[]; warnings: ProjectFileError[] }
+  | { valid: false; errors: ProjectFileError[]; warnings: ProjectFileError[] };
 
 function normalize(p: string): string {
   return p.replace(/\\/g, "/");
@@ -69,8 +66,9 @@ export async function compileProject(files: ProjectFile[]): Promise<ProjectCompi
         if (!isValidNpmPackageName(requirePath)) {
           errors.push({
             relativePath: file.relativePath,
-            nodeId: node.id,
+            severity: "error",
             message: `Require node declares an invalid npm package name "${requirePath}"`,
+            path: [{ nodeId: node.id, nodeType: node.type, label: "Require" }],
           });
         }
         continue;
@@ -80,8 +78,9 @@ export async function compileProject(files: ProjectFile[]): Promise<ProjectCompi
       if (!byKey.has(resolved)) {
         errors.push({
           relativePath: file.relativePath,
-          nodeId: node.id,
+          severity: "error",
           message: `Require path "${requirePath}" does not resolve to any ".blueprint" file in this project (resolved to "${resolved}")`,
+          path: [{ nodeId: node.id, nodeType: node.type, label: "Require" }],
         });
       }
     }
@@ -91,25 +90,24 @@ export async function compileProject(files: ProjectFile[]): Promise<ProjectCompi
   // internally). Collect ALL files' errors instead of stopping at the first, so the
   // caller can show every broken file in one pass.
   const compiled: CompiledProjectFile[] = [];
+  const warnings: ProjectFileError[] = [];
   for (const file of files) {
     try {
-      const { code } = emitExpress(file.flow);
+      const { code, warnings: fileWarnings } = emitExpress(file.flow);
       const formatted = await formatCode(code);
       compiled.push({ relativePath: deriveOutputPath(file.relativePath), code: formatted });
+      for (const w of fileWarnings) {
+        warnings.push({ ...w, relativePath: file.relativePath });
+      }
     } catch (err) {
-      if (err instanceof FunctionBodyGraphError) {
-        errors.push({
-          relativePath: file.relativePath,
-          nodeId: err.functionNodeId,
-          blueprintNodeId: err.blueprintNodeId,
-          message: err.message,
-        });
+      if (err instanceof NestedGraphError) {
+        errors.push({ relativePath: file.relativePath, severity: "error", message: err.message, path: err.path });
       } else {
-        errors.push({ relativePath: file.relativePath, message: err instanceof Error ? err.message : String(err) });
+        errors.push({ relativePath: file.relativePath, severity: "error", message: err instanceof Error ? err.message : String(err), path: [] });
       }
     }
   }
 
-  if (errors.length > 0) return { valid: false, errors };
-  return { valid: true, files: compiled };
+  if (errors.length > 0) return { valid: false, errors, warnings };
+  return { valid: true, files: compiled, warnings };
 }

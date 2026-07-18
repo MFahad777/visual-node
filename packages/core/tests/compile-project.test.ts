@@ -124,7 +124,7 @@ describe("compileProject — multi-file, cross-file require()", () => {
 
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      const err = result.errors.find((e) => e.nodeId === "req1");
+      const err = result.errors.find((e) => e.path.at(-1)?.nodeId === "req1");
       expect(err).toBeTruthy();
       expect(err?.message).toContain("invalid npm package name");
     }

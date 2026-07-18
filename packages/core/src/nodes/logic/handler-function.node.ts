@@ -1,26 +1,12 @@
 import type { NodeDefinition, EmitContext } from "../../schema/node-registry.js";
 import type { FlowNode } from "../../schema/node.types.js";
-import { emitFunctionGraphBody, FunctionGraphError, type FunctionGraph } from "../../codegen/emit-function-graph.js";
+import { emitFunctionGraphBody, type FunctionGraph } from "../../codegen/emit-function-graph.js";
+import { wrapNestedGraphError } from "../../codegen/nested-graph-error.js";
+import { frameForNode } from "../../schema/node-display-name.js";
 
 export const HANDLER_FUNCTION_PARAMS = ["req", "res", "next"] as const;
 
 const IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
-
-/**
- * Thrown when a `mode: "blueprint"` Handler Function node's body graph fails to compile.
- * `functionNodeId` is the outer Handler Function node (the id `compile-project.ts` already knows how
- * to attribute a `ProjectFileError` to); `blueprintNodeId` additionally points at the specific
- * node *inside* the nested graph that caused the failure, when known.
- */
-export class HandlerFunctionBodyGraphError extends Error {
-  constructor(
-    message: string,
-    public readonly functionNodeId: string,
-    public readonly blueprintNodeId?: string,
-  ) {
-    super(message);
-  }
-}
 
 export const handlerFunctionNode: NodeDefinition = {
   type: "logic.handlerFunction",
@@ -89,8 +75,7 @@ export const handlerFunctionNode: NodeDefinition = {
         body = result.code;
         imports = result.imports;
       } catch (err) {
-        const inner = err instanceof FunctionGraphError ? err : new FunctionGraphError(err instanceof Error ? err.message : String(err));
-        throw new HandlerFunctionBodyGraphError(`Blueprint graph error in handler "${name}": ${inner.message}`, node.id, inner.nodeId);
+        throw wrapNestedGraphError(err, frameForNode(node, [ctx.flow.variables ?? []]));
       }
     } else {
       body = String(node.data?.body ?? "");

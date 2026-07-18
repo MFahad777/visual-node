@@ -405,7 +405,7 @@ describe("variable.get / variable.set", () => {
     const flow = flowWithVariable("let", [{ id: "var_get", type: "variable.get", position: { x: 0, y: 0 }, data: { variableId: "does-not-exist" } }]);
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.blueprintNodeId === "var_get" && e.message.includes("references unknown variable"))).toBe(true);
+    expect(result.errors.some((e) => e.path.at(-1)?.nodeId === "var_get" && e.message.includes("no longer exists"))).toBe(true);
   });
 
   it("rejects a Set Variable node with a dangling/unknown variableId", () => {
@@ -418,7 +418,7 @@ describe("variable.get / variable.set", () => {
     ]);
     const result = validateFlow(flow);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.nodeId === "var_set" && e.message.includes("references unknown variable"))).toBe(true);
+    expect(result.errors.some((e) => e.path.at(-1)?.nodeId === "var_set" && e.message.includes("no longer exists"))).toBe(true);
   });
 
   it("rejects a variable with an invalid identifier name", () => {

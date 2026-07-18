@@ -5,21 +5,27 @@ import {
   collectProjectDependencies,
   decodeFlow,
   emitFunctionGraphBody,
-  FunctionGraphError,
+  NestedGraphError,
   writeGeneratedFile,
   type FlowEdge,
   type FlowNode,
   type ProjectFileError,
 } from "@visual-node/core";
+import { DiagnosticSeverity } from "@visual-node/proto-gen";
 import type { AppConfig } from "../config.js";
 import { compileProjectFromDisk, ensureCommonJsPackageJson } from "../codegen-helpers.js";
 
 /** Maps core/editor-server's `ProjectFileError` onto the generated `ValidationError` message init shape. */
 function toValidationErrorInit(err: ProjectFileError) {
   return {
-    nodeId: err.nodeId ?? "",
-    blueprintNodeId: err.blueprintNodeId ?? "",
+    severity: err.severity === "warning" ? DiagnosticSeverity.WARNING : DiagnosticSeverity.ERROR,
     message: err.message,
+    path: (err.path ?? []).map((frame) => ({
+      $typeName: "visual_node.v1.DiagnosticFrame",
+      nodeId: frame.nodeId,
+      nodeType: frame.nodeType,
+      label: frame.label,
+    })) as any,
     relativePath: err.relativePath,
   };
 }
@@ -47,7 +53,7 @@ export function registerCompileFunctionGraphRoutes(router: ConnectRouter, config
     return {
       valid: true,
       results: result.files.map((file) => ({ relativePath: file.relativePath, code: file.code })),
-      errors: [],
+      errors: result.warnings.map(toValidationErrorInit),
     };
   });
 
@@ -73,7 +79,7 @@ export function registerCompileFunctionGraphRoutes(router: ConnectRouter, config
       valid: true,
       written: true,
       files: result.files.map((file) => ({ relativePath: file.relativePath, outputPath: file.relativePath })),
-      errors: [],
+      errors: result.warnings.map(toValidationErrorInit),
     };
   });
 
@@ -140,11 +146,11 @@ export function registerCompileFunctionGraphRoutes(router: ConnectRouter, config
       const { code: body } = emitFunctionGraphBody({ nodes, edges });
       return { result: { case: "body" as const, value: body } };
     } catch (err) {
-      if (err instanceof FunctionGraphError) {
+      if (err instanceof NestedGraphError) {
         return {
           result: {
             case: "error" as const,
-            value: { message: err.message, blueprintNodeId: err.nodeId ?? "" },
+            value: { message: err.message, blueprintNodeId: err.path.at(-1)?.nodeId ?? "" },
           },
         };
       }

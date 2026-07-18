@@ -7,6 +7,7 @@ import {
   type ProjectFileError,
   type ValidationError,
 } from "@visual-node/core";
+import { DiagnosticSeverity } from "@visual-node/proto-gen";
 import type { AppConfig } from "../config.js";
 import {
   compileProjectFromDisk,
@@ -50,9 +51,14 @@ import { serverRunner } from "../runner.js";
 /** Mirrors packages/core's ValidationError/ProjectFileError shapes into the proto ValidationError init shape (proto3 strings default to "", not undefined, for absent optional fields). */
 function toProtoValidationError(err: ValidationError | ProjectFileError) {
   return {
-    nodeId: err.nodeId ?? "",
-    blueprintNodeId: err.blueprintNodeId ?? "",
+    severity: err.severity === "warning" ? DiagnosticSeverity.WARNING : DiagnosticSeverity.ERROR,
     message: err.message,
+    path: (err.path ?? []).map((frame) => ({
+      $typeName: "visual_node.v1.DiagnosticFrame",
+      nodeId: frame.nodeId,
+      nodeType: frame.nodeType,
+      label: frame.label,
+    })) as any,
     relativePath: "relativePath" in err ? err.relativePath : "",
   };
 }

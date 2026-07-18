@@ -1,17 +1,9 @@
 import type { FlowNode } from "../../schema/node.types.js";
 import type { EmitContext, NodeDefinition } from "../../schema/node-registry.js";
-import { emitFunctionGraphBody, FunctionGraphError, type FunctionGraph } from "../../codegen/emit-function-graph.js";
+import { emitFunctionGraphBody, type FunctionGraph } from "../../codegen/emit-function-graph.js";
 import { promiseExecutorParamNames, mergeEnclosingPromiseParams } from "../../codegen/exec-chain.js";
-
-export class PromiseBodyGraphError extends Error {
-  constructor(
-    message: string,
-    public readonly promiseNodeId: string,
-    public readonly blueprintNodeId?: string,
-  ) {
-    super(message);
-  }
-}
+import { wrapNestedGraphError } from "../../codegen/nested-graph-error.js";
+import { frameForNode } from "../../schema/node-display-name.js";
 
 const promiseNodeDefinition: NodeDefinition = {
   type: "logic.promise",
@@ -99,12 +91,7 @@ const promiseNodeDefinition: NodeDefinition = {
         requiresAsync: result.requiresAsync,
       };
     } catch (err) {
-      const inner = err instanceof FunctionGraphError ? err : new FunctionGraphError(err instanceof Error ? err.message : String(err));
-      throw new PromiseBodyGraphError(
-        `Promise node executor blueprint graph error: ${inner.message}`,
-        node.id,
-        inner.nodeId,
-      );
+      throw wrapNestedGraphError(err, frameForNode(node, [ctx.flow.variables ?? []]));
     }
   },
   requiresAsync: (node: FlowNode) => {
