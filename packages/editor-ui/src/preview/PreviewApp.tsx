@@ -1,14 +1,19 @@
 import { useEffect } from 'react';
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react';
 import type { Node as RFNode } from '@xyflow/react';
-import type { NodeDefinition } from '@visual-node/core';
+import type { NodeDefinition, VariableDeclaration } from '@visual-node/core';
 import { useFlowStore } from '../store/flowStore.js';
 import { nodeTypes } from '../canvas/nodeTypes.js';
 import nodeRegistry from './node-registry.json';
 
 /**
  * Standalone preview harness for rendering a single node in isolation.
- * Reads `type` (required) and `data` (optional, JSON-encoded) from query string.
+ * Reads `type` (required), `data` (optional, JSON-encoded), and `variables` (optional,
+ * JSON-encoded array of `VariableDeclaration`) from the query string. `variables` is seeded
+ * into `flowStore`'s global variable list so a `variable.get`/`variable.set` preview node
+ * resolves its bound `data.variableId` to a real name/dataType — the same fallback path
+ * `GenericNode.tsx` already uses for a main-canvas node with no scoped edge context — instead
+ * of rendering as "missing variable".
  * Example: `preview.html?type=express.route&data={"path":"/users","method":"GET"}`
  */
 export function PreviewApp() {
@@ -16,6 +21,7 @@ export function PreviewApp() {
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type');
     const dataStr = params.get('data');
+    const variablesStr = params.get('variables');
 
     if (!type) {
       console.error("Missing required 'type' query parameter");
@@ -31,6 +37,15 @@ export function PreviewApp() {
       }
     }
 
+    let variables: VariableDeclaration[] = [];
+    if (variablesStr) {
+      try {
+        variables = JSON.parse(decodeURIComponent(variablesStr));
+      } catch (e) {
+        console.error("Failed to parse 'variables' query parameter:", e);
+      }
+    }
+
     const previewNode: RFNode = {
       id: 'preview',
       type,
@@ -42,6 +57,7 @@ export function PreviewApp() {
       nodeDefinitions: nodeRegistry as any as Record<string, NodeDefinition>,
       nodes: [previewNode],
       edges: [],
+      variables,
     });
   }, []);
 

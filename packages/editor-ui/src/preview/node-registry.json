@@ -1098,6 +1098,63 @@
     ],
     "configSchema": []
   },
+  "error.tryCatch": {
+    "type": "error.tryCatch",
+    "category": "error",
+    "label": "Try Catch",
+    "description": "Runs \"Try Body\"; if it throws, execution jumps to \"Catch Body\" with the thrown value available on the \"Error\" output. Compiled by codegen/exec-chain.ts, not by this node's own emit().",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "try",
+        "label": "Try Body",
+        "kind": "exec"
+      },
+      {
+        "id": "catch",
+        "label": "Catch Body",
+        "kind": "exec"
+      },
+      {
+        "id": "error",
+        "label": "Error",
+        "kind": "value"
+      }
+    ],
+    "configSchema": []
+  },
+  "error.throw": {
+    "type": "error.throw",
+    "category": "error",
+    "label": "Throw",
+    "description": "Throws whatever is wired (or typed as a literal) into \"Value\", then continues to \"Next\".",
+    "inputs": [
+      {
+        "id": "in",
+        "label": "In",
+        "kind": "exec"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "kind": "value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "out",
+        "label": "Next",
+        "kind": "exec"
+      }
+    ],
+    "configSchema": []
+  },
   "variable.get": {
     "type": "variable.get",
     "category": "logic",
