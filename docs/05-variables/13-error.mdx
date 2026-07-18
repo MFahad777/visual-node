@@ -1,0 +1,51 @@
+---
+title: "Error"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Error
+
+An **error**-typed variable holds a JavaScript `Error` object. The default-value text you
+type into the Variables panel becomes the error's message — quoted and escaped
+automatically, the same way a string variable's default is — and gets wrapped in
+`new Error("...")` at compile time. Leaving the default value empty still constructs a
+real `Error`, just with no message: `new Error()`.
+
+## Compiles to
+
+```js
+let notFoundError = new Error("Resource not found");
+```
+
+Typing `Resource not found` into the default-value field is enough — the quoting and
+`new Error(...)` wrapping happen for you at compile time, whether the text comes from the
+default-value field or from an unwired literal on a Set node's pin.
+
+## Get Variable / Set Variable
+
+A **Get notFoundError** node reads it back; a **Set notFoundError** node assigns a new
+value and continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "notFoundError", keyword: "let", dataType: "error", defaultValue: "Resource not found" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "notFoundError", keyword: "let", dataType: "error", defaultValue: "Resource not found" }]} data={{ variableId: "demo", literals: { value: "Resource not found" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **Reusable errors**: store a fixed error (with a specific message) once in a variable,
+  then wire a **Get** node bound to it into a **Throw** node wherever it's needed, instead
+  of retyping the same message every time.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).
+- [Error nodes](/node-reference/error) — Try Catch and Throw, the two nodes this variable type is built to work with.

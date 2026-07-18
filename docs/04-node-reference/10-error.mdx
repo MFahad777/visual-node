@@ -1,0 +1,88 @@
+---
+title: Error
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Error nodes
+
+Two nodes for handling errors: **Try Catch**, a control-flow fork node (architecturally
+similar to [Branch/Switch/Sequence](/node-reference/control-flow) — its own `emit()` is a
+defensive stub, and the real compilation happens in the shared [exec-chain
+walker](/core-concepts/how-codegen-works)), and **Throw**, an ordinary exec-passthrough
+statement node.
+
+Usable both on the main canvas and inside a [Function
+Graph](/core-concepts/function-graphs-and-blueprint-mode).
+
+## Try Catch — `error.tryCatch`
+
+Runs "Try Body"; if anything in it throws, execution jumps to "Catch Body" instead, with
+the thrown value available on the "Error" output pin.
+
+<NodePreview type="error.tryCatch" height={260} width={320} />
+
+- **Inputs**: `in` (exec) — "In"
+- **Outputs**: `try` (exec) — "Try Body"; `catch` (exec) — "Catch Body"; `error` (value) —
+  "Error"
+- **Config fields**: none
+- **Constraints**: at least one of Try Body/Catch Body must have an outgoing wire; the
+  "Error" pin can only be read from **inside the Catch Body arm** — wiring it into Try
+  Body, a sibling branch, or anything outside the Catch arm is rejected at validation time.
+
+```js
+try {
+  // ...Try Body arm
+} catch (err_abc123) {
+  console.log(err_abc123); // "Error" reads the caught value
+  // ...rest of Catch Body arm
+}
+```
+
+Unlike Branch's optional `else` or Switch's optional `default`, the `catch` block is
+**always emitted**, even if Catch Body is left completely unwired — a JavaScript `try`
+statement requires one. Each arm gets its own scope, exactly like Branch/Switch: a value
+computed inside Try Body can't be read from Catch Body or from outside the node.
+
+**Use case**: Wrap risky logic — a JSON parse, a lookup that might come back empty, a
+call to something that can throw — and handle the failure explicitly instead of letting
+it crash the request.
+
+## Throw — `error.throw`
+
+Throws whatever is wired (or typed as a literal) into "Value", then — if the throw
+somehow doesn't propagate further up — continues to "Next".
+
+<NodePreview type="error.throw" height={200} width={280} />
+
+- **Inputs**: `in` (exec) — "In"; `value` (value) — "Value"
+- **Outputs**: `out` (exec) — "Next"
+- **Config fields**: none — an unwired "Value" is typed directly on the pin
+- **Constraints**: "Value" must be either wired or given a literal
+
+```js
+throw new Error("something failed");
+```
+
+Wire in a **[Get Variable](/node-reference/logic/get-variable)** bound to an
+error-typed variable, or a Try Catch's own "Error" output (to re-throw inside a Catch
+Body), or type a plain string literal directly on the pin.
+
+**Use case**: Reject a request with a specific error — for example, re-throwing inside a
+Catch Body after logging it, or throwing a validation failure before any other logic runs.
+
+## The "Error" variable type
+
+Variables (see [Error](/variables/error) in the Variables section) can be declared
+with data type **error**, which emits `new Error(<message>)` — the default value you type
+becomes the message, `JSON.stringify`-ed the same way a string variable's default is.
+Leaving the default empty emits a plain `new Error()` with no arguments. Works with **Get
+Variable**/**Set Variable** exactly like any other data type.
+
+```js
+let myError = new Error("initial error");
+```
+
+**Use case**: Store a reusable error (with a fixed message) in a variable, then throw it
+from a **Throw** node wherever it's needed, instead of typing the same message inline
+every time.

@@ -1,0 +1,44 @@
+---
+title: "Null"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Null
+
+A **null**-typed variable always holds the JavaScript value `null`. There's nothing to
+type: instead of a free-text default-value field, the Variables panel shows this as a
+locked value, since `null` is the only value this type can ever hold.
+
+## Compiles to
+
+```js
+let placeholder = null;
+```
+
+## Get Variable / Set Variable
+
+A **Get placeholder** node reads it back; a **Set placeholder** node assigns a new value
+and continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "placeholder", keyword: "let", dataType: "null", defaultValue: "null" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "placeholder", keyword: "let", dataType: "null", defaultValue: "null" }]} data={{ variableId: "demo", literals: { value: "null" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **Intentionally empty placeholder**: declare a variable as explicitly empty from the
+  start, distinguishing "not yet set" from a real value, before something else assigns it
+  later via a **Set Variable** node.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

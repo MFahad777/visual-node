@@ -1,0 +1,52 @@
+---
+title: "Buffer"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Buffer
+
+A **Buffer** variable holds Node's binary-data type — the same `Buffer` you get back
+from reading a file or an incoming request body. The default-value text you type into
+the Variables panel is treated as plain UTF-8 text and converted into a Buffer holding
+that text's bytes.
+
+## Compiles to
+
+```js
+let rawData = Buffer.from("hello");
+```
+
+Typing `hello` into the default-value field is enough — the `Buffer.from(...)` wrapping
+happens for you at compile time.
+
+## Get Variable / Set Variable
+
+A **Get rawData** node reads it back; a **Set rawData** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "rawData", keyword: "let", dataType: "buffer", defaultValue: "hello" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "rawData", keyword: "let", dataType: "buffer", defaultValue: "hello" }]} data={{ variableId: "demo", literals: { value: "hello" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin shows plain, unquoted text too — the `Buffer.from(...)`
+wrapping is applied the same way whether the text comes from the default-value field or
+from an unwired literal on the pin.
+
+## Use case
+
+- **Binary/raw payload data**: Hold a chunk of raw bytes — an encoded file, a piece of a
+  request body, or text you need to hand to something expecting a Buffer rather than a
+  plain string — without writing the conversion yourself every time.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

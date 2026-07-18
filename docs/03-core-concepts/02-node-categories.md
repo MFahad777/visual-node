@@ -18,6 +18,7 @@ this is also how the [Node Reference](/node-reference) is organized.
 | **Control Flow** | lime | Directing execution: `Branch` (if/else), `Switch`, and `Sequence` (run every wired output, in order). |
 | **Logic** | violet | Functions, variables, requiring modules, property-path extraction, and module-load-time setup. |
 | **Array** | light grey | Array iteration (map, filter, reduce, etc. with wireable loop bodies) and simple methods (push, pop, includes, etc.). |
+| **Error** | red | Handling thrown errors: `Try Catch` and `Throw`. |
 | **Debugging** | rose | `Console Log`. |
 
 This is the exact order the [Node Reference](/node-reference) presents them in, and the
@@ -40,7 +41,8 @@ available in both places:
 - **Both, full parity**: `logic.functionCall`, `logic.callback`, `logic.pathExtractor`,
   `logic.promise`, `logic.graphReturn`, `variable.get`, `variable.set`, `debug.consoleLog`,
   `handler.sendJson`, all 17 `operators.*` nodes, all three `controlFlow.*` nodes
-  (`branch`, `switch`, `sequence`), and all 15 `array.*` nodes.
+  (`branch`, `switch`, `sequence`), all 15 `array.*` nodes, and both `error.*` nodes
+  (`tryCatch`, `throw`).
 
 One further exception: `logic.promise` can also be nested inside ANOTHER Promise node's
 own Blueprint executor graph, to any depth — the only node type addable inside a nested

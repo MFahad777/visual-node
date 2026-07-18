@@ -19,6 +19,7 @@ legend and main-canvas vs. Function-Graph availability rules referenced througho
 | [Control Flow](/node-reference/control-flow) | `controlFlow.branch`, `controlFlow.switch`, `controlFlow.sequence` |
 | [Logic](/node-reference/logic) | `logic.function`, `logic.handlerFunction`, `logic.export`, `logic.require`, `logic.functionCall`, `logic.callback`, `logic.pathExtractor`, `logic.promise`, `logic.graphEntry`, `logic.graphReturn`, `logic.begin`, `variable.get`, `variable.set` |
 | [Array](/node-reference/array) | 9 loop-container nodes (map, filter, reduce, forEach, flatMap, find, findIndex, every, some) + 6 pass-through nodes (push, pop, unshift, shift, includes, indexOf) |
+| [Error](/node-reference/error) | `error.tryCatch`, `error.throw` |
 | [Debugging](/node-reference/debugging) | `debug.consoleLog` |
 
 Looking to add a node type of your own without touching visual-node's source? See

@@ -1,0 +1,52 @@
+---
+title: "BigInt"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# BigInt
+
+A **BigInt** variable holds an arbitrary-precision integer — useful once a value can
+exceed JavaScript's safe integer range (`Number.MAX_SAFE_INTEGER`, `2^53 - 1`). The
+default-value text you type into the Variables panel must be a whole number with no
+decimal point — BigInt has no fractional representation, so typing something like
+`1.5` is rejected with a clear message.
+
+## Compiles to
+
+```js
+let bigCounter = 123456789012345n;
+```
+
+The `n` suffix that marks a JS numeric literal as a BigInt is added automatically at
+compile time — you just type the digits.
+
+## Get Variable / Set Variable
+
+A **Get bigCounter** node reads it back; a **Set bigCounter** node assigns a new value
+and continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "bigCounter", keyword: "let", dataType: "bigint", defaultValue: "123456789012345" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "bigCounter", keyword: "let", dataType: "bigint", defaultValue: "123456789012345" }]} data={{ variableId: "demo", literals: { value: "123456789012345" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin takes the same plain-digits text as the default-value field
+— an unwired literal there gets the same `n` suffix applied automatically.
+
+## Use case
+
+- **IDs beyond the safe integer range**: A counter, a database ID, or a snowflake-style
+  identifier that can legitimately grow past what a regular JS `number` can represent
+  exactly.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

@@ -1,0 +1,52 @@
+---
+title: "Symbol"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Symbol
+
+A **Symbol** variable holds a JS `Symbol` — a guaranteed-unique value, even against
+another Symbol created with the exact same description text. The default-value text you
+type into the Variables panel is used as the Symbol's description; it's purely for your
+own debugging convenience (it shows up if you `console.log` the Symbol) and has no effect
+on uniqueness.
+
+## Compiles to
+
+```js
+let uniqueKey = Symbol("unique identifier");
+```
+
+Leaving the default-value field empty still compiles to a real, constructed Symbol —
+a bare `Symbol()` with no description — rather than leaving the variable undeclared.
+
+## Get Variable / Set Variable
+
+A **Get uniqueKey** node reads it back; a **Set uniqueKey** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "uniqueKey", keyword: "let", dataType: "symbol", defaultValue: "unique identifier" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "uniqueKey", keyword: "let", dataType: "symbol", defaultValue: "unique identifier" }]} data={{ variableId: "demo", literals: { value: "unique identifier" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin takes the same plain description text as the default-value
+field — an unwired literal there is wrapped in `Symbol(...)` the exact same way.
+
+## Use case
+
+- **Unique property key or sentinel**: A guaranteed-collision-free object key, or a
+  sentinel value used to mark "no result"/"not found" in a way that can never accidentally
+  match a real value like `null` or an empty string.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

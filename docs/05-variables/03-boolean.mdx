@@ -1,0 +1,43 @@
+---
+title: "Boolean"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Boolean
+
+A **Boolean** variable holds `true` or `false`. Instead of a free-text field, the
+Variables panel shows a small true/false selector for its default value, so there's no
+way to type anything else in by mistake.
+
+## Compiles to
+
+```js
+let isActive = true;
+```
+
+## Get Variable / Set Variable
+
+A **Get isActive** node reads it back; a **Set isActive** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "isActive", keyword: "let", dataType: "boolean", defaultValue: "true" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "isActive", keyword: "let", dataType: "boolean", defaultValue: "true" }]} data={{ variableId: "demo", literals: { value: "true" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **Flags and state**: A feature flag, an "is authenticated" state, or any other on/off
+  switch you want to check and flip from the canvas.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

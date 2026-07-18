@@ -37,7 +37,10 @@ A value pin that isn't wired to anything usually isn't an error — most of them
 type a literal directly into the pin (or, for a few special cases like `express.route`'s
 config fields, into a proper form field in the side panel instead). If a pin has neither
 a wire nor a literal and the node requires one, compiling fails with a clear error naming
-the node and the missing pin — visual-node refuses to silently emit broken code.
+the node and the missing pin — visual-node refuses to silently emit broken code. Some
+issues are only warnings and don't block compiling at all — see [Diagnostics & the
+Problems Panel](/core-concepts/diagnostics-and-the-problems-panel) for the full
+error-vs-warning picture.
 
 ## Structural vs. handler nodes
 

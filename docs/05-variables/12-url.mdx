@@ -1,0 +1,52 @@
+---
+title: "URL"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# URL
+
+A **URL** variable holds a parsed JS `URL` object rather than a plain string — so its
+`.hostname`, `.pathname`, `.searchParams`, and so on are available directly, without
+parsing the string yourself every time you use it. The default-value text you type into
+the Variables panel must be a syntactically valid URL; anything that isn't (checked with
+JavaScript's own URL parser) is rejected at declaration time with a clear message.
+
+## Compiles to
+
+```js
+let endpoint = new URL("https://api.example.com");
+```
+
+Typing `https://api.example.com` into the default-value field is enough — the
+`new URL(...)` wrapping happens for you at compile time.
+
+## Get Variable / Set Variable
+
+A **Get endpoint** node reads it back; a **Set endpoint** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "endpoint", keyword: "let", dataType: "url", defaultValue: "https://api.example.com" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "endpoint", keyword: "let", dataType: "url", defaultValue: "https://api.example.com" }]} data={{ variableId: "demo", literals: { value: "https://api.example.com" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin takes the same URL text as the default-value field — an
+unwired literal there is validated and wrapped in `new URL(...)` the exact same way.
+
+## Use case
+
+- **Configurable upstream API base**: Declare the base URL of a service you call once,
+  then read `.hostname`, `.pathname`, or `.searchParams` off it directly wherever it's
+  needed, instead of gluing strings together or re-parsing the same URL repeatedly.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

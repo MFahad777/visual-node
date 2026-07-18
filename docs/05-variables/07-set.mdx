@@ -1,0 +1,55 @@
+---
+title: "Set"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Set
+
+A **Set**-typed variable holds the JS `Set` collection — a list of values with
+duplicates automatically removed. The default-value text you type into the Variables
+panel must be a JSON array, e.g. `["a","b","c"]`; typing anything that isn't a valid JSON
+array (a bare string, a number, an object) is rejected with a clear message.
+
+## Compiles to
+
+```js
+let tags = new Set(["a", "b", "c"]);
+```
+
+The array you typed is passed straight into `new Set(...)`, which de-duplicates its
+elements at runtime exactly like any hand-written JS `Set` — so typing
+`["a","a","b"]` still produces a Set containing only `"a"` and `"b"`.
+
+Leaving the default-value field empty still compiles to a real, constructed Set —
+`new Set()` — rather than leaving the variable undeclared.
+
+## Get Variable / Set Variable
+
+A **Get tags** node reads it back; a **Set tags** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "tags", keyword: "let", dataType: "set", defaultValue: "[\"a\",\"b\",\"c\"]" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "tags", keyword: "let", dataType: "set", defaultValue: "[\"a\",\"b\",\"c\"]" }]} data={{ variableId: "demo", literals: { value: "[\"a\",\"b\",\"c\"]" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin takes the same JSON-array text as the default-value field —
+an unwired literal there is wrapped in `new Set(...)` the exact same way.
+
+## Use case
+
+- **Unique tags/roles**: A collection of tags, permission names, or category labels
+  where duplicates should never be possible — adding the same tag twice has no effect,
+  without you having to check for it yourself.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

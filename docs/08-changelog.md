@@ -4,7 +4,98 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 1.3.0 (Latest)
+## Version 1.4.0 (Latest)
+
+### New
+
+#### New node: Try Catch
+A new **[Try Catch](/node-reference/error#try-catch--errortrycatch)** node runs its "Try
+Body" execution path and, if anything inside it throws, jumps to "Catch Body" instead —
+with the thrown value available on an **Error** output pin you can read (only from inside
+Catch Body). Compiles to a real `try { } catch (err) { }` block.
+
+**Use case**: Wrap logic that might fail — a JSON parse, a lookup that might come back
+empty, anything that can throw — and handle the failure explicitly instead of letting it
+crash the request.
+
+#### New node: Throw
+A new **[Throw](/node-reference/error#throw--errorthrow)** node throws whatever is wired
+(or typed as a literal) into its "Value" pin. Wire in a **Get Variable** bound to an
+error, a Try Catch node's own "Error" output (to re-throw after handling), or just type a
+message directly on the pin.
+
+**Use case**: Reject a request with a specific error, or re-throw after logging inside a
+Try Catch's Catch Body.
+
+#### New "Error" variable type
+Variables can now be declared with data type **error**, which builds a real `Error`
+object from whatever default value you type in as its message.
+
+**Use case**: Store a reusable error with a fixed message in a variable, then throw it
+from a **Throw** node wherever it's needed.
+
+#### New node category: Error
+Try Catch and Throw live in a new **Error** category (red) alongside the existing Server,
+Routing, Middleware, Handler, Operators, Control Flow, Logic, Array, and Debugging
+categories.
+
+### Improved
+
+#### Errors and warnings are now distinguished
+The Problems panel now shows two severities: **⊗ errors** (red, block compiling) and
+**▲ warnings** (amber, informational only — your flow still compiles). A **Branch**,
+**Switch**, **Try Catch**, or **Sequence** node with nothing wired to any of its execution
+outputs used to be a hard error; it's now just a warning, so flows with an unfinished fork
+node compile successfully instead of being blocked.
+
+**Use case**: Keep working and compiling while you finish wiring up a node, instead of
+being stopped by every incomplete fork along the way.
+
+#### Diagnostic messages are easier to read
+Messages now name nodes the way you'd recognize them on canvas instead of by internal id
+— for example `Get "counterName"` instead of an unreadable id string, and
+`"Unnamed Function"`/`"Unnamed Handler Function"` for a Function or Handler Function
+you haven't named yet. Problems found deep inside nested Function/Handler-Function/Promise
+graphs now show a full breadcrumb of exactly where the issue is, no matter how many levels
+deep.
+
+**Use case**: Understand and locate a problem immediately from its message, without
+having to go hunting for which node a raw id refers to.
+
+#### Click a diagnostic to jump straight to it
+Clicking a row in the Problems panel now opens the correct file, opens every intermediate
+Function/Promise/Handler-Function tab needed to reach the problem, selects the offending
+node, and pans/zooms the canvas to it — automatically, at any nesting depth.
+
+**Use case**: Go from "there's a problem somewhere" to looking directly at the node that
+caused it, in one click.
+
+#### Warnings are now visible on the canvas
+A node with only warning-level issues now shows a subtle amber ring, distinct from the
+red ring used for an actual error — so you can spot an unfinished node at a glance without
+opening the Problems panel.
+
+### Fixed
+
+- **Comments on Try Catch, Branch, Switch, and Sequence nodes were silently dropped from
+  generated code.** Any note you'd added to one of these nodes is now included in the
+  output, the same as every other node type.
+- **Sequence nodes generated slightly more nested code than necessary.** Cleaned up —
+  behavior is unchanged, only the generated file reads a little more simply.
+
+### Documentation
+
+- New [Error node reference](/node-reference/error) page covering Try Catch, Throw, and
+  the new error variable type.
+- New [Diagnostics & the Problems Panel](/core-concepts/diagnostics-and-the-problems-panel)
+  page covering severities, human-readable messages, click-to-navigate, and the warning
+  ring.
+- The [Node Categories](/core-concepts/node-categories) and [Node Reference
+  overview](/node-reference) pages now list the new Error category.
+
+---
+
+## Version 1.3.0
 
 ### New
 

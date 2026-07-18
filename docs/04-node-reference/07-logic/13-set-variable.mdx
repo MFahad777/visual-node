@@ -17,8 +17,9 @@ Assigns a new value to a declared variable, then continues to the next node.
 
 An unwired literal is formatted according to the variable's declared data type (a string
 variable gets `JSON.stringify`-ed, a Map/Set/WeakSet variable gets wrapped in
-`new Map(...)`/`new Set(...)`/`new WeakSet(...)`, and so on) — a *wired* value is never
-reformatted, since it's already a proper expression.
+`new Map(...)`/`new Set(...)`/`new WeakSet(...)`, an **error**-typed variable gets wrapped
+in `new Error(...)` — see [Error nodes](/node-reference/error#the-error-variable-type) —
+and so on) — a *wired* value is never reformatted, since it's already a proper expression.
 
 ```js
 // let target

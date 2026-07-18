@@ -1,0 +1,51 @@
+---
+title: "String"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# String
+
+A **String** variable holds text. The default-value text you type into the Variables
+panel is used as-is — no manual quoting needed, since it's automatically wrapped in
+quotes (and any special characters safely escaped) when the code is generated.
+
+## Compiles to
+
+```js
+let greeting = "Hello, world!";
+```
+
+Typing `Hello, world!` into the default-value field is enough — quotes, escaping, and
+all other JSON-string formatting happen for you at compile time.
+
+## Get Variable / Set Variable
+
+A **Get greeting** node reads it back; a **Set greeting** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "greeting", keyword: "let", dataType: "string", defaultValue: "Hello, world!" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "greeting", keyword: "let", dataType: "string", defaultValue: "Hello, world!" }]} data={{ variableId: "demo", literals: { value: "Hello, world!" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin shows plain, unquoted text too — the quoting is applied the
+same way whether the text comes from the default-value field or from an unwired literal
+on the pin.
+
+## Use case
+
+- **Default text**: A greeting message, an API key placeholder, or any other piece of
+  template text you want to read from and update in place, without retyping it inline
+  every time it's needed.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

@@ -1,0 +1,50 @@
+---
+title: "Object"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Object
+
+An **object**-typed variable holds a plain JavaScript object. The default value you type
+into the Variables panel is trusted as-is — valid JSON object text works, and so does
+general JS object-literal syntax (unquoted keys, trailing commas, etc.) — whatever you
+type is emitted verbatim, with no reformatting or validation beyond what a real object
+literal needs.
+
+## Compiles to
+
+```js
+let config = { retries: 3 };
+```
+
+Leaving the default value empty compiles to "no initializer" for `let`/`var` (just
+`let config;`), or "no top-level declaration at all" for a `const` — see the [Variables
+overview](/variables) for what that implies.
+
+## Get Variable / Set Variable
+
+A **Get config** node reads it back; a **Set config** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "config", keyword: "let", dataType: "object", defaultValue: "{\"retries\": 3}" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "config", keyword: "let", dataType: "object", defaultValue: "{\"retries\": 3}" }]} data={{ variableId: "demo", literals: { value: "{\"retries\": 3}" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **Settings bags**: a small object of options passed around a request — e.g. `{"retries":
+  3}` — that reads far more clearly on the canvas than several loose scalar variables for
+  the same concept.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

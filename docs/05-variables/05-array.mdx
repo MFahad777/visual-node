@@ -1,0 +1,49 @@
+---
+title: "Array"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Array
+
+An **array**-typed variable holds a plain JavaScript array. The default value you type
+into the Variables panel must be valid JSON array text — something that isn't valid JSON,
+or that parses to something other than an array, is rejected by the panel rather than
+silently accepted. Once accepted, it's emitted exactly as typed, with no reformatting.
+
+## Compiles to
+
+```js
+let items = ["a", "b", "c"];
+```
+
+Leaving the default value empty compiles to "no initializer" for `let`/`var` (just
+`let items;`), or "no top-level declaration at all" for a `const` — see the [Variables
+overview](/variables) for what that implies.
+
+## Get Variable / Set Variable
+
+A **Get items** node reads it back; a **Set items** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "items", keyword: "let", dataType: "array", defaultValue: "[\"a\",\"b\",\"c\"]" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "items", keyword: "let", dataType: "array", defaultValue: "[\"a\",\"b\",\"c\"]" }]} data={{ variableId: "demo", literals: { value: "[\"a\",\"b\",\"c\"]" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **A starting collection**: a list of allowed values, a seed queue, or any small
+  in-memory collection a route needs to push to, filter, or iterate over — wire it
+  straight into any of the [array operation nodes](/node-reference/array).
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

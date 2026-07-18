@@ -52,6 +52,7 @@ const config: Config = {
       items: [
         {to: '/', label: 'Introduction', position: 'left'},
         {to: '/node-reference', label: 'Node Reference', position: 'left'},
+        {to: '/variables', label: 'Variables', position: 'left'},
         {to: '/plugins', label: 'Plugins', position: 'left'},
         {to: '/examples', label: 'Examples', position: 'left'},
         {
@@ -74,6 +75,7 @@ const config: Config = {
           items: [
             {label: 'Introduction', to: '/'},
             {label: 'Node Reference', to: '/node-reference'},
+            {label: 'Variables', to: '/variables'},
             {label: 'Plugins', to: '/plugins'},
             {label: 'Examples', to: '/examples'},
           ],

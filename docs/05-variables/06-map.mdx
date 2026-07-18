@@ -1,0 +1,54 @@
+---
+title: "Map"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Map
+
+A **map**-typed variable holds a JavaScript `Map`. The default value you type into the
+Variables panel is a JSON array of `[key, value]` pairs — for example
+`[["key1","value1"],["key2","value2"]]` — the same shape `new Map(...)` itself accepts.
+Anything that isn't a JSON array is rejected by the panel. At compile time, whatever
+array you typed is wrapped in `new Map(...)` for you.
+
+## Compiles to
+
+```js
+let cache = new Map([
+  ["key1", "value1"],
+  ["key2", "value2"],
+]);
+```
+
+Unlike most other types, leaving the default value **empty still produces a real
+declaration** — `new Map()` is constructed with no entries, rather than the variable
+being left undeclared. This holds even for a `const` (which normally skips its top-level
+declaration entirely when no default is given).
+
+## Get Variable / Set Variable
+
+A **Get cache** node reads it back; a **Set cache** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "cache", keyword: "let", dataType: "map", defaultValue: "[[\"key1\",\"value1\"],[\"key2\",\"value2\"]]" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "cache", keyword: "let", dataType: "map", defaultValue: "[[\"key1\",\"value1\"],[\"key2\",\"value2\"]]" }]} data={{ variableId: "demo", literals: { value: "[[\"key1\",\"value1\"],[\"key2\",\"value2\"]]" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **An in-memory lookup cache**: keep small, request-scoped or module-scoped
+  key/value state — for example memoizing a lookup by id — without reaching for a real
+  database.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

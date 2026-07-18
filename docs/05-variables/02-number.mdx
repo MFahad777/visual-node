@@ -1,0 +1,47 @@
+---
+title: "Number"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Number
+
+A **Number** variable holds a numeric value. The default-value text can be any integer
+or decimal — it's validated as a real, finite number, and rejected if it isn't (no
+quotes, no stray characters, just the digits).
+
+## Compiles to
+
+```js
+let counter = 0;
+```
+
+Typing `0` into the default-value field emits a bare numeric literal — no quotes, no
+wrapping.
+
+## Get Variable / Set Variable
+
+A **Get counter** node reads it back; a **Set counter** node assigns a new value and
+continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "counter", keyword: "let", dataType: "number", defaultValue: "0" }]} data={{ variableId: "demo", literals: { value: "0" } }} height={200} width={280} />
+  </div>
+</div>
+
+## Use case
+
+- **Counters and limits**: A request counter, a retry limit, or a page-size default —
+  anything you want to read, increment, or reset from the canvas instead of hardcoding
+  it inline.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).

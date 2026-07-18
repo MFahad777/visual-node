@@ -1,0 +1,55 @@
+---
+title: "WeakSet"
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# WeakSet
+
+A **WeakSet**-typed variable holds the JS `WeakSet` collection — like a
+[Set](/variables/set), but every member must be an object (or array), never a
+primitive like a string or a number. The default-value text you type into the Variables
+panel must be a JSON array whose elements are all objects/arrays, e.g. `[{"id":1}]`;
+typing a plain-value array like `["a","b"]` is rejected with a clear message, since a
+real JS `WeakSet` throws at runtime if you try to add a string or number to it.
+
+## Compiles to
+
+```js
+let trackedObjects = new WeakSet([{ id: 1 }]);
+```
+
+Leaving the default-value field empty still compiles to a real, constructed WeakSet —
+`new WeakSet()` — rather than leaving the variable undeclared.
+
+## Get Variable / Set Variable
+
+A **Get trackedObjects** node reads it back; a **Set trackedObjects** node assigns a new
+value and continues:
+
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Get Variable</p>
+    <NodePreview type="variable.get" variables={[{ id: "demo", name: "trackedObjects", keyword: "let", dataType: "weakset", defaultValue: "[{\"id\":1}]" }]} data={{ variableId: "demo" }} height={140} width={240} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Set Variable</p>
+    <NodePreview type="variable.set" variables={[{ id: "demo", name: "trackedObjects", keyword: "let", dataType: "weakset", defaultValue: "[{\"id\":1}]" }]} data={{ variableId: "demo", literals: { value: "[{\"id\":1}]" } }} height={200} width={280} />
+  </div>
+</div>
+
+The Set node's "Value" pin takes the same object-only JSON-array text as the
+default-value field — an unwired literal there is wrapped in `new WeakSet(...)` the
+exact same way, and is subject to the same objects-only validation.
+
+## Use case
+
+- **Tracking objects for cleanup**: Keep track of a set of request objects, sessions,
+  or other objects you want to associate some state with, without preventing them from
+  being garbage-collected once nothing else references them — unlike a regular
+  [Set](/variables/set), a `WeakSet` doesn't keep its members alive on its own.
+
+## Related
+
+- [Get Variable](/node-reference/logic/get-variable) / [Set Variable](/node-reference/logic/set-variable) — the generic node reference (ports, wiring rules).
+- [Variables overview](/variables) — declaring a variable, keywords, and cross-canvas concepts (Export, Module Variables).
