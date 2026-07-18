@@ -148,7 +148,8 @@ export function validateVariableDeclaration(variable: VariableDeclaration): stri
  * always valid JS literal syntax); `"map"`/`"set"`/`"weakset"` wrap their JSON array text in
  * `new Map(...)`/`new Set(...)`/`new WeakSet(...)`; `"bigint"` appends the `n` suffix;
  * `"symbol"`/`"buffer"`/`"url"` wrap plain text in `Symbol(...)`/`Buffer.from(...)`/
- * `new URL(...)`; `"null"`/`"undefined"` are already-valid JS source as their own literal text
+ * `new URL(...)`; `"error"` wraps the message text in `new Error(...)` (JSON-stringified for
+ * proper escaping); `"null"`/`"undefined"` are already-valid JS source as their own literal text
  * (validated equal to their own name by `validateVariableDeclaration` above).
  *
  * Shared by `buildInitializerLiteral` below (a variable's own default value) and
@@ -172,6 +173,8 @@ export function formatLiteralForType(dataType: VariableDataType, raw: string): s
       return `${raw}n`;
     case "symbol":
       return raw ? `Symbol(${JSON.stringify(raw)})` : "Symbol()";
+    case "error":
+      return raw ? `new Error(${JSON.stringify(raw)})` : "new Error()";
     case "buffer":
       return `Buffer.from(${JSON.stringify(raw)})`;
     case "url":
@@ -190,13 +193,14 @@ export function formatLiteralForType(dataType: VariableDataType, raw: string): s
 
 /**
  * Builds the initializer literal text (the part after `=`), or `undefined` when there's no
- * default.
+ * default. For constructor types (`"map"`, `"set"`, `"weakset"`, `"symbol"`, `"error"`),
+ * emits the constructor call even with an empty default value.
  */
 function buildInitializerLiteral(variable: VariableDeclaration): string | undefined {
   const raw = variable.defaultValue?.trim();
   if (!raw) {
     // For collection/constructor types, emit the constructor even with no default value
-    if (variable.dataType === "map" || variable.dataType === "set" || variable.dataType === "weakset" || variable.dataType === "symbol") {
+    if (variable.dataType === "map" || variable.dataType === "set" || variable.dataType === "weakset" || variable.dataType === "symbol" || variable.dataType === "error") {
       return formatLiteralForType(variable.dataType, "");
     }
     return undefined;

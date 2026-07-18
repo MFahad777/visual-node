@@ -37,6 +37,14 @@ export function promiseExecutorParamNames(nodeId: string): { resolve: string; re
 }
 
 /**
+ * The error identifier used inside an `error.tryCatch` node's catch block — unique per node
+ * instance so nested try-catch blocks never shadow each other's error variables.
+ */
+export function tryCatchErrorIdentifier(nodeId: string): string {
+  return `err_${sanitizeIdentifier(nodeId)}`;
+}
+
+/**
  * The enclosing-promise-scope chain a nested `logic.promise` node's OWN blueprint executor
  * graph should inherit from `ctx`, the context the outer `logic.promise` node is itself being
  * emitted under. If `ctx` is itself a `logic.promise` executor scope (`ctx.promiseExecutorParams`
@@ -98,6 +106,7 @@ export function getForkArmPinIds(node: FlowNode): string[] | null {
   if (node.type === "controlFlow.sequence") {
     return ["then-0", ...getSequencePins(node).map((p) => `then-${p.id}`)];
   }
+  if (node.type === "error.tryCatch") return ["try", "catch"];
   return null;
 }
 
@@ -150,17 +159,29 @@ function assembleSwitchStatement(selectionText: string, cases: SwitchCase[], arm
 
 /**
  * Unlike assembleIfElse/assembleSwitchStatement, Sequence arms are NOT mutually exclusive —
- * every wired arm fires, unconditionally, in pin order. Each arm is wrapped in its own `{ }`
- * block purely for independent const/let scoping (consistent with each arm already getting
- * its own fresh `emitted` copy in emitBlock) — there is no conditional guarding any of them.
- * An unwired pin contributes nothing (same "unwired = does nothing" convention as Branch's
- * unwired False / Switch's unwired case).
+ * every wired arm fires, unconditionally, in pin order. Arms are emitted directly without
+ * wrapping, separated by a blank line so each pin's statements are visually distinct in the
+ * generated output. There is no conditional guarding any of them. An unwired pin contributes
+ * nothing (same "unwired = does nothing" convention as Branch's unwired False / Switch's
+ * unwired case).
  */
 function assembleSequence(arms: ForkArm[]): string {
   return arms
     .filter((a) => a.wired)
-    .map((a) => `{\n${indent(a.code)}\n}`)
-    .join("\n");
+    .map((a) => a.code)
+    .join("\n\n");
+}
+
+/**
+ * Assembles a try-catch block: tries the Try arm's code, and if an exception is thrown,
+ * catches it with the given error identifier and runs the Catch arm's code. Unlike a Branch
+ * (which picks one of two paths conditionally), both arms have a clear semantic:
+ * Try always runs first; Catch only runs if Try throws.
+ */
+function assembleTryCatch(arms: ForkArm[], errorIdentifier: string): string {
+  const tryArm = arms.find((a) => a.pinId === "try")!;
+  const catchArm = arms.find((a) => a.pinId === "catch")!;
+  return `try {\n${indent(tryArm.code)}\n} catch (${errorIdentifier}) {\n${indent(catchArm.code)}\n}`;
 }
 
 /**
@@ -462,8 +483,11 @@ function emitBlock(startNodeId: string | undefined, ctx: EmitContext, inherited:
           ? assembleIfElse(resolveValuePin(node, ctx, "condition", { defaultLiteral: "false" }), arms)
           : node.type === "controlFlow.switch"
             ? assembleSwitchStatement(resolveValuePin(node, ctx, "selection", { defaultLiteral: "0" }), getSwitchCases(node), arms)
-            : assembleSequence(arms); // controlFlow.sequence
-      statements.push(assembled);
+            : node.type === "error.tryCatch"
+              ? assembleTryCatch(arms, tryCatchErrorIdentifier(node.id))
+              : assembleSequence(arms); // controlFlow.sequence
+      const commentBlock = commentBlockFor(node);
+      statements.push(commentBlock ? `${commentBlock}\n${assembled}` : assembled);
       return { code: statements.join("\n"), emitted, requiresAsync, suppressIifeWrap, imports }; // fork nodes are always block-terminal
     }
 

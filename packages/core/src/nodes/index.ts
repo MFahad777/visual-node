@@ -34,6 +34,8 @@ import { notNode } from "./operators/not.node.js";
 import { controlFlowBranchNode } from "./control-flow/branch.node.js";
 import { controlFlowSwitchNode } from "./control-flow/switch.node.js";
 import { controlFlowSequenceNode } from "./control-flow/sequence.node.js";
+import { tryCatchNode } from "./error/try-catch.node.js";
+import { throwNode } from "./error/throw.node.js";
 import { variableGetNode } from "./logic/variable-get.node.js";
 import { variableSetNode } from "./logic/variable-set.node.js";
 import { beginNode } from "./logic/begin.node.js";
@@ -98,6 +100,9 @@ const BUILTIN_NODES = [
   controlFlowBranchNode,
   controlFlowSwitchNode,
   controlFlowSequenceNode,
+  // Phase 37: Try Catch / Throw — error-handling control flow, own "error" category.
+  tryCatchNode,
+  throwNode,
   // Phase 10: variables (module-scope on the main canvas, function-scope inside a Function's
   // blueprint graph — see docs/phase10-variables-plan.md).
   variableGetNode,
@@ -196,4 +201,6 @@ export {
   arrayIndexOfNode,
   pathExtractorNode,
   callbackNode,
+  tryCatchNode,
+  throwNode,
 };

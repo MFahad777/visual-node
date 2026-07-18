@@ -19,6 +19,7 @@ export const CATEGORY_ORDER: NodeCategory[] = [
   "controlFlow",
   "logic",
   "array",
+  "error",
   "debugging",
 ];
 
@@ -90,5 +91,12 @@ export const CATEGORY_THEME: Record<NodeCategory, CategoryTheme> = {
     accentHex: "#9ca3af",
     // Square brackets, evoking an array literal.
     iconPaths: ["M8 4H5v16h3", "M16 4h3v16h-3"],
+  },
+  error: {
+    label: "Error",
+    headerClass: "bg-gradient-to-b from-red-600 to-red-900",
+    accentHex: "#dc2626",
+    // Warning triangle with an exclamation mark
+    iconPaths: ["M12 3l9 16H3z", "M12 10v4", "M12 17h.01"],
   },
 };

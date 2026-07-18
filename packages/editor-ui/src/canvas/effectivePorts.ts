@@ -78,6 +78,7 @@ const TEXT_LITERAL_TYPES = new Set([
   "controlFlow.switch",
   "variable.set",
   "logic.graphReturn",
+  "error.throw",
   "operators.equal",
   "operators.notEqual",
   "array.push",

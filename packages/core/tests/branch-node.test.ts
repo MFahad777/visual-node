@@ -138,6 +138,29 @@ describe("controlFlow.branch — emitFunctionGraphBody unit tests", () => {
     expect(() => emitFunctionGraphBody({ nodes, edges } as FunctionGraph)).toThrow(/no outgoing connections/);
   });
 
+  it("node comment is prepended to branch if/else block", () => {
+    const nodes = [
+      graphEntry("entry1"),
+      { id: "b1", type: "controlFlow.branch", position: { x: 0, y: 0 }, data: { comment: "Check if the flag is enabled", literals: { condition: true } } },
+      { id: "retT", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'T'" } } },
+      { id: "retF", type: "logic.graphReturn", position: { x: 0, y: 0 }, data: { literals: { value: "'F'" } } },
+    ];
+    const edges: FlowEdge[] = [
+      { id: "e1", source: "entry1", target: "b1", sourceHandle: "out", targetHandle: "in" },
+      { id: "e2", source: "entry1", target: "b1", sourceHandle: "flag", targetHandle: "condition" },
+      { id: "e3", source: "b1", target: "retT", sourceHandle: "true", targetHandle: "in" },
+      { id: "e4", source: "b1", target: "retF", sourceHandle: "false", targetHandle: "in" },
+    ];
+
+    const { code: body } = emitFunctionGraphBody({ nodes, edges } as FunctionGraph);
+    expect(body).toContain("/** Check if the flag is enabled */");
+    expect(body).toContain("if (");
+    // Comment should appear before the if statement
+    const commentIndex = body.indexOf("/** Check if the flag is enabled */");
+    const ifIndex = body.indexOf("if (");
+    expect(commentIndex).toBeLessThan(ifIndex);
+  });
+
   it("nested Branch inside a Branch's True arm compiles to nested if/else and executes all combinations", () => {
     const nodes = [
       graphEntry("entry1"),

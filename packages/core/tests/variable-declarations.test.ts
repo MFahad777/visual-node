@@ -250,4 +250,17 @@ describe("validateVariableDeclaration / buildVariableDeclarationStatement (Phase
       expect(buildVariableDeclarationStatement(v)).toBe("");
     });
   });
+
+  describe("error", () => {
+    it("wraps the message in new Error(...)", () => {
+      const v = variable({ name: "e", dataType: "error", defaultValue: "boom" });
+      expect(validateVariableDeclaration(v)).toBeNull();
+      expect(buildVariableDeclarationStatement(v)).toBe('let e = new Error("boom");');
+    });
+
+    it("emits new Error() with no default", () => {
+      const v = variable({ name: "e", dataType: "error", defaultValue: "" });
+      expect(buildVariableDeclarationStatement(v)).toBe("let e = new Error();");
+    });
+  });
 });

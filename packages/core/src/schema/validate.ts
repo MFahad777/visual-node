@@ -583,6 +583,14 @@ function validateOperatorsAndControlFlow(
       }
     }
 
+    if (node.type === "error.tryCatch") {
+      const tryWired = edges.some((e) => e.source === node.id && e.sourceHandle === "try");
+      const catchWired = edges.some((e) => e.source === node.id && e.sourceHandle === "catch");
+      if (!tryWired && !catchWired) {
+        errors.push(makeError(node.id, `Try Catch node "${node.id}" has no outgoing connection on either "Try Body" or "Catch Body" — it would do nothing`));
+      }
+    }
+
     if (node.type === "controlFlow.switch") {
       const rawCases = (node.data as Record<string, unknown> | undefined)?.cases;
       const casesArray = Array.isArray(rawCases) ? (rawCases as unknown[]) : undefined;
@@ -718,6 +726,15 @@ function validateOperatorsAndControlFlow(
         errors.push(makeError(node.id, `Return node "${node.id}" input "value" has more than one incoming connection`));
       } else if (valueIncoming.length === 0 && !hasLiteral(node, "value")) {
         errors.push(makeError(node.id, `Return node "${node.id}" input "value" is not connected and has no literal value`));
+      }
+    }
+
+    if (node.type === "error.throw") {
+      const valueIncoming = edges.filter((e) => e.target === node.id && e.targetHandle === "value");
+      if (valueIncoming.length > 1) {
+        errors.push(makeError(node.id, `Throw node "${node.id}" input "value" has more than one incoming connection`));
+      } else if (valueIncoming.length === 0 && !hasLiteral(node, "value")) {
+        errors.push(makeError(node.id, `Throw node "${node.id}" input "value" is not connected and has no literal value`));
       }
     }
 
@@ -1079,6 +1096,12 @@ function promiseArmPath(sourceId: string, sourceHandle: string | undefined, sour
   return null;
 }
 
+function tryCatchArmPath(sourceId: string, sourceHandle: string | undefined, sourceNode: FlowNode): string[] | null {
+  if (sourceNode.type !== "error.tryCatch") return null;
+  if (sourceHandle === "error") return [`${sourceId}.catch`];
+  return null;
+}
+
 function resolveArmPath(
   nodeId: string,
   nodesById: Map<string, FlowNode>,
@@ -1186,6 +1209,24 @@ function checkCrossArmValueReferences(
           }
         }
         continue; // Promise pins are checked above; don't apply the generic cross-arm logic.
+      }
+
+      const tryCatchPath = tryCatchArmPath(edge.source, edge.sourceHandle, sourceNode);
+      if (tryCatchPath !== null) {
+        const targetPath = resolve(edge.target);
+        if (!isPrefixOf(tryCatchPath, targetPath)) {
+          const key = `${targetNode.id}:${sourceNode.id}:${edge.sourceHandle}`;
+          if (!reported.has(key)) {
+            reported.add(key);
+            errors.push(
+              makeError(
+                targetNode.id,
+                `Node "${targetNode.id}" reads Try Catch node "${sourceNode.id}"'s "Error" pin, which is only available inside its Catch arm ("${tryCatchPath[0]}")`,
+              ),
+            );
+          }
+        }
+        continue;
       }
 
       // See `loopContextArmPath`'s doc comment: a loop node's context pins (element/index/

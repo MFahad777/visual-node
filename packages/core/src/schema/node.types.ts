@@ -42,6 +42,7 @@ export type VariableDataType =
   | "buffer"
   | "url"
   | "function"
+  | "error"
   | "any";
 
 export interface VariableDeclaration {

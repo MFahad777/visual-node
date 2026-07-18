@@ -138,6 +138,11 @@ function summarize(
     }
     case "logic.promise":
       return data.awaited === true ? "Awaited" : "Then/Catch";
+    case "error.throw": {
+      const expression = String(data.expression ?? "");
+      const incoming = edges?.some((e) => e.target === nodeId && e.targetHandle === "value");
+      return incoming ? "(wired)" : expression.length > 0 ? expression : "(empty)";
+    }
     default:
       return null;
   }

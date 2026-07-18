@@ -9,7 +9,8 @@ export type NodeCategory =
   | "debugging"
   | "operators"
   | "controlFlow"
-  | "array";
+  | "array"
+  | "error";
 
 export interface PortDefinition {
   id: string;

@@ -43,6 +43,8 @@ import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
 import { pathExtractorNode } from "./logic/path-extractor.node.js";
 import { callbackNode } from "./logic/callback.node.js";
+import { tryCatchNode } from "./error/try-catch.node.js";
+import { throwNode } from "./error/throw.node.js";
 import logicPromiseNode from "./logic/promise.node.js";
 
 /**
@@ -100,6 +102,10 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   controlFlowBranchNode,
   controlFlowSwitchNode,
   controlFlowSequenceNode,
+  // Phase 37: full main-canvas/Function-Graph parity, same reasoning as operators/array/
+  // control-flow above.
+  tryCatchNode,
+  throwNode,
   // Phase 17: array operation nodes — ordinary statement-producing nodes with no req/res
   // dependency, same "full main-canvas/Function-Graph parity" reasoning as operators/
   // control-flow above.

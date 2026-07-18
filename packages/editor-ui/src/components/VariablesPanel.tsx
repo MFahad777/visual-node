@@ -340,7 +340,9 @@ function DefaultValueField({
             ? "https://example.com"
             : dataType === "function"
               ? "e.g. (x) => x * 2, or myFunction"
-              : "no default";
+              : dataType === "error"
+                ? "error message"
+                : "no default";
 
   return (
     <input
