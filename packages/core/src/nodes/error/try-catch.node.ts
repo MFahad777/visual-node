@@ -2,20 +2,24 @@ import type { NodeDefinition } from "../../schema/node-registry.js";
 import { tryCatchErrorIdentifier } from "../../codegen/exec-chain.js";
 
 /**
- * One execution input ("In"); two execution outputs, "Try Body" and "Catch Body" — wiring
- * either emits the wired sub-chain inside the corresponding `try { }`/`catch (err) { }`
- * block; one value output, "Error", readable only from inside the Catch arm (enforced by
- * `schema/validate.ts`'s `tryCatchArmPath`, the same arm-scoping mechanism `logic.promise`'s
- * "value"/"error" pins already use).
+ * One execution input ("In"); up to three execution outputs: "Try Body" and "Catch Body"
+ * (always present), plus an optional "Finally" (when `data.hasFinally` is true) — wiring
+ * each emits the wired sub-chain inside the corresponding `try { }`/`catch (err) { }` or
+ * `finally { }` block; one value output, "Error", readable only from inside the Catch arm
+ * (enforced by `schema/validate.ts`'s `tryCatchArmPath`, the same arm-scoping mechanism
+ * `logic.promise`'s "value"/"error" pins already use).
  *
  * Like Branch/Switch/Sequence, this node's own `emit()` is a defensive stub that never
  * actually runs — the real compilation lives entirely in `codegen/exec-chain.ts`'s
  * `emitBlock`, which special-cases `node.type === "error.tryCatch"` via `getForkArmPinIds`
- * (returns `["try", "catch"]`), recursively compiles each wired arm as its own independent
- * scope, and assembles a real `try { } catch (err_<id>) { }` statement via
- * `assembleTryCatch`. Unlike Branch's optional `else`/Switch's optional `default`, the
- * `catch` clause is ALWAYS emitted (even with an empty body) since JS's `try` statement
- * requires a `catch` or `finally` and this node has no `finally`.
+ * (returns `["try", "catch"]` if `data.hasFinally` is false, or `["try", "catch", "finally"]`
+ * if true), recursively compiles each wired arm as its own independent scope, and assembles
+ * a real `try { } catch (err_<id>) { }` statement via `assembleTryCatch` — optionally
+ * appending a `finally { }` clause if the finally arm is wired. Unlike Branch's optional
+ * `else`/Switch's optional `default`, the `catch` clause is ALWAYS emitted (even with an
+ * empty body) since JS's `try` statement requires a `catch` or `finally`. The Finally arm,
+ * when present, follows the ordinary "unwired optional arm = no-op" convention — leaving it
+ * unwired (checkbox on, no wire) compiles to no `finally` clause at all.
  *
  * The catch parameter is a per-node-unique identifier (`err_<sanitizedNodeId>`, from
  * `tryCatchErrorIdentifier` in `exec-chain.ts`) rather than a bare `error` — this matches
@@ -34,9 +38,18 @@ export const tryCatchNode: NodeDefinition = {
   outputs: [
     { id: "try", label: "Try Body", kind: "exec" },
     { id: "catch", label: "Catch Body", kind: "exec" },
+    { id: "finally", label: "Finally", kind: "exec" },
     { id: "error", label: "Error", kind: "value" },
   ],
-  configSchema: [],
+  configSchema: [
+    {
+      key: "hasFinally",
+      label: "Add Finally Statement",
+      type: "boolean",
+      default: false,
+      hint: "When enabled, adds a Finally execution output that always runs after Try/Catch, whether or not an error was thrown.",
+    },
+  ],
   emit: () => {
     throw new Error('error.tryCatch is compiled by the exec-chain walker (codegen/exec-chain.ts), not emitted directly');
   },

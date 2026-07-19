@@ -106,7 +106,10 @@ export function getForkArmPinIds(node: FlowNode): string[] | null {
   if (node.type === "controlFlow.sequence") {
     return ["then-0", ...getSequencePins(node).map((p) => `then-${p.id}`)];
   }
-  if (node.type === "error.tryCatch") return ["try", "catch"];
+  if (node.type === "error.tryCatch") {
+    const hasFinally = (node.data as Record<string, unknown> | undefined)?.hasFinally === true;
+    return hasFinally ? ["try", "catch", "finally"] : ["try", "catch"];
+  }
   return null;
 }
 
@@ -173,15 +176,22 @@ function assembleSequence(arms: ForkArm[]): string {
 }
 
 /**
- * Assembles a try-catch block: tries the Try arm's code, and if an exception is thrown,
- * catches it with the given error identifier and runs the Catch arm's code. Unlike a Branch
- * (which picks one of two paths conditionally), both arms have a clear semantic:
- * Try always runs first; Catch only runs if Try throws.
+ * Assembles a try-catch or try-catch-finally block: tries the Try arm's code, and if an
+ * exception is thrown, catches it with the given error identifier and runs the Catch arm's code.
+ * Optionally appends a Finally arm if one is present and wired (runs unconditionally after
+ * Try/Catch, whether or not an error was thrown). Unlike a Branch (which picks one of two paths
+ * conditionally), Try/Catch have a clear semantic: Try always runs first; Catch only runs if
+ * Try throws; Finally (if present and wired) always runs.
  */
 function assembleTryCatch(arms: ForkArm[], errorIdentifier: string): string {
   const tryArm = arms.find((a) => a.pinId === "try")!;
   const catchArm = arms.find((a) => a.pinId === "catch")!;
-  return `try {\n${indent(tryArm.code)}\n} catch (${errorIdentifier}) {\n${indent(catchArm.code)}\n}`;
+  const finallyArm = arms.find((a) => a.pinId === "finally");
+  const head = `try {\n${indent(tryArm.code)}\n} catch (${errorIdentifier}) {\n${indent(catchArm.code)}\n}`;
+  if (finallyArm?.wired) {
+    return `${head} finally {\n${indent(finallyArm.code)}\n}`;
+  }
+  return head;
 }
 
 /**

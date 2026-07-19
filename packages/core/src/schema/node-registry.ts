@@ -10,7 +10,8 @@ export type NodeCategory =
   | "operators"
   | "controlFlow"
   | "array"
-  | "error";
+  | "error"
+  | "object";
 
 export interface PortDefinition {
   id: string;

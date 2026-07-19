@@ -19,6 +19,7 @@ export const CATEGORY_ORDER: NodeCategory[] = [
   "controlFlow",
   "logic",
   "array",
+  "object",
   "error",
   "debugging",
 ];
@@ -91,6 +92,13 @@ export const CATEGORY_THEME: Record<NodeCategory, CategoryTheme> = {
     accentHex: "#9ca3af",
     // Square brackets, evoking an array literal.
     iconPaths: ["M8 4H5v16h3", "M16 4h3v16h-3"],
+  },
+  object: {
+    label: "Object",
+    headerClass: "bg-gradient-to-b from-indigo-500 to-indigo-800",
+    accentHex: "#6366f1",
+    // Curly braces, evoking an object literal.
+    iconPaths: ["M7 3h3v18H7", "M14 3h3v18h-3", "M5 5v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5"],
   },
   error: {
     label: "Error",

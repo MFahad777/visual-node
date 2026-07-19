@@ -28,8 +28,11 @@ import {
   removePathExtractorParam as removePathExtractorParamHelper,
   addCallbackArg as addCallbackArgHelper,
   removeCallbackArg as removeCallbackArgHelper,
+  addObjectAssignSource as addObjectAssignSourceHelper,
+  removeObjectAssignSource as removeObjectAssignSourceHelper,
   setFunctionUsage as setFunctionUsageHelper,
   setPromiseAwaited as setPromiseAwaitedHelper,
+  setTryCatchHasFinally as setTryCatchHasFinallyHelper,
 } from "./variadicPins.js";
 import { defaultLiteralsFor, type FunctionUsage } from "../canvas/effectivePorts.js";
 import { translateWaypoints } from "../canvas/edgeWaypoints.js";
@@ -218,8 +221,11 @@ export interface FlowStoreState {
   removePathExtractorParam: (nodeId: string) => void;
   addCallbackArg: (nodeId: string) => void;
   removeCallbackArg: (nodeId: string, argId: string) => void;
+  addObjectAssignSource: (nodeId: string) => void;
+  removeObjectAssignSource: (nodeId: string, sourceId: string) => void;
   setFunctionUsage: (nodeId: string, usage: FunctionUsage) => void;
   setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
+  setTryCatchHasFinally: (nodeId: string, hasFinally: boolean) => void;
   selectNode: (nodeId: string | null) => void;
   setZoom: (zoom: number) => void;
   deleteSelectedNode: () => void;
@@ -411,20 +417,24 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   onNodesChange: (changes) => {
     // React Flow fires "select" changes on click and "dimensions" changes whenever a
-    // node's DOM element is (re)measured (e.g. on selection outline, on mount) — neither
-    // is an actual edit to the flow's content, so they must not flip isDirty and trigger
-    // a spurious "Save*"/"discard unsaved changes?" prompt. Exception: Phase 33 comment
-    // group nodes' dimension changes are real edits (user resizing the box) and must be marked dirty.
-    const currentNodes = get().nodes;
+    // node's DOM element is (re)measured (e.g. on selection outline, on mount, or React
+    // Flow's ResizeObserver reporting a loaded node's actual rendered size) — neither is
+    // an actual edit to the flow's content, so they must not flip isDirty and trigger a
+    // spurious "Save*"/"discard unsaved changes?" prompt. Exception: comment group nodes
+    // being resized by the user via NodeResizer are real edits and must be marked dirty —
+    // detected via NodeDimensionChange's `resizing` flag, which @xyflow/react only sets
+    // `true` while a NodeResizer drag handle is actively being dragged, never during an
+    // automatic ResizeObserver measurement on mount/load. (A width/height-comparison
+    // approach was tried first and doesn't work: `flowToGraph` seeds `node.width`/`height`
+    // from the saved comment data, so on every load there's already an "existing" value to
+    // compare against, and the freshly measured DOM size doesn't reliably equal the exact
+    // saved value.)
     const hasContentChange = changes.some((c) => {
       if (c.type !== "select" && c.type !== "dimensions") return true;
-      // Comment group dimension changes are always real edits (user resizing via NodeResizer)
-      if (c.type === "dimensions" && "id" in c) {
-        const node = currentNodes.find((n) => n.id === c.id);
-        if (node?.type === "annotation.commentGroup") return true;
-      }
+      if (c.type === "dimensions") return c.resizing === true;
       return false;
     });
+    const currentNodes = get().nodes;
     const updatedNodes = applyNodeChanges(changes, currentNodes);
 
     // Phase 32: when nodes move, translate their connected edges' waypoints by the same
@@ -640,6 +650,32 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
     get().runValidation();
   },
 
+  addObjectAssignSource: (nodeId) => {
+    set({
+      nodes: get().nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const updated = addObjectAssignSourceHelper(n);
+        // Seed a literal value for the newly added source, matching GenericNode's inline display
+        const extraSources = Array.isArray(updated.data?.extraSources) ? updated.data!.extraSources as Array<{ id: string }> : [];
+        const lastSource = extraSources[extraSources.length - 1];
+        if (lastSource) {
+          const newSourcePinId = `source-${lastSource.id}`;
+          const literals = (updated.data?.literals as Record<string, unknown>) ?? {};
+          updated.data = { ...updated.data, literals: { ...literals, [newSourcePinId]: "undefined" } };
+        }
+        return updated;
+      }),
+      isDirty: true,
+    });
+    get().runValidation();
+  },
+
+  removeObjectAssignSource: (nodeId, sourceId) => {
+    const { nodes, edges } = removeObjectAssignSourceHelper(nodeId, sourceId, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
   setFunctionUsage: (nodeId, usage) => {
     const { nodes, edges } = setFunctionUsageHelper(nodeId, usage, get().nodes, get().edges);
     set({ nodes, edges, isDirty: true });
@@ -648,6 +684,12 @@ export const useFlowStore = create<FlowStoreState>((set, get) => ({
 
   setPromiseAwaited: (nodeId, awaited) => {
     const { nodes, edges } = setPromiseAwaitedHelper(nodeId, awaited, get().nodes, get().edges);
+    set({ nodes, edges, isDirty: true });
+    get().runValidation();
+  },
+
+  setTryCatchHasFinally: (nodeId, hasFinally) => {
+    const { nodes, edges } = setTryCatchHasFinallyHelper(nodeId, hasFinally, get().nodes, get().edges);
     set({ nodes, edges, isDirty: true });
     get().runValidation();
   },

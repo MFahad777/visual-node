@@ -4,12 +4,15 @@ import {
   getSequencePins,
   getPathExtractorParamCount,
   getCallbackArgs,
+  getExtraSources,
   functionAllowedInputHandles,
   functionAllowedOutputHandles,
   promiseAllowedOutputHandles,
+  tryCatchAllowedOutputHandles,
   type SwitchCase,
   type SequencePin,
   type CallbackArg,
+  type ExtraSource,
   type FunctionUsage,
 } from "../canvas/effectivePorts.js";
 
@@ -179,6 +182,39 @@ export function removeCallbackArg(
 }
 
 /**
+ * Appends a new source pin (`source-<seq>`) to an Object Assign node's `data.extraSources`.
+ * `nextSourceSeq` is a monotonic counter, never reused — same convention as
+ * `addSequencePin`'s `nextPinSeq`. Unlike Sequence (an exec-output stable-id list), this is
+ * a value-INPUT stable-id list, so removal (`removeObjectAssignSource`) drops an incoming
+ * wire, not an outgoing one. Starts from 1 to avoid colliding with the static "source-0" pin
+ * defined in assign.node.ts.
+ */
+export function addObjectAssignSource(node: Node): Node {
+  const sources = getExtraSources(node.data as Record<string, unknown>);
+  const seq = Number(node.data?.nextSourceSeq ?? 1);
+  const newSource: ExtraSource = { id: String(seq) };
+  return { ...node, data: { ...node.data, extraSources: [...sources, newSource], nextSourceSeq: seq + 1 } };
+}
+
+/** Removes one dynamic source pin from an Object Assign node by its stable id, dropping any wire targeting it. */
+export function removeObjectAssignSource(
+  nodeId: string,
+  sourceId: string,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const handle = `source-${sourceId}`;
+  return {
+    nodes: nodes.map((n) =>
+      n.id === nodeId
+        ? { ...n, data: { ...n.data, extraSources: getExtraSources(n.data as Record<string, unknown>).filter((s) => s.id !== sourceId) } }
+        : n,
+    ),
+    edges: edges.filter((e) => !(e.target === nodeId && e.targetHandle === handle)),
+  };
+}
+
+/**
  * Sets a `logic.function` instance's `usage` ("callback" | "standalone") and drops any edge
  * touching this node whose handle isn't allowed under the new usage — e.g. switching to
  * "standalone" removes the "Assign / Parameter" output wire and any wired `param-<i>` input,
@@ -237,6 +273,29 @@ export function setPromiseAwaited(
   const allowedOutputs = promiseAllowedOutputHandles(awaited);
   return {
     nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, awaited } } : n)),
+    edges: edges.filter((e) => {
+      if (e.source === nodeId && e.sourceHandle && !allowedOutputs.has(e.sourceHandle)) return false;
+      return true;
+    }),
+  };
+}
+
+/**
+ * Sets an `error.tryCatch` instance's `hasFinally` flag and drops any edge sourced from its
+ * "finally" exec-output pin when the checkbox is turned off. Uses the same
+ * `tryCatchAllowedOutputHandles` helper `effectivePorts.ts`'s output-port computation uses for
+ * rendering, so a pin that's about to disappear from the canvas never keeps a dangling edge
+ * reference. Mirrors `setPromiseAwaited`/`setFunctionUsage`.
+ */
+export function setTryCatchHasFinally(
+  nodeId: string,
+  hasFinally: boolean,
+  nodes: Node[],
+  edges: Edge[],
+): { nodes: Node[]; edges: Edge[] } {
+  const allowedOutputs = tryCatchAllowedOutputHandles(hasFinally);
+  return {
+    nodes: nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, hasFinally } } : n)),
     edges: edges.filter((e) => {
       if (e.source === nodeId && e.sourceHandle && !allowedOutputs.has(e.sourceHandle)) return false;
       return true;

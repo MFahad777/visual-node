@@ -23,7 +23,10 @@ import {
   removePathExtractorParam as removePathExtractorParamHelper,
   addCallbackArg as addCallbackArgHelper,
   removeCallbackArg as removeCallbackArgHelper,
+  addObjectAssignSource as addObjectAssignSourceHelper,
+  removeObjectAssignSource as removeObjectAssignSourceHelper,
   setPromiseAwaited as setPromiseAwaitedHelper,
+  setTryCatchHasFinally as setTryCatchHasFinallyHelper,
 } from "./variadicPins.js";
 import { translateWaypoints } from "../canvas/edgeWaypoints.js";
 import { withParentsBeforeChildren, reparentNode, releaseChildrenOfDeletedGroup, assignInitialMembers, findContainingGroup } from "../canvas/subflowGroups.js";
@@ -109,7 +112,10 @@ export interface FunctionGraphState {
   removePathExtractorParam: (nodeId: string) => void;
   addCallbackArg: (nodeId: string) => void;
   removeCallbackArg: (nodeId: string, argId: string) => void;
+  addObjectAssignSource: (nodeId: string) => void;
+  removeObjectAssignSource: (nodeId: string, sourceId: string) => void;
   setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
+  setTryCatchHasFinally: (nodeId: string, hasFinally: boolean) => void;
   addParam: (name: string) => void;
   removeParam: (name: string) => void;
   renameParam: (oldName: string, newName: string) => void;
@@ -379,8 +385,33 @@ export function createFunctionGraphStore(
       const { nodes, edges } = removeCallbackArgHelper(nodeId, argId, get().nodes, get().edges);
       set({ nodes, edges });
     },
+    addObjectAssignSource: (nodeId) => {
+      set({
+        nodes: get().nodes.map((n) => {
+          if (n.id !== nodeId) return n;
+          const updated = addObjectAssignSourceHelper(n);
+          // Seed a literal value for the newly added source, matching GenericNode's inline display
+          const extraSources = Array.isArray(updated.data?.extraSources) ? updated.data!.extraSources as Array<{ id: string }> : [];
+          const lastSource = extraSources[extraSources.length - 1];
+          if (lastSource) {
+            const newSourcePinId = `source-${lastSource.id}`;
+            const literals = (updated.data?.literals as Record<string, unknown>) ?? {};
+            updated.data = { ...updated.data, literals: { ...literals, [newSourcePinId]: "undefined" } };
+          }
+          return updated;
+        }),
+      });
+    },
+    removeObjectAssignSource: (nodeId, sourceId) => {
+      const { nodes, edges } = removeObjectAssignSourceHelper(nodeId, sourceId, get().nodes, get().edges);
+      set({ nodes, edges });
+    },
     setPromiseAwaited: (nodeId, awaited) => {
       const { nodes, edges } = setPromiseAwaitedHelper(nodeId, awaited, get().nodes, get().edges);
+      set({ nodes, edges });
+    },
+    setTryCatchHasFinally: (nodeId, hasFinally) => {
+      const { nodes, edges } = setTryCatchHasFinallyHelper(nodeId, hasFinally, get().nodes, get().edges);
       set({ nodes, edges });
     },
     updateSwitchCaseValue: (nodeId, caseId, value) => {

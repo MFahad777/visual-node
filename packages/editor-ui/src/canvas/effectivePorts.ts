@@ -86,6 +86,7 @@ const TEXT_LITERAL_TYPES = new Set([
   "array.includes",
   "array.indexOf",
   "logic.pathExtractor",
+  "object.assign",
 ]);
 
 export function literalKindFor(type: string | undefined): "number" | "boolean" | "text" | null {
@@ -107,12 +108,18 @@ export function literalKindFor(type: string | undefined): "number" | "boolean" |
  * one non-exec input pin, or (operators) wants literal editing on all of them — both already
  * match this function's generic fallback, so gating on it changes no existing type's behavior.
  */
-export function staticLiteralPinIds(type: string, definition: NodeDefinition): string[] {
+export function staticLiteralPinIds(type: string, definition: NodeDefinition, data?: Record<string, unknown>): string[] {
   if (type === "controlFlow.switch") return ["selection"];
   if (type === "controlFlow.branch") return ["condition"];
   if (type === "array.push" || type === "array.unshift") return ["value"];
   if (type === "array.includes" || type === "array.indexOf") return ["searchElement"];
   if (type === "logic.pathExtractor") return [];
+  if (type === "object.assign") {
+    // All sources (static "source-0" plus dynamic sources) should support inline literals, but not "target"
+    const staticSources = ["source-0"];
+    const dynamicSourceIds = getExtraSources(data).map((s) => `source-${s.id}`);
+    return [...staticSources, ...dynamicSourceIds];
+  }
   return definition.inputs.filter((p) => p.kind !== "exec").map((p) => p.id);
 }
 
@@ -190,6 +197,14 @@ export function promiseAllowedOutputHandles(awaited: boolean): Set<string> {
   return new Set(["out", "then", "catch", "assign", "value", "error"]);
 }
 
+/** Output pin ids an `error.tryCatch` instance has — Finally is hidden unless the
+ * "Add Finally Statement" checkbox (`data.hasFinally`) is on; Try/Catch/Error are
+ * always present regardless. */
+export function tryCatchAllowedOutputHandles(hasFinally: boolean): Set<string> {
+  const base = ["try", "catch", "error"];
+  return new Set(hasFinally ? [...base, "finally"] : base);
+}
+
 export interface CallbackArg {
   id: string;
 }
@@ -199,6 +214,17 @@ export interface CallbackArg {
  * another arg's wiring. */
 export function getCallbackArgs(data: Record<string, unknown> | undefined): CallbackArg[] {
   return Array.isArray(data?.args) ? (data!.args as CallbackArg[]) : [];
+}
+
+export interface ExtraSource {
+  id: string;
+}
+
+/** Stable-id array of an `object.assign` instance's dynamic `source-<id>` value-input pins —
+ * same convention as `getCallbackArgs`/`getSequencePins`, so removing a source from the middle
+ * never disturbs another source's wiring. */
+export function getExtraSources(data: Record<string, unknown> | undefined): ExtraSource[] {
+  return Array.isArray(data?.extraSources) ? (data!.extraSources as ExtraSource[]) : [];
 }
 
 /**
@@ -274,6 +300,16 @@ export function computeEffectiveInputs(
     ];
   }
 
+  if (type === "object.assign") {
+    // Live-index label (not the stored id), same convention as Sequence's `then-<id>` pins —
+    // removing a source from the middle relabels the remainder without renumbering ids/wires.
+    // Source 0 is always static; dynamic sources start labeling at "Source 1".
+    return [
+      ...definition.inputs,
+      ...getExtraSources(data).map((s, i) => ({ id: `source-${s.id}`, label: `Source ${i + 1}`, kind: "value" as const })),
+    ];
+  }
+
   return definition.inputs;
 }
 
@@ -340,6 +376,12 @@ export function computeEffectiveOutputs(
       ...definition.outputs,
       ...getSequencePins(data).map((p, i) => ({ id: `then-${p.id}`, label: `Then ${i + 1}`, kind: "exec" as const })),
     ];
+  }
+
+  if (type === "error.tryCatch") {
+    const hasFinally = (data as Record<string, unknown> | undefined)?.hasFinally === true;
+    const allowed = tryCatchAllowedOutputHandles(hasFinally);
+    return definition.outputs.filter((p) => allowed.has(p.id));
   }
 
   return definition.outputs;

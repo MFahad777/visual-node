@@ -53,6 +53,8 @@ export interface FunctionGraphEdgeContextValue {
   removePathExtractorParam?: (nodeId: string) => void;
   addCallbackArg?: (nodeId: string) => void;
   removeCallbackArg?: (nodeId: string, argId: string) => void;
+  addObjectAssignSource?: (nodeId: string) => void;
+  removeObjectAssignSource?: (nodeId: string, sourceId: string) => void;
   // Phase 31: back the draggable/removable wire-anchor (waypoint) feature. Only present
   // inside a Function Graph sub-canvas — the main canvas calls the global `useFlowStore`'s
   // equivalents instead, same fallback pattern as `deleteEdge` above.

@@ -46,6 +46,8 @@ import { callbackNode } from "./logic/callback.node.js";
 import { tryCatchNode } from "./error/try-catch.node.js";
 import { throwNode } from "./error/throw.node.js";
 import logicPromiseNode from "./logic/promise.node.js";
+import { isArrayNode } from "./array/is-array.node.js";
+import { assignNode } from "./object/assign.node.js";
 
 /**
  * Node types offered inside a Function or Handler Function node's blueprint body sub-canvas — deliberately kept
@@ -134,6 +136,11 @@ export const FUNCTION_GRAPH_NODE_DEFINITIONS: NodeDefinition[] = [
   // or variable binding. Full main-canvas/Function-Graph parity; also usable recursively
   // inside another Promise's own executor blueprint body.
   logicPromiseNode,
+  // Phase 38: array.isArray (pure value node) and object.assign (exec pass-through with
+  // variadic sources), same "full main-canvas/Function-Graph parity" reasoning as operators/
+  // array/Path Extractor above.
+  isArrayNode,
+  assignNode,
 ];
 
 /**

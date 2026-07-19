@@ -580,6 +580,32 @@ function PromiseNodeConfig({
 }
 
 /**
+ * `error.tryCatch`'s only config field is the "Add Finally Statement" checkbox, but toggling
+ * it off must also drop any wire on the now-hidden "Finally" exec-output pin — the generic
+ * `configSchema`-driven checkbox path (`updateNodeConfig`) never prunes edges, so a wire left
+ * dangling on a hidden pin would silently vanish from the canvas while still being compiled
+ * (or, worse, reappear if the checkbox is turned back on). Routes through `setTryCatchHasFinally`
+ * instead, mirroring `PromiseNodeConfig`'s `setPromiseAwaited` precedent above.
+ */
+function TryCatchConfig({
+  node,
+  setTryCatchHasFinally,
+}: {
+  node: Node;
+  setTryCatchHasFinally: (nodeId: string, hasFinally: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <Checkbox
+        checked={node.data?.hasFinally === true}
+        onChange={(e) => setTryCatchHasFinally(node.id, e.target.checked)}
+      />
+      <span className="text-xs font-medium text-neutral-400">Add Finally Statement</span>
+    </label>
+  );
+}
+
+/**
  * `logic.handlerFunction` mirrors `logic.function`'s Code/Blueprint dual-mode UI exactly
  * (see `FunctionNodeConfig` above), with two differences: its `req, res, next` parameters
  * are fixed by the node type (Express's handler signature is invariant) and rendered as a
@@ -903,6 +929,7 @@ export function NodeConfigPanel() {
   const nodeDefinitions = useFlowStore((s) => s.nodeDefinitions);
   const updateNodeConfig = useFlowStore((s) => s.updateNodeConfig);
   const setPromiseAwaited = useFlowStore((s) => s.setPromiseAwaited);
+  const setTryCatchHasFinally = useFlowStore((s) => s.setTryCatchHasFinally);
   const deleteSelectedNode = useFlowStore((s) => s.deleteSelectedNode);
   const edges = useFlowStore((s) => s.edges);
   const nodes = useFlowStore((s) => s.nodes);
@@ -1017,6 +1044,8 @@ export function NodeConfigPanel() {
           openCodeExpand={openCodeExpand}
           onOpenBlueprintGraph={() => openFunctionGraphTab(node)}
         />
+      ) : node.type === "error.tryCatch" ? (
+        <TryCatchConfig node={node} setTryCatchHasFinally={setTryCatchHasFinally} />
       ) : node.type === "logic.require" ? (
         <RequireNodeConfig node={node} updateNodeConfig={updateNodeConfig} />
       ) : node.type === "logic.callback" ? (

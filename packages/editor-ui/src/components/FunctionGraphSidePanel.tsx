@@ -113,6 +113,7 @@ function FunctionGraphSidePanelContent({
   const deleteSelectedNode = useGraphStore((s) => s.deleteSelectedNode);
   const updateNodeData = useGraphStore((s) => s.updateNodeData);
   const setPromiseAwaited = useGraphStore((s) => s.setPromiseAwaited);
+  const setTryCatchHasFinally = useGraphStore((s) => s.setTryCatchHasFinally);
   const addSwitchCasePin = useGraphStore((s) => s.addSwitchCasePin);
   const removeSwitchCasePin = useGraphStore((s) => s.removeSwitchCasePin);
   const updateSwitchCaseValue = useGraphStore((s) => s.updateSwitchCaseValue);
@@ -210,6 +211,7 @@ function FunctionGraphSidePanelContent({
           edges={edges as Edge[]}
           updateNodeData={updateNodeData}
           setPromiseAwaited={setPromiseAwaited}
+          setTryCatchHasFinally={setTryCatchHasFinally}
           addSwitchCasePin={addSwitchCasePin}
           removeSwitchCasePin={removeSwitchCasePin}
           updateSwitchCaseValue={updateSwitchCaseValue}
@@ -241,6 +243,7 @@ function SubCanvasNodeConfig({
   edges,
   updateNodeData,
   setPromiseAwaited,
+  setTryCatchHasFinally,
   addSwitchCasePin,
   removeSwitchCasePin,
   updateSwitchCaseValue,
@@ -254,6 +257,7 @@ function SubCanvasNodeConfig({
   edges: Edge[];
   updateNodeData: (nodeId: string, key: string, value: unknown) => void;
   setPromiseAwaited: (nodeId: string, awaited: boolean) => void;
+  setTryCatchHasFinally: (nodeId: string, hasFinally: boolean) => void;
   addSwitchCasePin: (nodeId: string) => void;
   removeSwitchCasePin: (nodeId: string, caseId: string) => void;
   updateSwitchCaseValue: (nodeId: string, caseId: string, value: string | number | boolean) => void;
@@ -421,6 +425,22 @@ function SubCanvasNodeConfig({
           />
         </label>
       </div>
+    );
+  }
+
+  if (node.type === "error.tryCatch") {
+    // Toggling the checkbox off must also drop any wire on the now-hidden "Finally"
+    // exec-output pin — the generic checkbox path below (`updateNodeData`) never prunes
+    // edges, so route through `setTryCatchHasFinally` instead, same fix as the main
+    // canvas's `TryCatchConfig` (NodeConfigPanel.tsx).
+    return (
+      <label className="flex items-center gap-2">
+        <Checkbox
+          checked={node.data?.hasFinally === true}
+          onChange={(e) => setTryCatchHasFinally(node.id, e.target.checked)}
+        />
+        <span className="text-xs font-medium text-neutral-400">Add Finally Statement</span>
+      </label>
     );
   }
 

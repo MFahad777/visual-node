@@ -17,6 +17,7 @@ import {
   staticLiteralPinIds,
   getPathExtractorParamCount,
   getCallbackArgs,
+  getExtraSources,
   VARIADIC_BOOLEAN_TYPES,
 } from "./effectivePorts.js";
 import { isExecPort } from "./execPorts.js";
@@ -193,6 +194,8 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const globalRemovePathExtractorParam = useFlowStore((s) => s.removePathExtractorParam);
   const globalAddCallbackArg = useFlowStore((s) => s.addCallbackArg);
   const globalRemoveCallbackArg = useFlowStore((s) => s.removeCallbackArg);
+  const globalAddObjectAssignSource = useFlowStore((s) => s.addObjectAssignSource);
+  const globalRemoveObjectAssignSource = useFlowStore((s) => s.removeObjectAssignSource);
   // Same scoped/global fallback as the mutations above: inside a Function Graph tab, the
   // Comment "Expand" button must open the scoped functionGraphStore's own
   // expandedCommentField, or CommentExpandModal looks up a node id that only exists locally
@@ -208,6 +211,8 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const removePathExtractorParam = scopedEdgeContext?.removePathExtractorParam ?? globalRemovePathExtractorParam;
   const addCallbackArg = scopedEdgeContext?.addCallbackArg ?? globalAddCallbackArg;
   const removeCallbackArg = scopedEdgeContext?.removeCallbackArg ?? globalRemoveCallbackArg;
+  const addObjectAssignSource = scopedEdgeContext?.addObjectAssignSource ?? globalAddObjectAssignSource;
+  const removeObjectAssignSource = scopedEdgeContext?.removeObjectAssignSource ?? globalRemoveObjectAssignSource;
 
   const [isEditingComment, setIsEditingComment] = useState(false);
   const bubbleRef = useRef<HTMLButtonElement>(null);
@@ -301,7 +306,7 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
     if (isFunctionParamPin(portId)) return "text";
     if (isCallbackArgPin(portId)) return "text";
     if (!literalKind || !type) return null;
-    return staticLiteralPinIds(type, definition).includes(portId) ? literalKind : null;
+    return staticLiteralPinIds(type, definition, nodeData).includes(portId) ? literalKind : null;
   };
 
   const showSubtitle = !!summary;
@@ -375,8 +380,18 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
   const isPathExtractorNode = type === "logic.pathExtractor";
   const isCallbackNode = type === "logic.callback";
   const callbackArgIds = new Set(getCallbackArgs(nodeData).map((a) => `arg-${a.id}`));
+  const isObjectAssignNode = type === "object.assign";
+  const extraSourceIds = new Set(getExtraSources(nodeData).map((s) => `source-${s.id}`));
   const scaleValue = Math.min(Math.max(1 / zoom, 0.5), 2);
-  const dynamicTopOffset = -(36 + 10 * (scaleValue - 1));
+  // The comment pill counter-scales (1/zoom), so its world-space height grows as the
+  // user zooms out. Anchoring it with a fixed top offset would let the taller pill
+  // slide down and cover the node, so derive the offset from the pill's actual world
+  // height — this keeps its bottom edge a constant ~14px above the node top at every
+  // zoom level, and lifts it higher automatically as you zoom out. The pill's
+  // `transition-all duration-200` animates it smoothly back down as you zoom in.
+  const commentFontSize = Math.max(10, Math.min(28, 14 * scaleValue));
+  const commentPillHeight = commentFontSize + 8 * scaleValue; // font + 2×(4*scaleValue) vertical padding
+  const dynamicTopOffset = -(commentPillHeight + 14);
 
   return (
     <div className="relative">
@@ -428,6 +443,7 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
                 const showLiteral = portLiteralKind !== null && !isExecPort(port) && !connected;
                 const isRemovableInput = isVariadicBooleanNode && extraInputIds.has(port.id);
                 const isRemovableCallbackArg = isCallbackNode && callbackArgIds.has(port.id);
+                const isRemovableSource = isObjectAssignNode && extraSourceIds.has(port.id);
                 return (
                   // `relative` makes this row (not the whole node) the offset parent for its
                   // Handle — react-flow's default handle CSS centers vertically (`top: 50%`)
@@ -495,6 +511,16 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
                         ×
                       </button>
                     )}
+                    {isRemovableSource && (
+                      <button
+                        type="button"
+                        onClick={() => removeObjectAssignSource(id, port.id.replace(/^source-/, ""))}
+                        title="Remove source"
+                        className="nodrag nopan flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-red-400 text-[9px] leading-none text-red-400 hover:bg-red-500 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -514,6 +540,15 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
                   className="nodrag nopan mt-0.5 self-start text-left text-[10px] text-sky-400 hover:text-sky-300"
                 >
                   + Add Arg
+                </button>
+              )}
+              {isObjectAssignNode && (
+                <button
+                  type="button"
+                  onClick={() => addObjectAssignSource(id)}
+                  className="nodrag nopan mt-0.5 self-start text-left text-[10px] text-sky-400 hover:text-sky-300"
+                >
+                  + Add Source
                 </button>
               )}
               {isPathExtractorNode && (
@@ -584,7 +619,11 @@ function GenericNodeImpl({ id, type, data, selected }: GenericNodeProps) {
         className="nodrag nopan absolute left-0 max-w-[150px] truncate cursor-pointer rounded-full border border-amber-400/40 bg-[#1f1f1f]/95 px-2 py-1 italic text-amber-300/90 transition-all duration-200"
         style={{
           top: `${dynamicTopOffset}px`,
-          fontSize: `${Math.max(10, Math.min(20, 14 * scaleValue))}px`,
+          // Screen-space sizing: counter-scale by 1/zoom to hold a constant on-screen
+          // size. Upper cap must reach 14/minZoom = 14/0.5 = 28 so zooming out doesn't
+          // clip the counter-scaling and make the pill text shrink on screen.
+          // (commentFontSize is also what dynamicTopOffset uses to size the pill lift.)
+          fontSize: `${commentFontSize}px`,
           padding: `${4 * scaleValue}px ${8 * scaleValue}px`,
         }}
       >

@@ -56,6 +56,8 @@ import { arrayIncludesNode } from "./array/includes.node.js";
 import { arrayIndexOfNode } from "./array/index-of.node.js";
 import { pathExtractorNode } from "./logic/path-extractor.node.js";
 import { callbackNode } from "./logic/callback.node.js";
+import { isArrayNode } from "./array/is-array.node.js";
+import { assignNode } from "./object/assign.node.js";
 
 const BUILTIN_NODES = [
   expressInitNode,
@@ -138,6 +140,11 @@ const BUILTIN_NODES = [
   // argument pins, usable on both the main canvas and inside Function Graphs (see
   // FUNCTION_GRAPH_NODE_DEFINITIONS below).
   callbackNode,
+  // Phase 38: array.isArray (pure value node) and object.assign (exec pass-through with
+  // variadic sources), usable on both the main canvas and inside Function Graphs (see
+  // FUNCTION_GRAPH_NODE_DEFINITIONS below).
+  isArrayNode,
+  assignNode,
 ];
 
 /** Registers all built-in MVP node definitions. Safe to call more than once (e.g. after clearRegistry()). */

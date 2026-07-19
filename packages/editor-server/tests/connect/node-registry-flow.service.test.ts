@@ -43,7 +43,7 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({});
 
-    // 56, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
+    // 58, not 50: `logic.graphReturn` ("Return") became a legitimate main-canvas node type
     // in Phase 17 — wired inside a loop node's "Loop Body" arm to produce that iteration's
     // return value (see FUNCTION_GRAPH_ONLY_TYPES's doc comment in
     // nodes/function-graph-nodes.ts). Only `logic.graphEntry` remains function-graph-only.
@@ -51,7 +51,8 @@ describe("GetNodeRegistry (Connect)", () => {
     // Phase 24 replaced `handler.customCode` with `logic.handlerFunction` (net count unchanged).
     // Added `logic.promise` for async-result handling.
     // Phase 37 added `error.tryCatch` and `error.throw` for error handling.
-    expect(res.definitions).toHaveLength(56);
+    // Phase 38 added `array.isArray` and `object.assign`.
+    expect(res.definitions).toHaveLength(58);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([
@@ -87,11 +88,12 @@ describe("GetNodeRegistry (Connect)", () => {
     const client = makeClient(projectDir);
     const res = await client.getNodeRegistry({ scope: "function-graph" });
 
-    // 47: Phase 24 removed `handler.customCode` (was function-graph-usable) and
+    // 49: Phase 24 removed `handler.customCode` (was function-graph-usable) and
     // added `handler.sendJson` (now function-graph-usable too). Added `logic.promise`
     // for async-result handling. Phase 37 added `error.tryCatch` and `error.throw` with
     // full Function-Graph parity (both are statement-producing nodes with no req/res dependency).
-    expect(res.definitions).toHaveLength(47);
+    // Phase 38 added `array.isArray` and `object.assign`, both with full parity.
+    expect(res.definitions).toHaveLength(49);
     const types = res.definitions.map((d) => d.type);
     expect(types).toEqual(
       expect.arrayContaining([

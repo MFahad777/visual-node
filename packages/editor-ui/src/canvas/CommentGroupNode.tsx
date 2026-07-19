@@ -29,11 +29,16 @@ export function CommentGroupNodeImpl({
     updateNodeData(id, "color", e.target.value);
   };
 
+  // On zoom, ONLY the title's font size changes — the box's padding/layout is fixed
+  // world-space so the title's position never shifts. The font counter-scales (1/zoom)
+  // so it stays legible when zoomed out; the upper cap reaches 14/minZoom = 14/0.5 = 28
+  // so the counter-scaling isn't clipped at the furthest zoom-out. (The padding is
+  // deliberately NOT counter-scaled — that's what previously made the title move.)
   const scaleValue = Math.min(Math.max(1 / zoom, 0.5), 2);
-  const fontSize = Math.max(10, Math.min(20, 14 * scaleValue));
-  const topPadding = 16 * scaleValue;
-  const sidePadding = 14 * scaleValue;
-  const bottomPadding = 12 * scaleValue;
+  const fontSize = Math.max(10, Math.min(28, 14 * scaleValue));
+  const topPadding = 16;
+  const sidePadding = 14;
+  const bottomPadding = 12;
 
   return (
     <div
@@ -55,7 +60,7 @@ export function CommentGroupNodeImpl({
         placeholder="Comment"
         style={{
           fontSize: `${fontSize}px`,
-          marginBottom: `${4 * scaleValue}px`,
+          marginBottom: "4px",
         }}
       />
 
@@ -67,10 +72,10 @@ export function CommentGroupNodeImpl({
           className="nodrag nopan absolute cursor-pointer border-0"
           title="Box color"
           style={{
-            width: `${Math.max(16, Math.min(28, 24 * scaleValue))}px`,
-            height: `${Math.max(16, Math.min(28, 24 * scaleValue))}px`,
-            right: `${8 * scaleValue}px`,
-            top: `${8 * scaleValue}px`,
+            width: "24px",
+            height: "24px",
+            right: "8px",
+            top: "8px",
           }}
         />
       )}
@@ -82,7 +87,9 @@ export function CommentGroupNodeImpl({
 // `width`, and `height` — the fields CommentGroupNodeImpl actually destructures from NodeProps.
 // React Flow injects `xPos`/`yPos`/`dragging`/`positionAbsolute` as real values that change
 // every frame while this node is being dragged; a default shallow-compare would see them as
-// "changed" and re-run the scaleValue/fontSize/padding math every frame for nothing.
+// "changed" and re-render for nothing. (Zoom-driven font changes come in through the
+// `useFlowStore`/edge-context zoom subscription, not through NodeProps, so they aren't
+// affected by this comparator.)
 export const CommentGroupNode = memo(CommentGroupNodeImpl, (prevProps, nextProps) => {
   return (
     prevProps.id === nextProps.id &&

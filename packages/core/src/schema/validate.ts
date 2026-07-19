@@ -679,8 +679,10 @@ function validateOperatorsAndControlFlow(
     if (node.type === "error.tryCatch") {
       const tryWired = edges.some((e) => e.source === node.id && e.sourceHandle === "try");
       const catchWired = edges.some((e) => e.source === node.id && e.sourceHandle === "catch");
-      if (!tryWired && !catchWired) {
-        errors.push(makeError(node, `Has no outgoing connection on either "Try Body" or "Catch Body" — it would do nothing`, "warning"));
+      const hasFinally = (node.data as Record<string, unknown> | undefined)?.hasFinally === true;
+      const finallyWired = hasFinally && edges.some((e) => e.source === node.id && e.sourceHandle === "finally");
+      if (!tryWired && !catchWired && !finallyWired) {
+        errors.push(makeError(node, `Has no outgoing connection on "Try Body", "Catch Body", or "Finally" — it would do nothing`, "warning"));
       }
     }
 

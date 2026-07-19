@@ -41,10 +41,10 @@
     }
   ],
   "edges": [
-    { "id": "e1", "source": "init_1", "target": "json_parser_1" },
-    { "id": "e2", "source": "json_parser_1", "target": "route_1" },
-    { "id": "e3", "source": "route_1", "target": "handler_fn" },
-    { "id": "e4", "source": "init_1", "target": "listen_1" }
+    { "id": "e1", "source": "init_1", "target": "json_parser_1", "sourceHandle": "out", "targetHandle": "app" },
+    { "id": "e2", "source": "json_parser_1", "target": "route_1", "sourceHandle": "out", "targetHandle": "app" },
+    { "id": "e3", "source": "route_1", "target": "handler_fn", "sourceHandle": "out", "targetHandle": "handler" },
+    { "id": "e4", "source": "init_1", "target": "listen_1", "sourceHandle": "out", "targetHandle": "in" }
   ],
   "variables": []
 }
