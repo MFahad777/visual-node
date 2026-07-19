@@ -99,6 +99,26 @@ const found = items.includes(searchValue);
 `push`/`unshift` each take a **single** element per node by explicit product decision —
 chain multiple nodes to add multiple elements in sequence.
 
+## Is Array — `array.isArray`
+
+Tests whether a value is an array, compiling to `Array.isArray(<value>)`. A **pure value
+node** — no execution pins, no config — so it slots directly into a conditional (wire its
+"Result" output into a [Branch](/node-reference/control-flow) node's "Condition", for
+example).
+
+<NodePreview type="array.isArray" height={200} width={280} />
+
+- **Inputs**: `value` (value) — "Value" (supports inline literal editing when unwired)
+- **Outputs**: `result` (value) — "Result", a boolean
+- **Config fields**: none
+
+```js
+const isList = Array.isArray(input);
+```
+
+**Use case**: Guard logic that only makes sense for arrays — for example, branching on
+whether an incoming request field is a list before running an array method on it.
+
 ## Notes
 
 - The 9 loop-container methods replaced an earlier callback-only design; the `callback`

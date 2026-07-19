@@ -4,7 +4,74 @@ sidebar_label: Changelog
 
 # Changelog
 
-## Version 1.4.0 (Latest)
+## Version 1.5.0 (Latest)
+
+### New
+
+#### Try Catch gained an optional Finally arm
+The **[Try Catch](/node-reference/error#try-catch--errortrycatch)** node can now add a
+third execution path, **Finally**, that always runs after Try Body/Catch Body — whether
+or not anything actually threw. Turn it on with the new **"Add Finally Statement"**
+checkbox in the node's config panel; leave the new Finally pin unwired after checking the
+box and no `finally` block is generated at all.
+
+**Use case**: Guarantee cleanup work always happens — closing a resource, logging that an
+operation finished — no matter whether the Try Body succeeded or the Catch Body ran.
+
+#### New node: Is Array
+A new **[Is Array](/node-reference/array#is-array--arrayisarray)** node checks whether a
+value is an array, producing a boolean output you can wire straight into a **Branch**
+node's Condition or any other place a boolean is expected. It's a pure value node — no
+execution pins — so it drops in anywhere without interrupting your execution flow.
+
+**Use case**: Guard logic that only makes sense for a list — for example, checking whether
+an incoming request field is an array before running an array method on it.
+
+#### New node: Object Assign
+A new **[Object Assign](/node-reference/object#object-assign--objectassign)** node merges
+one or more source objects into a target object (the same as `Object.assign` in
+JavaScript). It starts with a **Target** and a single **Source**; add more sources
+directly on the node with the **"+ Add Source"** button (and remove them with the **"×"**).
+Any unwired source is simply skipped, and each source pin can take a typed-in default value
+when it isn't wired.
+
+**Use case**: Combine several objects into one — layering default options with
+request-specific overrides, or folding a partial update into an existing record — without
+writing any raw JavaScript.
+
+#### New node category: Object
+Object Assign lives in a new **Object** category (indigo, curly-brace icon), sitting
+between the Array and Error categories in the node picker and reference. It's the home for
+future object-manipulation nodes.
+
+### Fixed
+
+- **A Try Catch node's Finally wire could stay connected after unchecking "Add Finally
+  Statement."** Wiring a node to the Finally arm, then turning the checkbox back off,
+  used to leave that wire visually and logically connected instead of dropping it along
+  with the now-hidden pin. Unchecking the box now correctly removes it.
+- **Comment text became unreadably small and could slide over its node when zoomed out.**
+  A node's floating comment pill now keeps a steady, legible on-screen size at every zoom
+  level and stays anchored just above its node instead of drifting down onto it. Comment
+  box titles also now only change size — not position — as you zoom, so a title no longer
+  shifts around inside its box.
+- **A file with a comment box could falsely show unsaved changes.** Opening a `.blueprint`
+  file containing a comment box, switching away, and switching back used to mark the file
+  as edited — showing "Save\*" and prompting "discard unsaved changes?" — even though you'd
+  changed nothing. Only a genuine drag-to-resize of a comment box now marks the file dirty.
+
+### Documentation
+
+- The [Error node reference](/node-reference/error) page now documents Try Catch's
+  optional Finally arm.
+- New [Object node reference](/node-reference/object) page covering Object Assign.
+- The [Array node reference](/node-reference/array) page now documents the Is Array node.
+- The [Node Categories](/core-concepts/node-categories) and [Node Reference
+  overview](/node-reference) pages now list the new Object category.
+
+---
+
+## Version 1.4.0
 
 ### New
 

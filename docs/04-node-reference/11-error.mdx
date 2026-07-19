@@ -18,17 +18,31 @@ Graph](/core-concepts/function-graphs-and-blueprint-mode).
 ## Try Catch — `error.tryCatch`
 
 Runs "Try Body"; if anything in it throws, execution jumps to "Catch Body" instead, with
-the thrown value available on the "Error" output pin.
+the thrown value available on the "Error" output pin. Optionally, check **"Add Finally
+Statement"** to add a third path, "Finally," that always runs after Try Body/Catch Body —
+whether or not anything actually threw.
 
-<NodePreview type="error.tryCatch" height={260} width={320} />
+<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Default — no Finally arm</p>
+    <NodePreview type="error.tryCatch" height={260} width={320} />
+  </div>
+  <div>
+    <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>"Add Finally Statement" checked</p>
+    <NodePreview type="error.tryCatch" data={{ hasFinally: true }} height={260} width={320} />
+  </div>
+</div>
 
 - **Inputs**: `in` (exec) — "In"
-- **Outputs**: `try` (exec) — "Try Body"; `catch` (exec) — "Catch Body"; `error` (value) —
+- **Outputs**: `try` (exec) — "Try Body"; `catch` (exec) — "Catch Body"; `finally` (exec,
+  only shown when "Add Finally Statement" is checked) — "Finally"; `error` (value) —
   "Error"
-- **Config fields**: none
-- **Constraints**: at least one of Try Body/Catch Body must have an outgoing wire; the
-  "Error" pin can only be read from **inside the Catch Body arm** — wiring it into Try
-  Body, a sibling branch, or anything outside the Catch arm is rejected at validation time.
+- **Config fields**: **"Add Finally Statement"** checkbox (off by default) — reveals the
+  "Finally" execution pin
+- **Constraints**: at least one of Try Body/Catch Body/Finally must have an outgoing
+  wire; the "Error" pin can only be read from **inside the Catch Body arm** — wiring it
+  into Try Body, Finally, a sibling branch, or anything outside the Catch arm is rejected
+  at validation time.
 
 ```js
 try {
@@ -36,17 +50,24 @@ try {
 } catch (err_abc123) {
   console.log(err_abc123); // "Error" reads the caught value
   // ...rest of Catch Body arm
+} finally {
+  // ...Finally arm — always runs, whether or not anything threw
 }
 ```
 
 Unlike Branch's optional `else` or Switch's optional `default`, the `catch` block is
 **always emitted**, even if Catch Body is left completely unwired — a JavaScript `try`
-statement requires one. Each arm gets its own scope, exactly like Branch/Switch: a value
-computed inside Try Body can't be read from Catch Body or from outside the node.
+statement requires one. The `finally` block, on the other hand, follows the same
+"unwired optional arm = no-op" convention as Branch's `else`: check the box but leave the
+Finally pin unwired and no `finally` clause is generated at all. Each arm gets its own
+scope, exactly like Branch/Switch: a value computed inside Try Body can't be read from
+Catch Body, Finally, or from outside the node.
 
 **Use case**: Wrap risky logic — a JSON parse, a lookup that might come back empty, a
 call to something that can throw — and handle the failure explicitly instead of letting
-it crash the request.
+it crash the request. Add a Finally arm when you need guaranteed cleanup — closing a
+resource, logging that an operation finished — regardless of whether it succeeded or was
+caught.
 
 ## Throw — `error.throw`
 

@@ -4,7 +4,7 @@ title: Node Categories
 
 # Node Categories
 
-Every node type belongs to exactly one of 8 categories. A node's category determines its
+Every node type belongs to exactly one of 9 categories. A node's category determines its
 header color/icon on the canvas and which group it appears under in the node picker —
 this is also how the [Node Reference](/node-reference) is organized.
 
@@ -17,7 +17,8 @@ this is also how the [Node Reference](/node-reference) is organized.
 | **Operators** | cyan | Pure, value-producing arithmetic/comparison/boolean nodes — no execution pins. |
 | **Control Flow** | lime | Directing execution: `Branch` (if/else), `Switch`, and `Sequence` (run every wired output, in order). |
 | **Logic** | violet | Functions, variables, requiring modules, property-path extraction, and module-load-time setup. |
-| **Array** | light grey | Array iteration (map, filter, reduce, etc. with wireable loop bodies) and simple methods (push, pop, includes, etc.). |
+| **Array** | light grey | Array iteration (map, filter, reduce, etc. with wireable loop bodies), simple methods (push, pop, includes, etc.), and the `Is Array` check. |
+| **Object** | indigo | Working with plain objects: `Object Assign` (merge objects). |
 | **Error** | red | Handling thrown errors: `Try Catch` and `Throw`. |
 | **Debugging** | rose | `Console Log`. |
 
@@ -41,8 +42,8 @@ available in both places:
 - **Both, full parity**: `logic.functionCall`, `logic.callback`, `logic.pathExtractor`,
   `logic.promise`, `logic.graphReturn`, `variable.get`, `variable.set`, `debug.consoleLog`,
   `handler.sendJson`, all 17 `operators.*` nodes, all three `controlFlow.*` nodes
-  (`branch`, `switch`, `sequence`), all 15 `array.*` nodes, and both `error.*` nodes
-  (`tryCatch`, `throw`).
+  (`branch`, `switch`, `sequence`), all 16 `array.*` nodes (including `array.isArray`),
+  `object.assign`, and both `error.*` nodes (`tryCatch`, `throw`).
 
 One further exception: `logic.promise` can also be nested inside ANOTHER Promise node's
 own Blueprint executor graph, to any depth — the only node type addable inside a nested

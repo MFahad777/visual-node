@@ -1,0 +1,46 @@
+---
+title: Object
+---
+
+import NodePreview from '@site/src/components/NodePreview';
+
+# Object nodes
+
+Nodes for working with plain objects. Currently a single node — **Object Assign** — in
+the **Object** category (indigo, curly-brace icon).
+
+Usable both on the main canvas and inside a [Function
+Graph](/core-concepts/function-graphs-and-blueprint-mode).
+
+## Object Assign — `object.assign`
+
+Merges one or more source objects into a target object, compiling to
+`Object.assign(target, source0, source1, ...)`. An ordinary exec pass-through node (one
+exec-in, one exec-out, no forking) — structurally identical to the simple array methods
+like `array.push`.
+
+<NodePreview type="object.assign" data={{ extraSources: [{ id: "1" }] }} height={260} width={320} />
+
+- **Inputs**: `in` (exec) — "In"; `target` (value) — "Target"; `source-0` (value) —
+  "Source 0"; plus any number of additional "Source N" pins added on the node
+- **Outputs**: `out` (exec) — "Next"; `result` (value) — "Result" (the merged object,
+  i.e. the target modified in place)
+- **Config fields**: none
+
+Grow or shrink the source list directly on the node with the **"+ Add Source"** button;
+each dynamically-added source shows a **"×"** remove button. The static "Source 0" pin is
+always present and has no remove button. Every source pin (static and dynamic) supports
+inline literal editing when it isn't wired — type a default value directly on the pin.
+
+```js
+const merged = Object.assign(target, source0, source1);
+```
+
+Sources are applied left-to-right, so a property present in a later source overrides the
+same property from an earlier one. Any source pin left unwired resolves to `undefined`,
+which `Object.assign` silently skips — so a node with extra sources you haven't wired yet
+still compiles and behaves correctly.
+
+**Use case**: Combine several objects into one — for example, layering a set of default
+options with request-specific overrides, or merging a partial update into an existing
+record — without writing any raw JavaScript.
